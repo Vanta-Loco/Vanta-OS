@@ -1,22 +1,56 @@
-import { useQuery } from "@tanstack/react-query";
-import { useRoute } from "wouter";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useRoute, useLocation } from "wouter";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, Share2, ArrowLeft } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Calendar, Clock, Share2, ArrowLeft, Edit, Trash2 } from "lucide-react";
 import { Link } from "wouter";
 import type { Post } from "@shared/schema";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 export default function PostPage() {
   const [, params] = useRoute("/post/:id");
+  const [, navigate] = useLocation();
   const { toast } = useToast();
 
   const { data: post, isLoading } = useQuery<Post>({
     queryKey: ["/api/posts", params?.id],
     enabled: !!params?.id,
+  });
+
+  const deletePost = useMutation({
+    mutationFn: async () => {
+      return await apiRequest("DELETE", `/api/posts/${params?.id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
+      toast({
+        title: "Success!",
+        description: "Post has been deleted.",
+      });
+      navigate("/");
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to delete post. Please try again.",
+        variant: "destructive",
+      });
+    },
   });
 
   const handleShare = async () => {
@@ -137,15 +171,53 @@ export default function PostPage() {
               </Button>
             </Link>
 
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleShare}
-              data-testid="button-share"
-              aria-label="Share post"
-            >
-              <Share2 className="w-4 h-4" />
-            </Button>
+            <div className="flex items-center gap-2">
+              <Link href={`/edit/${post.id}`} data-testid="link-edit">
+                <Button variant="ghost" size="icon" data-testid="button-edit" aria-label="Edit post">
+                  <Edit className="w-4 h-4" />
+                </Button>
+              </Link>
+
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    data-testid="button-delete"
+                    aria-label="Delete post"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete Post</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to delete this post? This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel data-testid="button-delete-cancel">Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => deletePost.mutate()}
+                      data-testid="button-delete-confirm"
+                    >
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleShare}
+                data-testid="button-share"
+                aria-label="Share post"
+              >
+                <Share2 className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
 
           <div

@@ -6,6 +6,8 @@ export interface IStorage {
   getPosts(): Promise<Post[]>;
   getPost(id: string): Promise<Post | undefined>;
   createPost(post: InsertPost): Promise<Post>;
+  updatePost(id: string, post: Partial<InsertPost>): Promise<Post | undefined>;
+  deletePost(id: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -24,6 +26,20 @@ export class DatabaseStorage implements IStorage {
       .values(insertPost)
       .returning();
     return post;
+  }
+
+  async updatePost(id: string, updateData: Partial<InsertPost>): Promise<Post | undefined> {
+    const [post] = await db
+      .update(posts)
+      .set(updateData)
+      .where(eq(posts.id, id))
+      .returning();
+    return post || undefined;
+  }
+
+  async deletePost(id: string): Promise<boolean> {
+    const result = await db.delete(posts).where(eq(posts.id, id));
+    return result.rowCount !== null && result.rowCount > 0;
   }
 }
 
