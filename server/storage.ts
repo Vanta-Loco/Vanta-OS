@@ -1,6 +1,6 @@
 import { type Post, type InsertPost, posts } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, or, ilike, and, sql } from "drizzle-orm";
 
 export interface IStorage {
   getPosts(): Promise<Post[]>;
@@ -8,6 +8,7 @@ export interface IStorage {
   createPost(post: InsertPost): Promise<Post>;
   updatePost(id: string, post: Partial<InsertPost>): Promise<Post | undefined>;
   deletePost(id: string): Promise<boolean>;
+  searchPosts(query: string, category?: string): Promise<Post[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -40,6 +41,30 @@ export class DatabaseStorage implements IStorage {
   async deletePost(id: string): Promise<boolean> {
     const result = await db.delete(posts).where(eq(posts.id, id));
     return result.rowCount !== null && result.rowCount > 0;
+  }
+
+  async searchPosts(query: string, category?: string): Promise<Post[]> {
+    const searchPattern = `%${query}%`;
+    
+    const conditions = [
+      ilike(posts.title, searchPattern),
+      ilike(posts.excerpt, searchPattern),
+      ilike(posts.content, searchPattern),
+    ];
+
+    if (category) {
+      return await db
+        .select()
+        .from(posts)
+        .where(and(eq(posts.category, category), or(...conditions)))
+        .orderBy(desc(posts.createdAt));
+    }
+
+    return await db
+      .select()
+      .from(posts)
+      .where(or(...conditions))
+      .orderBy(desc(posts.createdAt));
   }
 }
 

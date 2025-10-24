@@ -1,10 +1,20 @@
+import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { PenSquare } from "lucide-react";
+import { PenSquare, Search } from "lucide-react";
 
 export function Header() {
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+    }
+  };
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 border-b border-border backdrop-blur-md bg-background/80">
@@ -42,6 +52,17 @@ export function Header() {
           </nav>
 
           <div className="flex items-center gap-2">
+            <form onSubmit={handleSearch} className="relative hidden lg:block">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Search posts..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 w-64"
+                data-testid="input-search"
+              />
+            </form>
             <ThemeToggle />
             <Link href="/create" data-testid="link-create-post">
               <Button

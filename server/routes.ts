@@ -5,6 +5,22 @@ import { insertPostSchema } from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  app.get("/api/posts/search", async (req, res) => {
+    try {
+      const { q, category } = req.query;
+      
+      if (!q || typeof q !== "string") {
+        return res.status(400).json({ error: "Search query is required" });
+      }
+
+      const posts = await storage.searchPosts(q, category as string | undefined);
+      res.json(posts);
+    } catch (error) {
+      console.error("Error searching posts:", error);
+      res.status(500).json({ error: "Failed to search posts" });
+    }
+  });
+
   app.get("/api/posts", async (_req, res) => {
     try {
       const posts = await storage.getPosts();
