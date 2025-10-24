@@ -10,6 +10,7 @@ import CreatePost from "@/pages/create";
 import EditPost from "@/pages/edit";
 import SearchPage from "@/pages/search";
 import About from "@/pages/about";
+import Music from "@/pages/music";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -21,6 +22,7 @@ function Router() {
       <Route path="/edit/:id" component={EditPost} />
       <Route path="/search" component={SearchPage} />
       <Route path="/about" component={About} />
+      <Route path="/music" component={Music} />
       <Route component={NotFound} />
     </Switch>
   );

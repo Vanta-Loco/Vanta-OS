@@ -38,6 +38,17 @@ export function Header() {
                 Home
               </Button>
             </Link>
+            <Link href="/music" data-testid="link-nav-music">
+              <Button
+                variant="ghost"
+                className={`text-sm uppercase tracking-wide font-medium ${
+                  location === "/music" ? "text-foreground" : "text-muted-foreground"
+                }`}
+                data-testid="button-nav-music"
+              >
+                Music
+              </Button>
+            </Link>
             <Link href="/about" data-testid="link-nav-about">
               <Button
                 variant="ghost"
