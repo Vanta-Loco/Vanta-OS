@@ -60,6 +60,13 @@ Looking ahead, there's so much more to build. More music to create, more stories
 ];
 
 export async function seedDatabase() {
+  const existingPosts = await storage.getPosts();
+  
+  if (existingPosts.length > 0) {
+    console.log(`Database already has ${existingPosts.length} posts, skipping seed`);
+    return;
+  }
+  
   console.log("Seeding database with sample posts...");
   
   for (const post of seedPosts) {

@@ -1,5 +1,6 @@
-import { type Post, type InsertPost } from "@shared/schema";
-import { randomUUID } from "crypto";
+import { type Post, type InsertPost, posts } from "@shared/schema";
+import { db } from "./db";
+import { eq, desc } from "drizzle-orm";
 
 export interface IStorage {
   getPosts(): Promise<Post[]>;
@@ -7,33 +8,23 @@ export interface IStorage {
   createPost(post: InsertPost): Promise<Post>;
 }
 
-export class MemStorage implements IStorage {
-  private posts: Map<string, Post>;
-
-  constructor() {
-    this.posts = new Map();
-  }
-
+export class DatabaseStorage implements IStorage {
   async getPosts(): Promise<Post[]> {
-    return Array.from(this.posts.values()).sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
+    return await db.select().from(posts).orderBy(desc(posts.createdAt));
   }
 
   async getPost(id: string): Promise<Post | undefined> {
-    return this.posts.get(id);
+    const [post] = await db.select().from(posts).where(eq(posts.id, id));
+    return post || undefined;
   }
 
   async createPost(insertPost: InsertPost): Promise<Post> {
-    const id = randomUUID();
-    const post: Post = {
-      ...insertPost,
-      id,
-      createdAt: new Date(),
-    };
-    this.posts.set(id, post);
+    const [post] = await db
+      .insert(posts)
+      .values(insertPost)
+      .returning();
     return post;
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
