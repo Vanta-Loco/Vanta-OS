@@ -70,7 +70,7 @@ export default function PostPage() {
               Post Not Found
             </h1>
             <Link href="/" data-testid="link-back-home">
-              <Button variant="default">
+              <Button variant="default" data-testid="button-back-home">
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to Home
               </Button>
@@ -131,7 +131,7 @@ export default function PostPage() {
         <div className="max-w-3xl mx-auto px-6 lg:px-8 mt-16">
           <div className="flex items-center justify-between mb-12">
             <Link href="/" data-testid="link-back">
-              <Button variant="ghost" className="gap-2">
+              <Button variant="ghost" className="gap-2" data-testid="button-back">
                 <ArrowLeft className="w-4 h-4" />
                 Back to Home
               </Button>
@@ -142,6 +142,7 @@ export default function PostPage() {
               size="icon"
               onClick={handleShare}
               data-testid="button-share"
+              aria-label="Share post"
             >
               <Share2 className="w-4 h-4" />
             </Button>

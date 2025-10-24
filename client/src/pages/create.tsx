@@ -122,7 +122,7 @@ export default function CreatePost() {
         <div className="max-w-4xl mx-auto px-6 lg:px-8">
           <div className="mb-8">
             <Link href="/" data-testid="link-back">
-              <Button variant="ghost" className="gap-2 mb-4">
+              <Button variant="ghost" className="gap-2 mb-4" data-testid="button-back">
                 <ArrowLeft className="w-4 h-4" />
                 Back to Home
               </Button>
@@ -191,7 +191,7 @@ export default function CreatePost() {
                       </SelectTrigger>
                       <SelectContent>
                         {categories.map((cat) => (
-                          <SelectItem key={cat} value={cat}>
+                          <SelectItem key={cat} value={cat} data-testid={`option-category-${cat.toLowerCase().replace(/\s+/g, '-')}`}>
                             {cat}
                           </SelectItem>
                         ))}
@@ -382,7 +382,7 @@ export default function CreatePost() {
 
             <div className="flex items-center justify-end gap-4">
               <Link href="/" data-testid="link-cancel">
-                <Button type="button" variant="ghost">
+                <Button type="button" variant="ghost" data-testid="button-cancel">
                   Cancel
                 </Button>
               </Link>

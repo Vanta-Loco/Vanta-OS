@@ -23,6 +23,7 @@ export function Header() {
                 className={`text-sm uppercase tracking-wide font-medium ${
                   location === "/" ? "text-foreground" : "text-muted-foreground"
                 }`}
+                data-testid="button-nav-home"
               >
                 Home
               </Button>
@@ -33,6 +34,7 @@ export function Header() {
                 className={`text-sm uppercase tracking-wide font-medium ${
                   location === "/about" ? "text-foreground" : "text-muted-foreground"
                 }`}
+                data-testid="button-nav-about"
               >
                 About
               </Button>
@@ -46,6 +48,7 @@ export function Header() {
                 variant="default"
                 size="default"
                 className="hidden sm:flex items-center gap-2"
+                data-testid="button-create-post"
               >
                 <PenSquare className="w-4 h-4" />
                 <span>New Post</span>
@@ -56,6 +59,7 @@ export function Header() {
                 variant="default"
                 size="icon"
                 className="sm:hidden"
+                data-testid="button-create-post-mobile"
               >
                 <PenSquare className="w-4 h-4" />
               </Button>

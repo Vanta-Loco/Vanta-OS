@@ -59,6 +59,7 @@ export function Footer() {
                 size="icon"
                 className="rounded-full"
                 data-testid="button-social-instagram"
+                aria-label="Instagram"
               >
                 <SiInstagram className="w-5 h-5" />
               </Button>
@@ -67,6 +68,7 @@ export function Footer() {
                 size="icon"
                 className="rounded-full"
                 data-testid="button-social-spotify"
+                aria-label="Spotify"
               >
                 <SiSpotify className="w-5 h-5" />
               </Button>
@@ -75,6 +77,7 @@ export function Footer() {
                 size="icon"
                 className="rounded-full"
                 data-testid="button-social-soundcloud"
+                aria-label="SoundCloud"
               >
                 <SiSoundcloud className="w-5 h-5" />
               </Button>
@@ -83,6 +86,7 @@ export function Footer() {
                 size="icon"
                 className="rounded-full"
                 data-testid="button-social-youtube"
+                aria-label="YouTube"
               >
                 <SiYoutube className="w-5 h-5" />
               </Button>
