@@ -1,0 +1,30 @@
+I want Vanta Cold to evolve from a blog into a hybrid entertainment portal and early Vanta OS gateway. It should still have editorial/blog functionality, but the platform should feel more like a dark, immersive cultural system than a normal blog.
+
+Important: I want to KEEP the current music blog landing page as the blog-facing part of the MVP for now. I like the current hero/studio image and overall landing-page template, so I do not want a total redesign from scratch. The existing homepage should be preserved and evolved, not replaced. Later, when I’m ready for full release, I may swap the hero image for content from my own studio or my main professional recording studio.
+
+The MVP vision is:
+
+1. Keep the current homepage structure and aesthetic, but enhance it so it also feels like a portal. It should still include the existing hero/blog vibe, while adding a featured release section, latest transmission/blog post, a Vanta OS entry point, and cards for worlds/projects.
+2. Add a dedicated releases page with album/single cover art, descriptions, streaming links, optional tracklists, and audio previews.
+3. Add a journal/transmissions layer that rebrands posts as transmissions, dispatches, or release notes rather than generic blog posts, without breaking the current post system.
+4. Add a worlds/projects page for Vanta Cold, Vanta OS, Fractured Godhead, Solo Mission, Mobbrats, and future projects.
+5. Add an /enter page that acts as a Vanta OS access point, with a dark gated login/invite-code aesthetic.
+6. Add admin authentication so only I can create, edit, and delete posts/releases.
+7. Add a simple admin dashboard for managing posts and releases.
+8. Add a persistent global music player that can keep playing audio previews while browsing.
+9. Add newsletter or drop-alert signup for future fan/community growth.
+
+The tone should feel premium, dark, mysterious, futuristic, and slightly mythic/secure — like an entertainment syndicate or operating system, while still preserving the music blog/editorial identity already in the current build.
+
+Based on this, give me a prioritized feature roadmap and for each feature tell me:
+- what files to create or edit
+- what database schema changes are needed
+- the exact implementation steps
+- which features should be hardcoded first vs database-driven later
+- how to keep the current codebase and evolve it instead of rebuilding from scratch
+
+Important constraints:
+- Do not suggest rebuilding the app from scratch.
+- Preserve the existing homepage/blog foundation and extend it.
+- Favor MVP-friendly implementation decisions that work well on Replit.
+- Separate “build now” vs “build later” clearly.
