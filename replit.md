@@ -2,7 +2,7 @@
 
 ## Overview
 
-Vanta Cold is a music label blog platform that combines lifestyle photography, behind-the-scenes content, and creative storytelling. The application is a full-stack web platform built with React and Express, featuring a modern editorial-style design inspired by Instagram, Spotify, and Medium. It allows users to browse blog posts about music production, studio sessions, and the creative journey of building a music label.
+Vanta Cold is a hybrid entertainment portal and music label platform. It combines editorial/blog functionality (called Transmissions) with a Releases discography, a Worlds/projects universe page, and an early Vanta OS gateway. Built with React and Express, it features a dark, immersive aesthetic inspired by music/lifestyle brands. Posts are referred to as "Transmissions" throughout the UI.
 
 ## User Preferences
 
@@ -50,9 +50,16 @@ Preferred communication style: Simple, everyday language.
 - Data models: Posts with fields for title, excerpt, content, images, category, metadata
 
 **API Design**
-- GET /api/posts - Retrieve all posts sorted by creation date
+- GET /api/posts - Retrieve all posts (Transmissions) sorted by creation date
 - GET /api/posts/:id - Retrieve single post by ID
 - POST /api/posts - Create new post with validation
+- PATCH /api/posts/:id - Update post
+- DELETE /api/posts/:id - Delete post
+- GET /api/releases - Retrieve all releases sorted by creation date
+- GET /api/releases/:id - Retrieve single release by ID
+- POST /api/releases - Create new release
+- PATCH /api/releases/:id - Update release
+- DELETE /api/releases/:id - Delete release
 - JSON request/response format
 - Zod schema validation for request payloads
 

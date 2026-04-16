@@ -40,7 +40,7 @@ export default function PostPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
       toast({
         title: "Success!",
-        description: "Post has been deleted.",
+        description: "Transmission deleted.",
       });
       navigate("/");
     },
@@ -101,7 +101,7 @@ export default function PostPage() {
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <h1 className="text-3xl font-display font-bold mb-4" data-testid="text-not-found">
-              Post Not Found
+              Transmission Not Found
             </h1>
             <Link href="/" data-testid="link-back-home">
               <Button variant="default" data-testid="button-back-home">
@@ -191,9 +191,9 @@ export default function PostPage() {
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Delete Post</AlertDialogTitle>
+                    <AlertDialogTitle>Delete Transmission</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Are you sure you want to delete this post? This action cannot be undone.
+                      Are you sure you want to delete this transmission? This action cannot be undone.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>

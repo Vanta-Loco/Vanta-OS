@@ -1,6 +1,6 @@
-import { type Post, type InsertPost, posts } from "@shared/schema";
+import { type Post, type InsertPost, posts, type Release, type InsertRelease, releases } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, or, ilike, and, sql } from "drizzle-orm";
+import { eq, desc, or, ilike, and } from "drizzle-orm";
 
 export interface IStorage {
   getPosts(): Promise<Post[]>;
@@ -9,6 +9,12 @@ export interface IStorage {
   updatePost(id: string, post: Partial<InsertPost>): Promise<Post | undefined>;
   deletePost(id: string): Promise<boolean>;
   searchPosts(query: string, category?: string): Promise<Post[]>;
+
+  getReleases(): Promise<Release[]>;
+  getRelease(id: string): Promise<Release | undefined>;
+  createRelease(release: InsertRelease): Promise<Release>;
+  updateRelease(id: string, release: Partial<InsertRelease>): Promise<Release | undefined>;
+  deleteRelease(id: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -22,19 +28,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createPost(insertPost: InsertPost): Promise<Post> {
-    const [post] = await db
-      .insert(posts)
-      .values(insertPost)
-      .returning();
+    const [post] = await db.insert(posts).values(insertPost).returning();
     return post;
   }
 
   async updatePost(id: string, updateData: Partial<InsertPost>): Promise<Post | undefined> {
-    const [post] = await db
-      .update(posts)
-      .set(updateData)
-      .where(eq(posts.id, id))
-      .returning();
+    const [post] = await db.update(posts).set(updateData).where(eq(posts.id, id)).returning();
     return post || undefined;
   }
 
@@ -45,7 +44,6 @@ export class DatabaseStorage implements IStorage {
 
   async searchPosts(query: string, category?: string): Promise<Post[]> {
     const searchPattern = `%${query}%`;
-    
     const conditions = [
       ilike(posts.title, searchPattern),
       ilike(posts.excerpt, searchPattern),
@@ -60,11 +58,31 @@ export class DatabaseStorage implements IStorage {
         .orderBy(desc(posts.createdAt));
     }
 
-    return await db
-      .select()
-      .from(posts)
-      .where(or(...conditions))
-      .orderBy(desc(posts.createdAt));
+    return await db.select().from(posts).where(or(...conditions)).orderBy(desc(posts.createdAt));
+  }
+
+  async getReleases(): Promise<Release[]> {
+    return await db.select().from(releases).orderBy(desc(releases.createdAt));
+  }
+
+  async getRelease(id: string): Promise<Release | undefined> {
+    const [release] = await db.select().from(releases).where(eq(releases.id, id));
+    return release || undefined;
+  }
+
+  async createRelease(insertRelease: InsertRelease): Promise<Release> {
+    const [release] = await db.insert(releases).values(insertRelease).returning();
+    return release;
+  }
+
+  async updateRelease(id: string, updateData: Partial<InsertRelease>): Promise<Release | undefined> {
+    const [release] = await db.update(releases).set(updateData).where(eq(releases.id, id)).returning();
+    return release || undefined;
+  }
+
+  async deleteRelease(id: string): Promise<boolean> {
+    const result = await db.delete(releases).where(eq(releases.id, id));
+    return result.rowCount !== null && result.rowCount > 0;
   }
 }
 

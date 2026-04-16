@@ -9,41 +9,44 @@ export function Footer() {
           <div>
             <h3 className="text-2xl font-display font-bold mb-4">VANTA COLD</h3>
             <p className="text-muted-foreground leading-relaxed">
-              A music label documenting the journey through lifestyle photography,
-              behind-the-scenes content, and creative storytelling.
+              An independent music label and creative system. Documenting the journey through
+              sound, visuals, and transmissions from the studio.
             </p>
           </div>
 
           <div>
             <h4 className="text-sm font-display font-medium uppercase tracking-wide mb-4">
-              Quick Links
+              Navigate
             </h4>
             <ul className="space-y-3">
               <li>
-                <a
-                  href="/"
-                  className="text-muted-foreground hover:text-foreground transition-colors"
-                  data-testid="link-footer-home"
-                >
+                <a href="/" className="text-muted-foreground hover:text-foreground transition-colors" data-testid="link-footer-home">
                   Home
                 </a>
               </li>
               <li>
-                <a
-                  href="/about"
-                  className="text-muted-foreground hover:text-foreground transition-colors"
-                  data-testid="link-footer-about"
-                >
+                <a href="/releases" className="text-muted-foreground hover:text-foreground transition-colors" data-testid="link-footer-releases">
+                  Releases
+                </a>
+              </li>
+              <li>
+                <a href="/worlds" className="text-muted-foreground hover:text-foreground transition-colors" data-testid="link-footer-worlds">
+                  Worlds
+                </a>
+              </li>
+              <li>
+                <a href="/about" className="text-muted-foreground hover:text-foreground transition-colors" data-testid="link-footer-about">
                   About
                 </a>
               </li>
               <li>
-                <a
-                  href="/create"
-                  className="text-muted-foreground hover:text-foreground transition-colors"
-                  data-testid="link-footer-create"
-                >
-                  Create Post
+                <a href="/create" className="text-muted-foreground hover:text-foreground transition-colors" data-testid="link-footer-create">
+                  New Transmission
+                </a>
+              </li>
+              <li>
+                <a href="/enter" className="text-muted-foreground hover:text-foreground transition-colors" data-testid="link-footer-enter">
+                  Enter the System
                 </a>
               </li>
             </ul>
@@ -54,40 +57,16 @@ export function Footer() {
               Follow
             </h4>
             <div className="flex gap-3">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-full"
-                data-testid="button-social-instagram"
-                aria-label="Instagram"
-              >
+              <Button variant="ghost" size="icon" className="rounded-full" data-testid="button-social-instagram" aria-label="Instagram">
                 <SiInstagram className="w-5 h-5" />
               </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-full"
-                data-testid="button-social-spotify"
-                aria-label="Spotify"
-              >
+              <Button variant="ghost" size="icon" className="rounded-full" data-testid="button-social-spotify" aria-label="Spotify">
                 <SiSpotify className="w-5 h-5" />
               </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-full"
-                data-testid="button-social-soundcloud"
-                aria-label="SoundCloud"
-              >
+              <Button variant="ghost" size="icon" className="rounded-full" data-testid="button-social-soundcloud" aria-label="SoundCloud">
                 <SiSoundcloud className="w-5 h-5" />
               </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-full"
-                data-testid="button-social-youtube"
-                aria-label="YouTube"
-              >
+              <Button variant="ghost" size="icon" className="rounded-full" data-testid="button-social-youtube" aria-label="YouTube">
                 <SiYoutube className="w-5 h-5" />
               </Button>
             </div>

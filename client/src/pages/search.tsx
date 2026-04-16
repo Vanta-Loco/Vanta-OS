@@ -120,7 +120,7 @@ export default function SearchPage() {
           ) : posts && posts.length > 0 ? (
             <>
               <p className="text-sm text-muted-foreground mb-6" data-testid="text-results-count">
-                Found {posts.length} {posts.length === 1 ? "post" : "posts"}
+                Found {posts.length} {posts.length === 1 ? "transmission" : "transmissions"}
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {posts.map((post) => (
@@ -185,11 +185,11 @@ export default function SearchPage() {
               <SearchIcon className="w-16 h-16 text-muted-foreground mx-auto mb-4 opacity-50" />
               <h2 className="text-2xl font-display font-bold mb-2">No Results Found</h2>
               <p className="text-muted-foreground mb-6">
-                Try searching with different keywords or browse all posts
+                Try searching with different keywords or browse all transmissions
               </p>
               <Link href="/">
                 <Button variant="default" data-testid="button-browse-all">
-                  Browse All Posts
+                  Browse All Transmissions
                 </Button>
               </Link>
             </div>

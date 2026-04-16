@@ -5,6 +5,13 @@ import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { PenSquare, Search } from "lucide-react";
 
+const navLinks = [
+  { href: "/", label: "Home" },
+  { href: "/releases", label: "Releases" },
+  { href: "/worlds", label: "Worlds" },
+  { href: "/about", label: "About" },
+];
+
 export function Header() {
   const [location, navigate] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
@@ -27,39 +34,19 @@ export function Header() {
           </Link>
 
           <nav className="hidden md:flex items-center gap-1">
-            <Link href="/" data-testid="link-nav-home">
-              <Button
-                variant="ghost"
-                className={`text-sm uppercase tracking-wide font-medium ${
-                  location === "/" ? "text-foreground" : "text-muted-foreground"
-                }`}
-                data-testid="button-nav-home"
-              >
-                Home
-              </Button>
-            </Link>
-            <Link href="/music" data-testid="link-nav-music">
-              <Button
-                variant="ghost"
-                className={`text-sm uppercase tracking-wide font-medium ${
-                  location === "/music" ? "text-foreground" : "text-muted-foreground"
-                }`}
-                data-testid="button-nav-music"
-              >
-                Music
-              </Button>
-            </Link>
-            <Link href="/about" data-testid="link-nav-about">
-              <Button
-                variant="ghost"
-                className={`text-sm uppercase tracking-wide font-medium ${
-                  location === "/about" ? "text-foreground" : "text-muted-foreground"
-                }`}
-                data-testid="button-nav-about"
-              >
-                About
-              </Button>
-            </Link>
+            {navLinks.map(({ href, label }) => (
+              <Link key={href} href={href} data-testid={`link-nav-${label.toLowerCase()}`}>
+                <Button
+                  variant="ghost"
+                  className={`text-sm uppercase tracking-wide font-medium ${
+                    location === href ? "text-foreground" : "text-muted-foreground"
+                  }`}
+                  data-testid={`button-nav-${label.toLowerCase()}`}
+                >
+                  {label}
+                </Button>
+              </Link>
+            ))}
           </nav>
 
           <div className="flex items-center gap-2">
@@ -67,7 +54,7 @@ export function Header() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 type="text"
-                placeholder="Search posts..."
+                placeholder="Search transmissions..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 w-64"
@@ -83,7 +70,7 @@ export function Header() {
                 data-testid="button-create-post"
               >
                 <PenSquare className="w-4 h-4" />
-                <span>New Post</span>
+                <span>New Transmission</span>
               </Button>
             </Link>
             <Link href="/create" data-testid="link-create-post-mobile">

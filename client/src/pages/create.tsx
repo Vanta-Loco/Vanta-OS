@@ -62,14 +62,14 @@ export default function CreatePost() {
       queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
       toast({
         title: "Success!",
-        description: "Your post has been published.",
+        description: "Transmission published.",
       });
       navigate("/");
     },
     onError: () => {
       toast({
         title: "Error",
-        description: "Failed to create post. Please try again.",
+        description: "Failed to publish transmission. Please try again.",
         variant: "destructive",
       });
     },
@@ -131,7 +131,7 @@ export default function CreatePost() {
               className="text-4xl md:text-5xl font-display font-bold mb-4"
               data-testid="text-page-title"
             >
-              Create New Post
+              New Transmission
             </h1>
             <p className="text-lg text-muted-foreground">
               Share your music journey, lifestyle moments, and creative process.
@@ -220,10 +220,10 @@ export default function CreatePost() {
                 <div className="flex items-center justify-between p-4 rounded-lg border border-border">
                   <div>
                     <Label htmlFor="featured" className="text-base font-medium">
-                      Featured Post
+                      Featured Transmission
                     </Label>
                     <p className="text-sm text-muted-foreground mt-1">
-                      Display this post prominently on the homepage
+                      Display this transmission prominently on the homepage
                     </p>
                   </div>
                   <Switch
@@ -397,7 +397,7 @@ export default function CreatePost() {
                     Publishing...
                   </>
                 ) : (
-                  "Publish Post"
+                  "Publish Transmission"
                 )}
               </Button>
             </div>

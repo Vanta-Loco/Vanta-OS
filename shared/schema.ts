@@ -32,3 +32,41 @@ export const insertPostSchema = createInsertSchema(posts).omit({
 
 export type InsertPost = z.infer<typeof insertPostSchema>;
 export type Post = typeof posts.$inferSelect;
+
+export const releases = pgTable("releases", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: text("title").notNull(),
+  type: text("type").notNull(),
+  coverImage: text("cover_image").notNull(),
+  description: text("description").notNull(),
+  releaseDate: text("release_date").notNull(),
+  spotifyUrl: text("spotify_url").notNull().default(""),
+  appleMusicUrl: text("apple_music_url").notNull().default(""),
+  soundcloudUrl: text("soundcloud_url").notNull().default(""),
+  youtubeUrl: text("youtube_url").notNull().default(""),
+  audioPreviewUrl: text("audio_preview_url").notNull().default(""),
+  tracklist: text("tracklist").array().notNull().default(sql`ARRAY[]::text[]`),
+  featured: text("featured").notNull().default("false"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertReleaseSchema = createInsertSchema(releases).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  title: z.string().min(1, "Title is required").max(200, "Title too long"),
+  type: z.enum(["album", "single", "ep", "mixtape"]),
+  coverImage: z.string().min(1, "Cover image URL is required"),
+  description: z.string().min(1, "Description is required"),
+  releaseDate: z.string().min(1, "Release date is required"),
+  spotifyUrl: z.string().default(""),
+  appleMusicUrl: z.string().default(""),
+  soundcloudUrl: z.string().default(""),
+  youtubeUrl: z.string().default(""),
+  audioPreviewUrl: z.string().default(""),
+  tracklist: z.array(z.string()).default([]),
+  featured: z.string().default("false"),
+});
+
+export type InsertRelease = z.infer<typeof insertReleaseSchema>;
+export type Release = typeof releases.$inferSelect;

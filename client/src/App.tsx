@@ -11,6 +11,10 @@ import EditPost from "@/pages/edit";
 import SearchPage from "@/pages/search";
 import About from "@/pages/about";
 import Music from "@/pages/music";
+import Releases from "@/pages/releases";
+import ReleasesNew from "@/pages/releases-new";
+import Worlds from "@/pages/worlds";
+import Enter from "@/pages/enter";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -23,6 +27,10 @@ function Router() {
       <Route path="/search" component={SearchPage} />
       <Route path="/about" component={About} />
       <Route path="/music" component={Music} />
+      <Route path="/releases" component={Releases} />
+      <Route path="/releases/new" component={ReleasesNew} />
+      <Route path="/worlds" component={Worlds} />
+      <Route path="/enter" component={Enter} />
       <Route component={NotFound} />
     </Switch>
   );
