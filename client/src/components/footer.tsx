@@ -1,6 +1,33 @@
 import { SiInstagram, SiSpotify, SiSoundcloud, SiYoutube } from "react-icons/si";
 import { Button } from "@/components/ui/button";
 
+const socialLinks = [
+  {
+    label: "Instagram",
+    href: "https://www.instagram.com/babyboiloco7/",
+    icon: SiInstagram,
+    testId: "button-social-instagram",
+  },
+  {
+    label: "Spotify",
+    href: "https://open.spotify.com/artist/1a7lNpD5XYTyjopL7cwCux",
+    icon: SiSpotify,
+    testId: "button-social-spotify",
+  },
+  {
+    label: "SoundCloud",
+    href: "https://soundcloud.com/babyboiloco/tracks",
+    icon: SiSoundcloud,
+    testId: "button-social-soundcloud",
+  },
+  {
+    label: "YouTube",
+    href: "https://www.youtube.com/channel/UC9OGRErv5O8nx8vwohXDY7A",
+    icon: SiYoutube,
+    testId: "button-social-youtube",
+  },
+];
+
 export function Footer() {
   return (
     <footer className="border-t border-border bg-background">
@@ -40,11 +67,6 @@ export function Footer() {
                 </a>
               </li>
               <li>
-                <a href="/create" className="text-muted-foreground hover:text-foreground transition-colors" data-testid="link-footer-create">
-                  New Transmission
-                </a>
-              </li>
-              <li>
                 <a href="/enter" className="text-muted-foreground hover:text-foreground transition-colors" data-testid="link-footer-enter">
                   Enter the System
                 </a>
@@ -56,19 +78,30 @@ export function Footer() {
             <h4 className="text-sm font-display font-medium uppercase tracking-wide mb-4">
               Follow
             </h4>
-            <div className="flex gap-3">
-              <Button variant="ghost" size="icon" className="rounded-full" data-testid="button-social-instagram" aria-label="Instagram">
-                <SiInstagram className="w-5 h-5" />
-              </Button>
-              <Button variant="ghost" size="icon" className="rounded-full" data-testid="button-social-spotify" aria-label="Spotify">
-                <SiSpotify className="w-5 h-5" />
-              </Button>
-              <Button variant="ghost" size="icon" className="rounded-full" data-testid="button-social-soundcloud" aria-label="SoundCloud">
-                <SiSoundcloud className="w-5 h-5" />
-              </Button>
-              <Button variant="ghost" size="icon" className="rounded-full" data-testid="button-social-youtube" aria-label="YouTube">
-                <SiYoutube className="w-5 h-5" />
-              </Button>
+            <div className="flex gap-3 flex-wrap">
+              {socialLinks.map(({ label, href, icon: Icon, testId }) =>
+                href ? (
+                  <a
+                    key={label}
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={label}
+                    data-testid={`link-${testId}`}
+                  >
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="rounded-full"
+                      data-testid={testId}
+                      aria-label={label}
+                      asChild={false}
+                    >
+                      <Icon className="w-5 h-5" />
+                    </Button>
+                  </a>
+                ) : null
+              )}
             </div>
           </div>
         </div>
