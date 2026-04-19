@@ -33,6 +33,18 @@ export const insertPostSchema = createInsertSchema(posts).omit({
 export type InsertPost = z.infer<typeof insertPostSchema>;
 export type Post = typeof posts.$inferSelect;
 
+export const GENRE_OPTIONS = [
+  "Trap",
+  "Alternative Rock",
+  "Shoegaze",
+  "Punk",
+  "Experimental",
+  "Soundtrack / Score",
+  "Hybrid",
+] as const;
+
+export type Genre = typeof GENRE_OPTIONS[number];
+
 export const releases = pgTable("releases", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   title: text("title").notNull(),
@@ -40,6 +52,9 @@ export const releases = pgTable("releases", {
   coverImage: text("cover_image").notNull(),
   description: text("description").notNull(),
   releaseDate: text("release_date").notNull(),
+  genre: text("genre").notNull().default(""),
+  subgenre: text("subgenre").notNull().default(""),
+  moodTags: text("mood_tags").array().notNull().default(sql`ARRAY[]::text[]`),
   spotifyUrl: text("spotify_url").notNull().default(""),
   appleMusicUrl: text("apple_music_url").notNull().default(""),
   soundcloudUrl: text("soundcloud_url").notNull().default(""),
@@ -62,6 +77,9 @@ export const insertReleaseSchema = createInsertSchema(releases).omit({
   coverImage: z.string().min(1, "Cover image URL is required"),
   description: z.string().min(1, "Description is required"),
   releaseDate: z.string().min(1, "Release date is required"),
+  genre: z.string().default(""),
+  subgenre: z.string().default(""),
+  moodTags: z.array(z.string()).default([]),
   spotifyUrl: z.string().default(""),
   appleMusicUrl: z.string().default(""),
   soundcloudUrl: z.string().default(""),

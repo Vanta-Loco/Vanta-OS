@@ -1,0 +1,67 @@
+Step 3: Add release taxonomy and filtering to the releases system.
+
+I want the releases page and release forms to support a genre system that feels editorial, minimal, and premium — not like a generic storefront.
+
+Taxonomy structure:
+- genre
+- subgenre
+- moodTags (or tags)
+
+Example:
+- genre: Alternative Rock
+- subgenre: Shoegaze Trap
+- tags: moody, nocturnal, distorted
+
+Genre options to support:
+- Trap
+- Alternative Rock
+- Shoegaze
+- Punk
+- Experimental
+- Soundtrack / Score
+- Hybrid
+
+Implementation requirements:
+
+1. Schema updates
+- Add genre field to releases
+- Add subgenre field to releases
+- Add moodTags or tags field to releases
+- Releases without genre/subgenre/tags should still render cleanly
+
+2. Form updates
+- Update both the new release form and edit release form
+- Genre should use a pill-style segmented selector in the UI
+- Subgenre can be a text input or lightweight selectable refinement field
+- Tags should support multiple values, ideally as pills/chips or comma-separated input that becomes styled tags
+- Keep the UI sleek, dark, and brand-consistent
+
+3. Releases page UI
+- Show genre and subgenre on release cards/listing UI where appropriate
+- Show tags subtly where useful, without clutter
+- Keep the page feeling editorial and curated
+
+4. Filtering
+- Add filtering on the releases page using pill-style segmented UI
+- Genre filters should feel like segmented pills, not bulky dropdown-heavy ecommerce filters
+- If useful, allow subgenre/tag filtering too, but keep it minimal
+- Filtering should not clutter the design or break the current aesthetic
+
+5. UX / design direction
+- The UI should match the Vanta Cold tone: premium, dark, intentional, slightly futuristic
+- Avoid generic store/product page energy
+- Pills/segments should feel clean and elegant
+- Keep the experience smooth on desktop and mobile
+
+6. Technical constraints
+- Reuse the existing React + TypeScript + Express + PostgreSQL + Drizzle setup
+- Do not rebuild the releases system from scratch
+- Keep changes additive and compatible with the current releases architecture
+
+7. Deliverables
+After implementation, give me:
+- exact schema changes
+- exact files changed
+- how the pill/segmented filter UI works
+- how tags are stored and rendered
+- any fallback behavior for older releases without taxonomy data

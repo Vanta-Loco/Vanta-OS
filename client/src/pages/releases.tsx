@@ -1,4 +1,4 @@
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
@@ -30,8 +30,6 @@ function ReleaseCard({ release }: { release: Release }) {
     { url: release.youtubeUrl, icon: SiYoutube, label: "YouTube", testId: "button-youtube" },
   ].filter((l) => l.url);
 
-  // Prefer the generated preview clip (plays from 0:00, no seeking needed).
-  // Fall back to seeking within the full source file if no clip exists yet.
   const generatedClip = release.audioPreviewUrl?.startsWith("/uploads/preview-")
     ? release.audioPreviewUrl
     : null;
@@ -47,39 +45,28 @@ function ReleaseCard({ release }: { release: Release }) {
     if (!audioSrc) return;
     const audio = new Audio(audioSrc);
     audioRef.current = audio;
-
     const durationSec = release.previewDurationSeconds ?? 30;
 
     const startPlayback = () => {
       audio.play();
       setIsPlaying(true);
-      const timer = setTimeout(() => {
-        audio.pause();
-        setIsPlaying(false);
-      }, durationSec * 1000);
-      audio.addEventListener("ended", () => {
-        clearTimeout(timer);
-        setIsPlaying(false);
-      });
+      const timer = setTimeout(() => { audio.pause(); setIsPlaying(false); }, durationSec * 1000);
+      audio.addEventListener("ended", () => { clearTimeout(timer); setIsPlaying(false); });
     };
 
     if (useSeek) {
       const startSec = release.previewStartSeconds ?? 0;
-      audio.addEventListener("canplay", () => {
-        audio.currentTime = startSec;
-        startPlayback();
-      }, { once: true });
+      audio.addEventListener("canplay", () => { audio.currentTime = startSec; startPlayback(); }, { once: true });
       audio.load();
     } else {
       startPlayback();
     }
   }
 
+  const tags = release.moodTags ?? [];
+
   return (
-    <Card
-      className="overflow-hidden"
-      data-testid={`card-release-${release.id}`}
-    >
+    <Card className="overflow-hidden" data-testid={`card-release-${release.id}`}>
       <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] gap-0">
         <div className="relative aspect-square md:aspect-auto overflow-hidden">
           <img
@@ -107,11 +94,36 @@ function ReleaseCard({ release }: { release: Release }) {
             </div>
 
             <h2
-              className="text-2xl md:text-3xl font-display font-bold mb-3"
+              className="text-2xl md:text-3xl font-display font-bold mb-1"
               data-testid={`text-release-title-${release.id}`}
             >
               {release.title}
             </h2>
+
+            {/* Genre / subgenre row */}
+            {(release.genre || release.subgenre) && (
+              <div className="flex items-center gap-2 mb-3 flex-wrap">
+                {release.genre && (
+                  <span
+                    className="text-xs font-medium uppercase tracking-widest text-muted-foreground"
+                    data-testid={`text-release-genre-${release.id}`}
+                  >
+                    {release.genre}
+                  </span>
+                )}
+                {release.genre && release.subgenre && (
+                  <span className="text-muted-foreground/40 text-xs">·</span>
+                )}
+                {release.subgenre && (
+                  <span
+                    className="text-xs text-muted-foreground/70"
+                    data-testid={`text-release-subgenre-${release.id}`}
+                  >
+                    {release.subgenre}
+                  </span>
+                )}
+              </div>
+            )}
 
             <p
               className="text-muted-foreground leading-relaxed"
@@ -119,6 +131,21 @@ function ReleaseCard({ release }: { release: Release }) {
             >
               {release.description}
             </p>
+
+            {/* Mood tags */}
+            {tags.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-3" data-testid={`tag-list-${release.id}`}>
+                {tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="px-2 py-0.5 text-xs rounded-sm border border-border text-muted-foreground/60 tracking-wide"
+                    data-testid={`tag-${release.id}-${tag}`}
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
 
           {streamingLinks.length > 0 && (
@@ -171,10 +198,7 @@ function ReleaseCard({ release }: { release: Release }) {
               </button>
 
               {tracklistOpen && (
-                <ol
-                  className="mt-3 space-y-1 pl-1"
-                  data-testid={`list-tracklist-${release.id}`}
-                >
+                <ol className="mt-3 space-y-1 pl-1" data-testid={`list-tracklist-${release.id}`}>
                   {release.tracklist.map((track, i) => (
                     <li
                       key={i}
@@ -200,13 +224,27 @@ export default function Releases() {
     queryKey: ["/api/releases"],
   });
 
+  const [activeGenre, setActiveGenre] = useState<string>("All");
+
+  const availableGenres = releases
+    ? ["All", ...Array.from(new Set(releases.map((r) => r.genre).filter(Boolean)))]
+    : ["All"];
+
+  const filtered = releases
+    ? activeGenre === "All"
+      ? releases
+      : releases.filter((r) => r.genre === activeGenre)
+    : [];
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
 
       <main className="flex-1 bg-background pt-20">
         <div className="max-w-7xl mx-auto px-6 lg:px-8 py-16 md:py-24">
-          <div className="flex items-end justify-between mb-12 flex-wrap gap-6">
+
+          {/* Header row */}
+          <div className="flex items-end justify-between mb-10 flex-wrap gap-6">
             <div>
               <p className="text-xs uppercase tracking-widest text-muted-foreground mb-2 font-medium">
                 Discography
@@ -224,6 +262,31 @@ export default function Releases() {
               </Button>
             </Link>
           </div>
+
+          {/* Genre filter pills */}
+          {!isLoading && availableGenres.length > 1 && (
+            <div className="flex flex-wrap gap-2 mb-10" data-testid="genre-filter-pills">
+              {availableGenres.map((genre) => {
+                const active = activeGenre === genre;
+                return (
+                  <button
+                    key={genre}
+                    type="button"
+                    onClick={() => setActiveGenre(genre)}
+                    data-testid={`filter-pill-${genre.toLowerCase().replace(/\s+/g, "-")}`}
+                    className={[
+                      "px-4 py-1.5 text-xs rounded-sm border transition-colors font-medium tracking-wide",
+                      active
+                        ? "bg-foreground text-background border-foreground"
+                        : "bg-transparent text-muted-foreground border-border hover:border-foreground/40 hover:text-foreground",
+                    ].join(" ")}
+                  >
+                    {genre}
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
           {isLoading ? (
             <div className="space-y-6">
@@ -252,9 +315,15 @@ export default function Releases() {
                 </Button>
               </Link>
             </div>
+          ) : filtered.length === 0 ? (
+            <div className="text-center py-24 border border-border rounded-md">
+              <p className="text-muted-foreground" data-testid="text-no-filtered-releases">
+                No releases tagged as <span className="text-foreground font-medium">{activeGenre}</span>.
+              </p>
+            </div>
           ) : (
             <div className="space-y-6" data-testid="list-releases">
-              {releases.map((release) => (
+              {filtered.map((release) => (
                 <ReleaseCard key={release.id} release={release} />
               ))}
             </div>

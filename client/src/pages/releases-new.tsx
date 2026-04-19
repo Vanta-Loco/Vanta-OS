@@ -20,6 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Upload, ImageIcon, Music, Play, Square, CheckCircle, Loader2, X,
 } from "lucide-react";
+import { GenrePillSelector, TagInput } from "@/components/taxonomy-inputs";
 
 type UploadState = "idle" | "uploading" | "done" | "error";
 
@@ -64,6 +65,9 @@ export default function ReleasesNew() {
       audioFileUrl: "",
       previewStartSeconds: 0,
       previewDurationSeconds: 30,
+      genre: "",
+      subgenre: "",
+      moodTags: [],
       tracklist: [],
       featured: "false",
     },
@@ -355,6 +359,53 @@ export default function ReleasesNew() {
                   </FormItem>
                 )}
               />
+
+              {/* ── Taxonomy ── */}
+              <div className="space-y-5">
+                <p className="text-sm font-medium">Genre & Tags</p>
+
+                <FormField
+                  control={form.control}
+                  name="genre"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Genre</FormLabel>
+                      <FormControl>
+                        <GenrePillSelector value={field.value} onChange={field.onChange} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="subgenre"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Subgenre <span className="text-muted-foreground font-normal">(optional)</span></FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g. Shoegaze Trap, Dark Ambient…" {...field} data-testid="input-subgenre" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="moodTags"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Mood Tags <span className="text-muted-foreground font-normal">(optional — press Enter or comma to add)</span></FormLabel>
+                      <FormControl>
+                        <TagInput value={field.value} onChange={field.onChange} testId="input-mood-tags" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
               {/* ── Audio ── */}
               <div className="space-y-4">
