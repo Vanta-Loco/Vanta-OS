@@ -92,13 +92,25 @@ export default function Home() {
         <div className="relative max-w-7xl mx-auto px-6 lg:px-8 pb-16 md:pb-24 z-10">
           <div className="max-w-4xl">
             <h1
-              className="text-5xl md:text-6xl lg:text-7xl font-display font-bold text-foreground mb-6 leading-tight"
+              className="text-5xl md:text-6xl lg:text-7xl font-display font-bold text-foreground leading-tight"
               data-testid="text-hero-title"
             >
-              The Music Journey
+              Vanta Cold
             </h1>
             <p
-              className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-2xl leading-relaxed"
+              className="text-[11px] uppercase tracking-[0.28em] text-muted-foreground/50 font-mono mt-4 mb-6"
+              data-testid="text-hero-system-label"
+            >
+              Vanta&nbsp;OS&nbsp;—&nbsp;a digital interface for music, fashion, and worldbuilding.
+            </p>
+            <h2
+              className="text-2xl md:text-3xl font-display font-semibold text-foreground mb-4 leading-snug"
+              data-testid="text-hero-section-title"
+            >
+              The Music Journey
+            </h2>
+            <p
+              className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl leading-relaxed"
               data-testid="text-hero-subtitle"
             >
               Documenting the creative process, lifestyle moments, and the path
