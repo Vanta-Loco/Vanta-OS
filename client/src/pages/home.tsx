@@ -7,12 +7,11 @@ import { SkeletonPostCard } from "@/components/skeleton-post-card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import type { Post } from "@shared/schema";
+import type { Post, Release } from "@shared/schema";
 import heroImage from "@assets/generated_images/Music_studio_lifestyle_hero_cf7ae2f2.png";
-import studioImage from "@assets/generated_images/Recording_session_behind_scenes_04ce1f60.png";
 import cityImage from "@assets/generated_images/Urban_night_cityscape_mood_2c3c2c61.png";
-import { SiSpotify, SiApplemusic, SiSoundcloud } from "react-icons/si";
-import { ArrowRight, Globe, Lock } from "lucide-react";
+import { SiSpotify, SiApplemusic, SiSoundcloud, SiYoutube } from "react-icons/si";
+import { ArrowRight, Globe, Lock, Music, Plus } from "lucide-react";
 
 const worlds = [
   {
@@ -68,8 +67,15 @@ export default function Home() {
     queryKey: ["/api/posts"],
   });
 
+  const { data: releases, isLoading: releasesLoading } = useQuery<Release[]>({
+    queryKey: ["/api/releases"],
+  });
+
   const featuredPost = posts?.find((p) => p.featured === "true");
   const regularPosts = posts?.filter((p) => p.featured !== "true") || [];
+
+  const featuredRelease =
+    releases?.find((r) => r.featured === "true") ?? releases?.[0] ?? null;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -148,7 +154,7 @@ export default function Home() {
         </div>
       </main>
 
-      {/* ── FEATURED RELEASE — new portal section ── */}
+      {/* ── FEATURED RELEASE — dynamic ── */}
       <section className="bg-card border-t border-border py-20" data-testid="section-featured-release">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="flex items-center justify-between mb-10 flex-wrap gap-4">
@@ -165,46 +171,98 @@ export default function Home() {
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-            <div className="relative aspect-square max-w-md w-full overflow-hidden rounded-md">
-              <img
-                src={studioImage}
-                alt="Latest Release"
-                className="w-full h-full object-cover"
-                data-testid="img-featured-release"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
-            </div>
-
-            <div className="space-y-6">
-              <div>
-                <Badge variant="outline" className="mb-3 uppercase tracking-wide text-xs font-medium">
-                  Single
-                </Badge>
-                <h3
-                  className="text-2xl md:text-3xl font-display font-bold mb-3"
-                  data-testid="text-release-title"
-                >
-                  Add Your Release Title
-                </h3>
-                <p className="text-muted-foreground leading-relaxed" data-testid="text-release-description">
-                  Add a release to the Releases page and it will appear here. Navigate to Releases to get started.
-                </p>
-              </div>
-
-              <div className="flex flex-wrap gap-3">
-                <Button variant="default" size="default" className="gap-2" data-testid="button-release-spotify">
-                  <SiSpotify className="w-4 h-4" /> Spotify
-                </Button>
-                <Button variant="outline" size="default" className="gap-2" data-testid="button-release-apple">
-                  <SiApplemusic className="w-4 h-4" /> Apple Music
-                </Button>
-                <Button variant="outline" size="default" className="gap-2" data-testid="button-release-soundcloud">
-                  <SiSoundcloud className="w-4 h-4" /> SoundCloud
-                </Button>
+          {releasesLoading ? (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center animate-pulse">
+              <div className="aspect-square max-w-md w-full bg-muted rounded-md" />
+              <div className="space-y-4">
+                <div className="h-5 bg-muted rounded w-16" />
+                <div className="h-9 bg-muted rounded w-64" />
+                <div className="h-4 bg-muted rounded w-full" />
+                <div className="h-4 bg-muted rounded w-4/5" />
+                <div className="flex gap-3">
+                  <div className="h-10 bg-muted rounded w-28" />
+                  <div className="h-10 bg-muted rounded w-32" />
+                </div>
               </div>
             </div>
-          </div>
+          ) : featuredRelease ? (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+              <div className="relative aspect-square max-w-md w-full overflow-hidden rounded-md">
+                <img
+                  src={featuredRelease.coverImage}
+                  alt={featuredRelease.title}
+                  className="w-full h-full object-cover"
+                  data-testid="img-featured-release"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-background/60 to-transparent" />
+              </div>
+
+              <div className="space-y-6">
+                <div>
+                  <Badge variant="outline" className="mb-3 uppercase tracking-wide text-xs font-medium">
+                    {featuredRelease.type}
+                  </Badge>
+                  <h3
+                    className="text-2xl md:text-3xl font-display font-bold mb-3"
+                    data-testid="text-release-title"
+                  >
+                    {featuredRelease.title}
+                  </h3>
+                  <p className="text-muted-foreground leading-relaxed" data-testid="text-release-description">
+                    {featuredRelease.description}
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap gap-3">
+                  {featuredRelease.spotifyUrl && (
+                    <a href={featuredRelease.spotifyUrl} target="_blank" rel="noopener noreferrer" data-testid="button-release-spotify">
+                      <Button variant="default" size="default" className="gap-2">
+                        <SiSpotify className="w-4 h-4" /> Spotify
+                      </Button>
+                    </a>
+                  )}
+                  {featuredRelease.appleMusicUrl && (
+                    <a href={featuredRelease.appleMusicUrl} target="_blank" rel="noopener noreferrer" data-testid="button-release-apple">
+                      <Button variant="outline" size="default" className="gap-2">
+                        <SiApplemusic className="w-4 h-4" /> Apple Music
+                      </Button>
+                    </a>
+                  )}
+                  {featuredRelease.soundcloudUrl && (
+                    <a href={featuredRelease.soundcloudUrl} target="_blank" rel="noopener noreferrer" data-testid="button-release-soundcloud">
+                      <Button variant="outline" size="default" className="gap-2">
+                        <SiSoundcloud className="w-4 h-4" /> SoundCloud
+                      </Button>
+                    </a>
+                  )}
+                  {featuredRelease.youtubeUrl && (
+                    <a href={featuredRelease.youtubeUrl} target="_blank" rel="noopener noreferrer" data-testid="button-release-youtube">
+                      <Button variant="outline" size="default" className="gap-2">
+                        <SiYoutube className="w-4 h-4" /> YouTube
+                      </Button>
+                    </a>
+                  )}
+                  <Link href={`/releases`} data-testid="link-release-detail">
+                    <Button variant="ghost" size="default" className="gap-2">
+                      Full Details <ArrowRight className="w-4 h-4" />
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-16 text-center border border-dashed border-border rounded-md" data-testid="div-no-releases">
+              <Music className="w-10 h-10 text-muted-foreground mb-4" />
+              <p className="text-muted-foreground mb-4" data-testid="text-no-releases">
+                No releases yet.
+              </p>
+              <Link href="/releases/new" data-testid="link-add-release-empty">
+                <Button variant="outline" className="gap-2">
+                  <Plus className="w-4 h-4" /> Add First Release
+                </Button>
+              </Link>
+            </div>
+          )}
         </div>
       </section>
 
