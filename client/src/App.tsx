@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
+import { StartupScreen, STARTUP_SESSION_KEY } from "@/components/startup-screen";
 import Home from "@/pages/home";
 import PostPage from "@/pages/post";
 import CreatePost from "@/pages/create";
@@ -45,11 +47,18 @@ function Router() {
 }
 
 function App() {
+  const [showStartup, setShowStartup] = useState(
+    () => !sessionStorage.getItem(STARTUP_SESSION_KEY)
+  );
+
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="dark">
         <TooltipProvider>
           <Toaster />
+          {showStartup && (
+            <StartupScreen onComplete={() => setShowStartup(false)} />
+          )}
           <Router />
         </TooltipProvider>
       </ThemeProvider>
