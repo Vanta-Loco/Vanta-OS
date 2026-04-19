@@ -90,13 +90,29 @@ Preferred communication style: Simple, everyday language.
 ### Authentication and Authorization
 
 **Current State**
-- No authentication system implemented
-- All API endpoints are publicly accessible
-- Create post functionality available without login
+- Session-based admin authentication implemented
+- Single admin account protected by ADMIN_PASSWORD environment variable
+- Sessions stored in PostgreSQL via connect-pg-simple (table: user_sessions)
+- Session secret from SESSION_SECRET environment variable
 
-**Design Consideration**
-- Express session middleware (connect-pg-simple) is available but not configured
-- Future implementation could use session-based authentication
+**Protected Routes (require admin session)**
+- POST /api/posts
+- PATCH /api/posts/:id
+- DELETE /api/posts/:id
+- POST /api/releases
+- PATCH /api/releases/:id
+- DELETE /api/releases/:id
+- POST /api/upload
+
+**Admin Routes**
+- GET /api/admin/me — check session status
+- POST /api/admin/login — login with password
+- POST /api/admin/logout — destroy session
+
+**Admin UI**
+- /admin/login — login page
+- /admin — dashboard (redirects to login if not authenticated)
+- /enter — Vanta OS gateway (has subtle "Admin access" link at bottom)
 
 ### External Dependencies
 
