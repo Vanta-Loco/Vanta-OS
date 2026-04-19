@@ -280,8 +280,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ── Vault Auth ───────────────────────────────────────────────────
+  // Admins are automatically treated as vault-authorized (convenience override).
+  // Non-admin users still require the vault code.
   app.get("/api/vault/me", (req, res) => {
-    res.json({ authorized: req.session?.vaultAuthorized === true });
+    const authorized =
+      req.session?.isAdmin === true || req.session?.vaultAuthorized === true;
+    res.json({ authorized });
   });
 
   app.post("/api/vault/verify", (req, res) => {
@@ -308,7 +312,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ── Vault Items ──────────────────────────────────────────────────
   app.get("/api/vault/items", async (req, res) => {
-    if (req.session?.vaultAuthorized !== true) {
+    const canRead =
+      req.session?.isAdmin === true || req.session?.vaultAuthorized === true;
+    if (!canRead) {
       return res.status(401).json({ error: "Vault access required" });
     }
     try {
