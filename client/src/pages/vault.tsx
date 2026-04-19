@@ -663,6 +663,19 @@ function VaultUnlocked() {
       if (!res.ok) throw new Error("Failed to fetch vault items");
       return res.json();
     },
+    // Poll every 3 s while any audio/demo item is still awaiting compression.
+    // Returns false (no polling) once all compressed URLs are populated.
+    refetchInterval: (query) => {
+      const data = query.state.data as VaultItem[] | undefined;
+      if (!data) return false;
+      const hasPending = data.some(
+        (item) =>
+          (item.type === "audio" || item.type === "demo") &&
+          item.fileUrl?.startsWith("/uploads/") &&
+          !item.compressedUrl,
+      );
+      return hasPending ? 3000 : false;
+    },
   });
 
   const deleteMutation = useMutation({
