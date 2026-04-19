@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Lock, ArrowLeft } from "lucide-react";
@@ -10,20 +10,24 @@ export default function AdminLogin() {
   const [password, setPassword] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const [, navigate] = useLocation();
+  const rawSearch = useSearch();
   const { isAuthenticated, isLoading, login } = useAdmin();
+
+  // Read optional redirect target sent by protected routes (e.g. ?from=/create)
+  const from = new URLSearchParams(rawSearch).get("from") ?? "/admin";
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
-      navigate("/admin");
+      navigate(from);
     }
-  }, [isAuthenticated, isLoading, navigate]);
+  }, [isAuthenticated, isLoading, navigate, from]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErrorMsg("");
     try {
       await login.mutateAsync(password);
-      navigate("/admin");
+      navigate(from);
     } catch {
       setErrorMsg("Invalid password. Try again.");
       setPassword("");

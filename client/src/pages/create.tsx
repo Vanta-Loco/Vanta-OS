@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
+import { useAdmin } from "@/hooks/use-admin";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
@@ -36,9 +37,17 @@ const categories = [
 export default function CreatePost() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  const { isAuthenticated, isLoading: authLoading } = useAdmin();
   const [coverImagePreview, setCoverImagePreview] = useState<string>("");
   const [galleryPreviews, setGalleryPreviews] = useState<string[]>([]);
   const [isFeatured, setIsFeatured] = useState(false);
+
+  // Guard: redirect to login if not authenticated
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      navigate("/admin/login?from=/create");
+    }
+  }, [isAuthenticated, authLoading, navigate]);
 
   const form = useForm<InsertPost>({
     resolver: zodResolver(insertPostSchema),

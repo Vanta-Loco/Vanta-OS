@@ -23,6 +23,7 @@ import { Link } from "wouter";
 import { insertPostSchema, type InsertPost, type Post } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useAdmin } from "@/hooks/use-admin";
 
 const categories = [
   "Music Production",
@@ -38,9 +39,17 @@ export default function EditPost() {
   const postId = params?.id;
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  const { isAuthenticated, isLoading: authLoading } = useAdmin();
   const [coverImagePreview, setCoverImagePreview] = useState<string>("");
   const [galleryPreviews, setGalleryPreviews] = useState<string[]>([]);
   const [isFeatured, setIsFeatured] = useState(false);
+
+  // Guard: redirect to login, preserving the edit URL so the user lands back here
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      navigate(`/admin/login?from=/edit/${postId ?? ""}`);
+    }
+  }, [isAuthenticated, authLoading, navigate, postId]);
 
   const { data: post, isLoading } = useQuery<Post>({
     queryKey: ["/api/posts", postId],
