@@ -557,7 +557,7 @@ function VaultLocked() {
     try {
       await verify.mutateAsync(code.trim());
     } catch {
-      setErrorMsg("Signal rejected. Code unrecognised.");
+      setErrorMsg("Transmission rejected. Code unrecognised.");
       setCode("");
     }
   }
@@ -567,86 +567,122 @@ function VaultLocked() {
       className="min-h-screen bg-background flex flex-col items-center justify-center px-6 relative overflow-hidden"
       data-testid="vault-locked-screen"
     >
-      {/* Atmospheric background gradient */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_30%,_hsl(var(--primary)/0.06)_0%,_transparent_65%)] pointer-events-none" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_80%_80%,_hsl(var(--primary)/0.03)_0%,_transparent_50%)] pointer-events-none" />
+      {/* CSS keyframes for scan line + icon breathe */}
+      <style>{`
+        @keyframes vault-scan {
+          0%   { transform: translateY(-20px); opacity: 0; }
+          8%   { opacity: 1; }
+          92%  { opacity: 1; }
+          100% { transform: translateY(100vh); opacity: 0; }
+        }
+        @keyframes vault-breathe {
+          0%, 100% { box-shadow: 0 0 0px 0px hsl(var(--primary) / 0); }
+          50%       { box-shadow: 0 0 28px 6px hsl(var(--primary) / 0.10); }
+        }
+        @keyframes vault-cursor {
+          0%, 100% { opacity: 1; }
+          50%       { opacity: 0; }
+        }
+      `}</style>
 
-      <div className="relative z-10 w-full max-w-md text-center space-y-10">
+      {/* Deep layered background */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,_hsl(var(--primary)/0.09)_0%,_transparent_58%)] pointer-events-none" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_40%,_hsl(var(--primary)/0.05)_0%,_transparent_55%)] pointer-events-none" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_15%_85%,_hsl(var(--primary)/0.04)_0%,_transparent_45%)] pointer-events-none" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_85%_75%,_hsl(var(--primary)/0.03)_0%,_transparent_40%)] pointer-events-none" />
 
-        {/* Icon */}
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full border border-border/60 bg-background/60 backdrop-blur-sm">
-          <LockKeyhole className="w-7 h-7 text-muted-foreground/70" />
+      {/* Slow-moving scan line */}
+      <div
+        className="absolute left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/10 to-transparent pointer-events-none z-0"
+        style={{ animation: "vault-scan 16s linear infinite" }}
+      />
+
+      {/* Corner bracket marks */}
+      <div className="absolute top-8 left-8 w-5 h-5 border-t border-l border-border/25 pointer-events-none" />
+      <div className="absolute top-8 right-8 w-5 h-5 border-t border-r border-border/25 pointer-events-none" />
+      <div className="absolute bottom-8 left-8 w-5 h-5 border-b border-l border-border/25 pointer-events-none" />
+      <div className="absolute bottom-8 right-8 w-5 h-5 border-b border-r border-border/25 pointer-events-none" />
+
+      <div className="relative z-10 w-full max-w-sm text-center space-y-12">
+
+        {/* Lock icon with breathing glow */}
+        <div
+          className="inline-flex items-center justify-center w-[72px] h-[72px] rounded-full border border-border/40 bg-background/50 backdrop-blur-sm mx-auto"
+          style={{ animation: "vault-breathe 5s ease-in-out infinite" }}
+        >
+          <LockKeyhole className="w-7 h-7 text-muted-foreground/50" />
         </div>
 
         {/* Title block */}
-        <div className="space-y-3">
-          <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground/50 font-mono">
-            Vanta OS · Restricted Channel
+        <div className="space-y-4">
+          <p className="text-[9px] uppercase tracking-[0.4em] text-muted-foreground/35 font-mono">
+            Vanta&nbsp;OS&nbsp;&nbsp;·&nbsp;&nbsp;Restricted&nbsp;Channel
           </p>
           <h1
-            className="text-5xl md:text-6xl font-display font-bold tracking-[0.12em]"
+            className="text-6xl md:text-7xl font-display font-bold tracking-[0.14em]"
             data-testid="text-vault-title"
           >
             VAULT
           </h1>
-          <div className="w-12 h-px bg-border mx-auto" />
-          <p className="text-sm text-muted-foreground leading-relaxed max-w-sm mx-auto">
-            This channel contains transmissions that never reached the surface —
-            raw sessions, unfinished demos, and fragments that didn't circulate.
-            Or weren't meant to.
+          {/* Gradient rule — fades out at both ends */}
+          <div className="w-16 h-px bg-gradient-to-r from-transparent via-border to-transparent mx-auto" />
+          <p className="text-sm text-muted-foreground/70 leading-[1.8] max-w-xs mx-auto">
+            Transmissions that never reached the surface. Raw sessions.
+            Unfinished signals. Fragments not meant to circulate —
+            or maybe they were.
           </p>
-          <p className="text-xs text-muted-foreground/50 font-mono">
-            You already know if you're supposed to be here.
+          <p className="text-[11px] text-muted-foreground/35 font-mono tracking-[0.15em] uppercase pt-1">
+            clearance&nbsp;required
           </p>
         </div>
 
         {/* Access code form */}
         <form onSubmit={handleSubmit} className="space-y-3" data-testid="form-vault-access">
-          <div className="relative">
-            <Input
-              type="password"
-              placeholder="Enter access code"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              className="text-center font-mono tracking-widest bg-background/60 border-border/60"
-              autoComplete="off"
-              data-testid="input-vault-code"
-            />
-          </div>
+          <Input
+            type="password"
+            placeholder="— access key —"
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+            className="text-center font-mono tracking-[0.25em] bg-background/40 border-border/50 placeholder:text-muted-foreground/25 placeholder:tracking-[0.2em]"
+            autoComplete="off"
+            data-testid="input-vault-code"
+          />
           {errorMsg && (
-            <p className="text-xs text-destructive font-mono" data-testid="text-vault-error">
+            <p className="text-xs text-destructive/80 font-mono tracking-wide" data-testid="text-vault-error">
               {errorMsg}
             </p>
           )}
           <Button
             type="submit"
             variant="default"
-            className="w-full font-mono tracking-wide"
+            className="w-full font-mono tracking-[0.12em] uppercase text-xs"
             disabled={!code.trim() || verify.isPending}
             data-testid="button-vault-enter"
           >
-            {verify.isPending ? "Verifying signal…" : "Transmit Code"}
+            {verify.isPending ? "Verifying…" : "Transmit Code"}
           </Button>
         </form>
 
         {/* Secondary options */}
-        <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground/50">
+        <div className="flex items-center justify-center gap-5 text-[11px] text-muted-foreground/35 font-mono tracking-wide">
           <a
             href="mailto:vantacold@proton.me?subject=Vault+Access+Request"
-            className="hover:text-muted-foreground transition-colors font-mono"
+            className="hover:text-muted-foreground/70 transition-colors"
             data-testid="link-request-access"
           >
             Request access
           </a>
-          <span className="text-border">·</span>
+          <span className="text-border/50">·</span>
           <Link
             href="/"
-            className="hover:text-muted-foreground transition-colors font-mono flex items-center gap-1"
+            className="hover:text-muted-foreground/70 transition-colors flex items-center gap-1.5"
             data-testid="link-return-surface"
           >
-            <ArrowLeft className="w-3 h-3" /> Return to surface
+            <ArrowLeft className="w-3 h-3" />
+            Return to surface
           </Link>
         </div>
+
       </div>
     </div>
   );
