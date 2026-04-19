@@ -18,6 +18,7 @@ import Worlds from "@/pages/worlds";
 import Enter from "@/pages/enter";
 import AdminLogin from "@/pages/admin-login";
 import AdminDashboard from "@/pages/admin";
+import Vault from "@/pages/vault";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -37,6 +38,7 @@ function Router() {
       <Route path="/enter" component={Enter} />
       <Route path="/admin/login" component={AdminLogin} />
       <Route path="/admin" component={AdminDashboard} />
+      <Route path="/vault" component={Vault} />
       <Route component={NotFound} />
     </Switch>
   );

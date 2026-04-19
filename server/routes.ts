@@ -1,13 +1,14 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertPostSchema, insertReleaseSchema } from "@shared/schema";
+import { insertPostSchema, insertReleaseSchema, insertVaultItemSchema } from "@shared/schema";
 import { z } from "zod";
 import { generateAudioPreview, deleteAudioPreview } from "./audio-preview";
 
 declare module "express-session" {
   interface SessionData {
     isAdmin: boolean;
+    vaultAuthorized: boolean;
   }
 }
 
@@ -274,6 +275,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting release:", error);
       res.status(500).json({ error: "Failed to delete release" });
+    }
+  });
+
+  // ── Vault Auth ───────────────────────────────────────────────────
+  app.get("/api/vault/me", (req, res) => {
+    res.json({ authorized: req.session?.vaultAuthorized === true });
+  });
+
+  app.post("/api/vault/verify", (req, res) => {
+    const { code } = req.body;
+    const vaultCode = process.env.VAULT_CODE;
+    if (!vaultCode) {
+      return res.status(503).json({ error: "Vault is not configured." });
+    }
+    if (typeof code === "string" && code.trim().toUpperCase() === vaultCode.trim().toUpperCase()) {
+      req.session.vaultAuthorized = true;
+      req.session.save((err) => {
+        if (err) return res.status(500).json({ error: "Session error" });
+        res.json({ authorized: true });
+      });
+    } else {
+      return res.status(401).json({ error: "Invalid access code." });
+    }
+  });
+
+  app.post("/api/vault/logout", (req, res) => {
+    req.session.vaultAuthorized = false;
+    req.session.save(() => res.json({ success: true }));
+  });
+
+  // ── Vault Items ──────────────────────────────────────────────────
+  app.get("/api/vault/items", async (req, res) => {
+    if (req.session?.vaultAuthorized !== true) {
+      return res.status(401).json({ error: "Vault access required" });
+    }
+    try {
+      const items = await storage.getVaultItems();
+      res.json(items);
+    } catch (error) {
+      console.error("Error fetching vault items:", error);
+      res.status(500).json({ error: "Failed to fetch vault items" });
+    }
+  });
+
+  app.post("/api/vault/items", requireAdmin, async (req, res) => {
+    try {
+      const parsed = insertVaultItemSchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
+      const item = await storage.createVaultItem(parsed.data);
+      res.status(201).json(item);
+    } catch (error) {
+      console.error("Error creating vault item:", error);
+      res.status(500).json({ error: "Failed to create vault item" });
+    }
+  });
+
+  app.delete("/api/vault/items/:id", requireAdmin, async (req, res) => {
+    try {
+      const deleted = await storage.deleteVaultItem(req.params.id);
+      if (!deleted) return res.status(404).json({ error: "Item not found" });
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting vault item:", error);
+      res.status(500).json({ error: "Failed to delete vault item" });
     }
   });
 

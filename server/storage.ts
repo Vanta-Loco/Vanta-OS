@@ -1,4 +1,4 @@
-import { type Post, type InsertPost, posts, type Release, type InsertRelease, releases } from "@shared/schema";
+import { type Post, type InsertPost, posts, type Release, type InsertRelease, releases, type VaultItem, type InsertVaultItem, vaultItems } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, or, ilike, and } from "drizzle-orm";
 
@@ -15,6 +15,10 @@ export interface IStorage {
   createRelease(release: InsertRelease): Promise<Release>;
   updateRelease(id: string, release: Partial<InsertRelease>): Promise<Release | undefined>;
   deleteRelease(id: string): Promise<boolean>;
+
+  getVaultItems(): Promise<VaultItem[]>;
+  createVaultItem(item: InsertVaultItem): Promise<VaultItem>;
+  deleteVaultItem(id: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -82,6 +86,20 @@ export class DatabaseStorage implements IStorage {
 
   async deleteRelease(id: string): Promise<boolean> {
     const result = await db.delete(releases).where(eq(releases.id, id));
+    return result.rowCount !== null && result.rowCount > 0;
+  }
+
+  async getVaultItems(): Promise<VaultItem[]> {
+    return await db.select().from(vaultItems).orderBy(desc(vaultItems.createdAt));
+  }
+
+  async createVaultItem(item: InsertVaultItem): Promise<VaultItem> {
+    const [created] = await db.insert(vaultItems).values(item).returning();
+    return created;
+  }
+
+  async deleteVaultItem(id: string): Promise<boolean> {
+    const result = await db.delete(vaultItems).where(eq(vaultItems.id, id));
     return result.rowCount !== null && result.rowCount > 0;
   }
 }

@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { PenSquare, Search, LayoutDashboard, LogOut } from "lucide-react";
+import { PenSquare, Search, LayoutDashboard, LogOut, LockKeyhole } from "lucide-react";
 import { useAdmin } from "@/hooks/use-admin";
 
 const navLinks = [
@@ -64,6 +64,21 @@ export function Header() {
               />
             </form>
             <ThemeToggle />
+
+            {/* Vault link — always visible, distinct from admin */}
+            <Link href="/vault" data-testid="link-vault">
+              <Button
+                variant="ghost"
+                size="icon"
+                title="Vault"
+                data-testid="button-vault-link"
+                className={`text-muted-foreground/50 hover:text-muted-foreground ${
+                  location === "/vault" ? "text-foreground" : ""
+                }`}
+              >
+                <LockKeyhole className="w-4 h-4" />
+              </Button>
+            </Link>
 
             {isAdmin ? (
               <>

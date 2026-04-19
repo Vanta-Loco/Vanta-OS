@@ -94,3 +94,32 @@ export const insertReleaseSchema = createInsertSchema(releases).omit({
 
 export type InsertRelease = z.infer<typeof insertReleaseSchema>;
 export type Release = typeof releases.$inferSelect;
+
+export const VAULT_ITEM_TYPES = ["audio", "demo", "video", "text", "image"] as const;
+export type VaultItemType = typeof VAULT_ITEM_TYPES[number];
+
+export const vaultItems = pgTable("vault_items", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: text("title").notNull(),
+  description: text("description").notNull().default(""),
+  type: text("type").notNull().default("audio"),
+  fileUrl: text("file_url").notNull().default(""),
+  coverImage: text("cover_image").notNull().default(""),
+  notes: text("notes").notNull().default(""),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertVaultItemSchema = createInsertSchema(vaultItems).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  title: z.string().min(1, "Title is required"),
+  type: z.enum(["audio", "demo", "video", "text", "image"]).default("audio"),
+  description: z.string().default(""),
+  fileUrl: z.string().default(""),
+  coverImage: z.string().default(""),
+  notes: z.string().default(""),
+});
+
+export type InsertVaultItem = z.infer<typeof insertVaultItemSchema>;
+export type VaultItem = typeof vaultItems.$inferSelect;
