@@ -104,6 +104,7 @@ export const vaultItems = pgTable("vault_items", {
   description: text("description").notNull().default(""),
   type: text("type").notNull().default("audio"),
   fileUrl: text("file_url").notNull().default(""),
+  compressedUrl: text("compressed_url").notNull().default(""),
   coverImage: text("cover_image").notNull().default(""),
   notes: text("notes").notNull().default(""),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -117,6 +118,7 @@ export const insertVaultItemSchema = createInsertSchema(vaultItems).omit({
   type: z.enum(["audio", "demo", "video", "text", "image"]).default("audio"),
   description: z.string().default(""),
   fileUrl: z.string().default(""),
+  compressedUrl: z.string().default(""),
   coverImage: z.string().default(""),
   notes: z.string().default(""),
 });

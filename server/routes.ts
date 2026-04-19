@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { insertPostSchema, insertReleaseSchema, insertVaultItemSchema } from "@shared/schema";
 import { z } from "zod";
 import { generateAudioPreview, deleteAudioPreview } from "./audio-preview";
+import { compressAudioFile, deleteCompressedAudio } from "./audio-compress";
 
 declare module "express-session" {
   interface SessionData {
@@ -325,9 +326,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
       const item = await storage.createVaultItem(parsed.data);
       res.status(201).json(item);
+
+      // Background: compress audio if the file URL points to an uploaded audio file
+      const isAudioType = item.type === "audio" || item.type === "demo";
+      if (isAudioType && item.fileUrl?.startsWith("/uploads/")) {
+        compressAudioFile(item.fileUrl, item.id).then(async (compressedUrl) => {
+          if (compressedUrl) {
+            await storage.updateVaultItem(item.id, { compressedUrl });
+            console.log(`[vault] compressed audio ready for item ${item.id}`);
+          }
+        }).catch((err) => console.error(`[vault] compression error for ${item.id}:`, err));
+      }
     } catch (error) {
       console.error("Error creating vault item:", error);
       res.status(500).json({ error: "Failed to create vault item" });
+    }
+  });
+
+  // Manual re-compress trigger (admin only)
+  app.post("/api/vault/items/:id/recompress", requireAdmin, async (req, res) => {
+    try {
+      const items = await storage.getVaultItems();
+      const item = items.find(i => i.id === req.params.id);
+      if (!item) return res.status(404).json({ error: "Item not found" });
+      if (!item.fileUrl?.startsWith("/uploads/")) {
+        return res.status(400).json({ error: "Item has no uploaded audio file to compress" });
+      }
+      res.json({ status: "compression started" });
+
+      compressAudioFile(item.fileUrl, item.id).then(async (compressedUrl) => {
+        if (compressedUrl) {
+          await storage.updateVaultItem(item.id, { compressedUrl });
+          console.log(`[vault] recompressed audio ready for item ${item.id}`);
+        }
+      }).catch((err) => console.error(`[vault] recompression error for ${item.id}:`, err));
+    } catch (error) {
+      console.error("Error triggering recompression:", error);
+      res.status(500).json({ error: "Failed to start recompression" });
     }
   });
 
@@ -335,6 +370,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const deleted = await storage.deleteVaultItem(req.params.id);
       if (!deleted) return res.status(404).json({ error: "Item not found" });
+      deleteCompressedAudio(req.params.id);
       res.status(204).send();
     } catch (error) {
       console.error("Error deleting vault item:", error);

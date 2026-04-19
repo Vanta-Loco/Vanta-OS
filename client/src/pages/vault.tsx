@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { useVault } from "@/hooks/use-vault";
@@ -8,8 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
-  LockKeyhole, ArrowLeft, Play, Square, Trash2, Plus,
-  Mic2, FileText, Film, ImageIcon, Music2, LogOut,
+  LockKeyhole, ArrowLeft, Play, Pause, Trash2, Plus,
+  Mic2, FileText, Film, ImageIcon, Music2, LogOut, Loader2, RefreshCw,
 } from "lucide-react";
 import type { VaultItem } from "@shared/schema";
 import { format } from "date-fns";
@@ -22,6 +22,160 @@ const TYPE_META: Record<string, { label: string; Icon: React.ElementType }> = {
   image:  { label: "Image",  Icon: ImageIcon},
 };
 
+type PlayerState = "idle" | "loading" | "playing" | "paused";
+
+function VaultAudioPlayer({ item, isAdmin }: { item: VaultItem; isAdmin: boolean }) {
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const barRef = useRef<HTMLDivElement>(null);
+  const [playerState, setPlayerState] = useState<PlayerState>("idle");
+  const [progress, setProgress] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [srcLoaded, setSrcLoaded] = useState(false);
+
+  // Use compressed URL when available, fall back to raw file
+  const playbackSrc = item.compressedUrl || item.fileUrl;
+
+  function formatTime(sec: number) {
+    if (!isFinite(sec) || sec <= 0) return "0:00";
+    const m = Math.floor(sec / 60);
+    const s = Math.floor(sec % 60);
+    return `${m}:${s.toString().padStart(2, "0")}`;
+  }
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const onTimeUpdate = () => {
+      setCurrentTime(audio.currentTime);
+      if (audio.duration) setProgress(audio.currentTime / audio.duration);
+    };
+    const onLoadedMetadata = () => setDuration(audio.duration);
+    const onCanPlay = () => {
+      setPlayerState((s) => s === "loading" ? "playing" : s);
+    };
+    const onEnded = () => {
+      setPlayerState("idle");
+      setProgress(0);
+      setCurrentTime(0);
+    };
+    const onPause = () => setPlayerState("paused");
+    const onPlay  = () => setPlayerState("playing");
+
+    audio.addEventListener("timeupdate", onTimeUpdate);
+    audio.addEventListener("loadedmetadata", onLoadedMetadata);
+    audio.addEventListener("canplay", onCanPlay);
+    audio.addEventListener("ended", onEnded);
+    audio.addEventListener("pause", onPause);
+    audio.addEventListener("play", onPlay);
+    return () => {
+      audio.removeEventListener("timeupdate", onTimeUpdate);
+      audio.removeEventListener("loadedmetadata", onLoadedMetadata);
+      audio.removeEventListener("canplay", onCanPlay);
+      audio.removeEventListener("ended", onEnded);
+      audio.removeEventListener("pause", onPause);
+      audio.removeEventListener("play", onPlay);
+    };
+  }, []);
+
+  const recompressMutation = useMutation({
+    mutationFn: () => apiRequest("POST", `/api/vault/items/${item.id}/recompress`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/vault/items"] }),
+  });
+
+  function handleToggle() {
+    const audio = audioRef.current;
+    if (!audio || !playbackSrc) return;
+
+    if (playerState === "idle") {
+      if (!srcLoaded) {
+        audio.src = playbackSrc;
+        audio.load();
+        setSrcLoaded(true);
+      }
+      setPlayerState("loading");
+      audio.play().catch(() => setPlayerState("idle"));
+    } else if (playerState === "playing") {
+      audio.pause();
+    } else if (playerState === "paused" || playerState === "loading") {
+      audio.play().catch(() => setPlayerState("idle"));
+    }
+  }
+
+  function handleSeek(e: React.MouseEvent<HTMLDivElement>) {
+    const audio = audioRef.current;
+    if (!audio || playerState === "idle" || !audio.duration) return;
+    const rect = barRef.current!.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    audio.currentTime = ratio * audio.duration;
+  }
+
+  const isCompressed = !!item.compressedUrl;
+
+  return (
+    <div className="space-y-2">
+      <audio ref={audioRef} preload="none" />
+      <div className="flex items-center gap-3">
+        <Button
+          size="icon"
+          variant={playerState === "playing" ? "default" : "outline"}
+          onClick={handleToggle}
+          disabled={!playbackSrc}
+          data-testid={`button-play-${item.id}`}
+        >
+          {playerState === "loading"
+            ? <Loader2 className="w-4 h-4 animate-spin" />
+            : playerState === "playing"
+              ? <Pause className="w-4 h-4" />
+              : <Play className="w-4 h-4" />
+          }
+        </Button>
+
+        <div
+          ref={barRef}
+          className="flex-1 h-1 bg-muted rounded-full cursor-pointer relative"
+          onClick={handleSeek}
+          data-testid={`seekbar-${item.id}`}
+        >
+          <div
+            className="absolute inset-y-0 left-0 bg-foreground/50 rounded-full transition-none"
+            style={{ width: `${progress * 100}%` }}
+          />
+        </div>
+
+        <span
+          className="text-xs font-mono text-muted-foreground/50 tabular-nums whitespace-nowrap"
+          data-testid={`time-${item.id}`}
+        >
+          {formatTime(currentTime)}{duration > 0 ? ` / ${formatTime(duration)}` : ""}
+        </span>
+      </div>
+
+      {isAdmin && (
+        <div className="flex items-center gap-2 pt-0.5">
+          <span className={`text-xs font-mono ${isCompressed ? "text-green-500/70" : "text-muted-foreground/40"}`}>
+            {isCompressed ? "MP3 ready" : "no compressed version"}
+          </span>
+          {!isCompressed && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-5 px-2 text-xs gap-1"
+              onClick={() => recompressMutation.mutate()}
+              disabled={recompressMutation.isPending}
+              data-testid={`button-recompress-${item.id}`}
+            >
+              <RefreshCw className={`w-3 h-3 ${recompressMutation.isPending ? "animate-spin" : ""}`} />
+              compress now
+            </Button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function VaultItemCard({
   item,
   canDelete,
@@ -31,24 +185,8 @@ function VaultItemCard({
   canDelete: boolean;
   onDelete: (id: string) => void;
 }) {
-  const [isPlaying, setIsPlaying] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
   const isAudio = item.type === "audio" || item.type === "demo";
   const meta = TYPE_META[item.type] ?? TYPE_META.audio;
-
-  function togglePlay() {
-    if (!item.fileUrl) return;
-    if (isPlaying) {
-      audioRef.current?.pause();
-      setIsPlaying(false);
-    } else {
-      const audio = new Audio(item.fileUrl);
-      audioRef.current = audio;
-      audio.play();
-      setIsPlaying(true);
-      audio.addEventListener("ended", () => setIsPlaying(false), { once: true });
-    }
-  }
 
   return (
     <div
@@ -109,16 +247,8 @@ function VaultItemCard({
           )}
         </div>
 
-        {isAudio && item.fileUrl && (
-          <Button
-            variant={isPlaying ? "default" : "outline"}
-            size="default"
-            className="gap-2 font-mono text-xs"
-            onClick={togglePlay}
-            data-testid={`button-play-vault-${item.id}`}
-          >
-            {isPlaying ? <><Square className="w-3 h-3" /> Stop</> : <><Play className="w-3 h-3" /> Play</>}
-          </Button>
+        {isAudio && (item.fileUrl || item.compressedUrl) && (
+          <VaultAudioPlayer item={item} isAdmin={canDelete} />
         )}
       </div>
     </div>

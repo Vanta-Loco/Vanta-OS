@@ -18,6 +18,7 @@ export interface IStorage {
 
   getVaultItems(): Promise<VaultItem[]>;
   createVaultItem(item: InsertVaultItem): Promise<VaultItem>;
+  updateVaultItem(id: string, data: Partial<InsertVaultItem>): Promise<VaultItem | undefined>;
   deleteVaultItem(id: string): Promise<boolean>;
 }
 
@@ -96,6 +97,11 @@ export class DatabaseStorage implements IStorage {
   async createVaultItem(item: InsertVaultItem): Promise<VaultItem> {
     const [created] = await db.insert(vaultItems).values(item).returning();
     return created;
+  }
+
+  async updateVaultItem(id: string, data: Partial<InsertVaultItem>): Promise<VaultItem | undefined> {
+    const [item] = await db.update(vaultItems).set(data).where(eq(vaultItems.id, id)).returning();
+    return item || undefined;
   }
 
   async deleteVaultItem(id: string): Promise<boolean> {
