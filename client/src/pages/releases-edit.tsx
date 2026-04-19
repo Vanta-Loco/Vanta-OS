@@ -18,7 +18,7 @@ import { insertReleaseSchema, type InsertRelease, type Release } from "@shared/s
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import {
-  Upload, Music, Play, Square, CheckCircle, Loader2, X, ArrowLeft, Trash2,
+  Upload, Music, Play, Square, CheckCircle, Loader2, X, ArrowLeft, Trash2, RefreshCw,
 } from "lucide-react";
 import { Link } from "wouter";
 
@@ -138,17 +138,34 @@ export default function ReleasesEdit() {
       setIsTesting(false);
       return;
     }
-    const audioSrc = form.getValues("audioFileUrl") || form.getValues("audioPreviewUrl");
+    const generatedClip = form.getValues("audioPreviewUrl");
+    const hasGeneratedClip = generatedClip?.startsWith("/uploads/preview-");
+    const audioSrc = hasGeneratedClip
+      ? generatedClip
+      : form.getValues("audioFileUrl") || generatedClip;
     if (!audioSrc) return;
-    const startSec = form.getValues("previewStartSeconds") ?? 0;
+
     const durationSec = form.getValues("previewDurationSeconds") ?? 30;
     const audio = new Audio(audioSrc);
     audioTestRef.current = audio;
-    audio.currentTime = startSec;
-    audio.play();
-    setIsTesting(true);
-    const timer = setTimeout(() => { audio.pause(); setIsTesting(false); }, durationSec * 1000);
-    audio.addEventListener("ended", () => { clearTimeout(timer); setIsTesting(false); });
+
+    const startPlayback = () => {
+      audio.play();
+      setIsTesting(true);
+      const timer = setTimeout(() => { audio.pause(); setIsTesting(false); }, durationSec * 1000);
+      audio.addEventListener("ended", () => { clearTimeout(timer); setIsTesting(false); });
+    };
+
+    if (!hasGeneratedClip) {
+      const startSec = form.getValues("previewStartSeconds") ?? 0;
+      audio.addEventListener("canplay", () => {
+        audio.currentTime = startSec;
+        startPlayback();
+      }, { once: true });
+      audio.load();
+    } else {
+      startPlayback();
+    }
   }
 
   const updateMutation = useMutation({
@@ -161,6 +178,20 @@ export default function ReleasesEdit() {
       navigate("/admin");
     },
     onError: () => toast({ title: "Update failed.", variant: "destructive" }),
+  });
+
+  const regenPreviewMutation = useMutation({
+    mutationFn: () =>
+      apiRequest("POST", `/api/releases/${releaseId}/regenerate-preview`, {}),
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/releases"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/releases", releaseId] });
+      if (data?.previewUrl) {
+        form.setValue("audioPreviewUrl", data.previewUrl, { shouldValidate: false });
+      }
+      toast({ title: "Preview clip generated." });
+    },
+    onError: () => toast({ title: "Preview generation failed.", variant: "destructive" }),
   });
 
   const deleteMutation = useMutation({
@@ -182,7 +213,10 @@ export default function ReleasesEdit() {
   };
 
   const coverImageValue = form.watch("coverImage");
-  const hasAudioSource = !!(form.watch("audioFileUrl") || form.watch("audioPreviewUrl"));
+  const audioPreviewUrlValue = form.watch("audioPreviewUrl");
+  const audioFileUrlValue = form.watch("audioFileUrl");
+  const hasGeneratedClip = audioPreviewUrlValue?.startsWith("/uploads/preview-");
+  const hasAudioSource = !!(audioFileUrlValue || audioPreviewUrlValue);
 
   if (isLoading) {
     return (
@@ -365,7 +399,18 @@ export default function ReleasesEdit() {
                 </div>
 
                 <div className="border border-border rounded-md p-4 space-y-4">
-                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Preview Snippet</p>
+                  <div className="flex items-center justify-between gap-4 flex-wrap">
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Preview Snippet</p>
+                    {hasGeneratedClip ? (
+                      <span className="flex items-center gap-1.5 text-xs text-green-500" data-testid="text-preview-status">
+                        <CheckCircle className="w-3.5 h-3.5" /> Preview clip ready
+                      </span>
+                    ) : audioFileUrlValue ? (
+                      <span className="text-xs text-muted-foreground" data-testid="text-preview-status">
+                        No clip generated yet
+                      </span>
+                    ) : null}
+                  </div>
                   <div className="grid grid-cols-2 gap-4">
                     <FormField control={form.control} name="previewStartSeconds" render={({ field }) => (
                       <FormItem>
@@ -382,14 +427,34 @@ export default function ReleasesEdit() {
                       </FormItem>
                     )} />
                   </div>
-                  <Button type="button" variant={isTesting ? "default" : "outline"} size="default" className="gap-2" disabled={!hasAudioSource} onClick={testSnippet} data-testid="button-test-snippet">
-                    {isTesting ? <><Square className="w-4 h-4" /> Stop</> : <><Play className="w-4 h-4" /> Test Snippet</>}
-                  </Button>
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <Button type="button" variant={isTesting ? "default" : "outline"} size="default" className="gap-2" disabled={!hasAudioSource} onClick={testSnippet} data-testid="button-test-snippet">
+                      {isTesting ? <><Square className="w-4 h-4" /> Stop</> : <><Play className="w-4 h-4" /> Test Snippet</>}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="default"
+                      className="gap-2"
+                      disabled={!audioFileUrlValue || regenPreviewMutation.isPending}
+                      onClick={() => regenPreviewMutation.mutate()}
+                      data-testid="button-regen-preview"
+                    >
+                      {regenPreviewMutation.isPending
+                        ? <><Loader2 className="w-4 h-4 animate-spin" /> Generating…</>
+                        : <><RefreshCw className="w-4 h-4" /> {hasGeneratedClip ? "Regenerate Clip" : "Generate Preview Clip"}</>}
+                    </Button>
+                  </div>
+                  {hasGeneratedClip && (
+                    <p className="text-xs text-muted-foreground" data-testid="text-preview-hint">
+                      Clip saved — visitors will hear this exact segment instantly, with no buffering of the full file.
+                    </p>
+                  )}
                 </div>
 
                 <FormField control={form.control} name="audioPreviewUrl" render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-muted-foreground text-xs font-normal">or paste audio preview URL</FormLabel>
+                    <FormLabel className="text-muted-foreground text-xs font-normal">or paste external audio preview URL</FormLabel>
                     <FormControl><Input placeholder="https://…" {...field} data-testid="input-audio-preview" /></FormControl>
                     <FormMessage />
                   </FormItem>

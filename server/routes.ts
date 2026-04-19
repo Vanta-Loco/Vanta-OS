@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertPostSchema, insertReleaseSchema } from "@shared/schema";
 import { z } from "zod";
+import { generateAudioPreview, deleteAudioPreview } from "./audio-preview";
 
 declare module "express-session" {
   interface SessionData {
@@ -179,7 +180,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/releases", requireAdmin, async (req, res) => {
     try {
       const validatedData = insertReleaseSchema.parse(req.body);
-      const release = await storage.createRelease(validatedData);
+      let release = await storage.createRelease(validatedData);
+
+      if (release.audioFileUrl) {
+        const previewUrl = await generateAudioPreview(
+          release.audioFileUrl,
+          release.id,
+          release.previewStartSeconds,
+          release.previewDurationSeconds,
+        );
+        if (previewUrl) {
+          release = (await storage.updateRelease(release.id, { audioPreviewUrl: previewUrl })) ?? release;
+        }
+      }
+
       res.status(201).json(release);
     } catch (error) {
       if (error instanceof z.ZodError) return res.status(400).json({ error: error.errors });
@@ -192,8 +206,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { id } = req.params;
       const validatedData = insertReleaseSchema.partial().parse(req.body);
-      const release = await storage.updateRelease(id, validatedData);
+
+      const shouldRegenPreview =
+        "audioFileUrl" in validatedData ||
+        "previewStartSeconds" in validatedData ||
+        "previewDurationSeconds" in validatedData;
+
+      let release = await storage.updateRelease(id, validatedData);
       if (!release) return res.status(404).json({ error: "Release not found" });
+
+      if (shouldRegenPreview && release.audioFileUrl) {
+        const previewUrl = await generateAudioPreview(
+          release.audioFileUrl,
+          release.id,
+          release.previewStartSeconds,
+          release.previewDurationSeconds,
+        );
+        if (previewUrl) {
+          release = (await storage.updateRelease(release.id, { audioPreviewUrl: previewUrl })) ?? release;
+        }
+      }
+
       res.json(release);
     } catch (error) {
       if (error instanceof z.ZodError) return res.status(400).json({ error: error.errors });
@@ -202,11 +235,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ── Manual preview regeneration (admin only) ─────────────────────
+  app.post("/api/releases/:id/regenerate-preview", requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const release = await storage.getRelease(id);
+      if (!release) return res.status(404).json({ error: "Release not found" });
+      if (!release.audioFileUrl) {
+        return res.status(400).json({ error: "No audio file uploaded for this release" });
+      }
+
+      const previewUrl = await generateAudioPreview(
+        release.audioFileUrl,
+        release.id,
+        release.previewStartSeconds,
+        release.previewDurationSeconds,
+      );
+
+      if (!previewUrl) {
+        return res.status(500).json({ error: "Preview generation failed — check server logs" });
+      }
+
+      const updated = await storage.updateRelease(release.id, { audioPreviewUrl: previewUrl });
+      res.json({ previewUrl, release: updated });
+    } catch (error) {
+      console.error("Error regenerating preview:", error);
+      res.status(500).json({ error: "Failed to regenerate preview" });
+    }
+  });
+
   app.delete("/api/releases/:id", requireAdmin, async (req, res) => {
     try {
       const { id } = req.params;
       const deleted = await storage.deleteRelease(id);
       if (!deleted) return res.status(404).json({ error: "Release not found" });
+      deleteAudioPreview(id);
       res.status(204).send();
     } catch (error) {
       console.error("Error deleting release:", error);

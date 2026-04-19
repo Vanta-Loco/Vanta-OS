@@ -30,7 +30,13 @@ function ReleaseCard({ release }: { release: Release }) {
     { url: release.youtubeUrl, icon: SiYoutube, label: "YouTube", testId: "button-youtube" },
   ].filter((l) => l.url);
 
-  const audioSrc = release.audioFileUrl || release.audioPreviewUrl;
+  // Prefer the generated preview clip (plays from 0:00, no seeking needed).
+  // Fall back to seeking within the full source file if no clip exists yet.
+  const generatedClip = release.audioPreviewUrl?.startsWith("/uploads/preview-")
+    ? release.audioPreviewUrl
+    : null;
+  const audioSrc = generatedClip || release.audioFileUrl || release.audioPreviewUrl;
+  const useSeek = !generatedClip && !!audioSrc;
 
   function handlePreview() {
     if (isPlaying) {
@@ -41,19 +47,32 @@ function ReleaseCard({ release }: { release: Release }) {
     if (!audioSrc) return;
     const audio = new Audio(audioSrc);
     audioRef.current = audio;
-    const startSec = release.previewStartSeconds ?? 0;
+
     const durationSec = release.previewDurationSeconds ?? 30;
-    audio.currentTime = startSec;
-    audio.play();
-    setIsPlaying(true);
-    const timer = setTimeout(() => {
-      audio.pause();
-      setIsPlaying(false);
-    }, durationSec * 1000);
-    audio.addEventListener("ended", () => {
-      clearTimeout(timer);
-      setIsPlaying(false);
-    });
+
+    const startPlayback = () => {
+      audio.play();
+      setIsPlaying(true);
+      const timer = setTimeout(() => {
+        audio.pause();
+        setIsPlaying(false);
+      }, durationSec * 1000);
+      audio.addEventListener("ended", () => {
+        clearTimeout(timer);
+        setIsPlaying(false);
+      });
+    };
+
+    if (useSeek) {
+      const startSec = release.previewStartSeconds ?? 0;
+      audio.addEventListener("canplay", () => {
+        audio.currentTime = startSec;
+        startPlayback();
+      }, { once: true });
+      audio.load();
+    } else {
+      startPlayback();
+    }
   }
 
   return (
