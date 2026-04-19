@@ -372,6 +372,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch("/api/vault/items/:id", requireAdmin, async (req, res) => {
+    try {
+      const parsed = insertVaultItemSchema.partial().safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
+      const updated = await storage.updateVaultItem(req.params.id, parsed.data);
+      if (!updated) return res.status(404).json({ error: "Item not found" });
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating vault item:", error);
+      res.status(500).json({ error: "Failed to update vault item" });
+    }
+  });
+
   app.delete("/api/vault/items/:id", requireAdmin, async (req, res) => {
     try {
       const deleted = await storage.deleteVaultItem(req.params.id);

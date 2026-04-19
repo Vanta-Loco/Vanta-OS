@@ -1,0 +1,56 @@
+Next step: improve the presentation of Vault items so Vault feels curated and premium, and add proper admin editing support.
+
+Requirements:
+- Keep the existing Vault access logic, upload flow, and playback system unchanged
+- Improve the unlocked Vault page so items feel more intentional and categorized
+- Add a simple content grouping or filtering system for Vault items using the existing type system and/or a new lightweight category field
+- I want Vault content to feel like curated restricted material, not a generic file list
+- I also need to be able to edit Vault items as an admin, not just create and delete them
+
+Preferred category direction:
+- Unreleased
+- Demos
+- Fragments
+
+Implementation goals:
+1. Vault categorization
+- Allow Vault items to have a category
+- Show category clearly but subtly in the UI
+- Add lightweight filtering or grouping on the Vault page
+- Keep the design dark, minimal, and editorial/system-like
+- Do not turn Vault into a cluttered dashboard
+- Keep the audio player experience intact
+
+2. Admin editing support
+- Add the ability for admins to edit existing Vault items
+- This should include editing:
+  - title
+  - description
+  - category
+  - type
+  - file URL / uploaded file reference
+  - cover image
+  - internal notes
+- Reuse the improved direct-upload workflow where possible
+- Keep the editing experience consistent with the current Vault add form and overall admin style
+- Make edit access admin-only
+- Add an edit action/button for Vault items that is visible only to admins
+
+Preferred UX direction:
+- If possible, keep Vault management inside the Vault experience instead of pushing it into a separate generic admin dashboard
+- The unlocked Vault page should still feel premium and curated, even with admin controls present
+- Admin controls should be subtle and not dominate the design
+
+Technical constraints:
+- Reuse the existing React + TypeScript + Express + PostgreSQL + Drizzle setup
+- Do not rebuild Vault from scratch
+- Keep all existing Vault access, playback, compression, and upload behavior working
+- Keep backward compatibility for older Vault items that do not have a category yet
+
+Deliver:
+- exact schema changes if needed
+- exact routes added or updated
+- exact files changed
+- how Vault items are grouped or filtered
+- how admin editing works
+- how older Vault items behave if they have no category yet

@@ -98,11 +98,15 @@ export type Release = typeof releases.$inferSelect;
 export const VAULT_ITEM_TYPES = ["audio", "demo", "video", "text", "image"] as const;
 export type VaultItemType = typeof VAULT_ITEM_TYPES[number];
 
+export const VAULT_CATEGORIES = ["unreleased", "demos", "fragments"] as const;
+export type VaultCategory = typeof VAULT_CATEGORIES[number];
+
 export const vaultItems = pgTable("vault_items", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   title: text("title").notNull(),
   description: text("description").notNull().default(""),
   type: text("type").notNull().default("audio"),
+  category: text("category").notNull().default(""),
   fileUrl: text("file_url").notNull().default(""),
   compressedUrl: text("compressed_url").notNull().default(""),
   coverImage: text("cover_image").notNull().default(""),
@@ -116,6 +120,7 @@ export const insertVaultItemSchema = createInsertSchema(vaultItems).omit({
 }).extend({
   title: z.string().min(1, "Title is required"),
   type: z.enum(["audio", "demo", "video", "text", "image"]).default("audio"),
+  category: z.string().default(""),
   description: z.string().default(""),
   fileUrl: z.string().default(""),
   compressedUrl: z.string().default(""),

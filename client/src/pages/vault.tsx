@@ -8,12 +8,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
-  LockKeyhole, ArrowLeft, Play, Pause, Trash2, Plus,
+  LockKeyhole, ArrowLeft, Play, Pause, Trash2, Plus, Pencil,
   Mic2, FileText, Film, ImageIcon, Music2, LogOut, Loader2, RefreshCw,
   Upload, CheckCircle2, X, AlertCircle,
 } from "lucide-react";
 import type { VaultItem } from "@shared/schema";
+import { VAULT_CATEGORIES } from "@shared/schema";
 import { format } from "date-fns";
+
+const CATEGORY_LABEL: Record<string, string> = {
+  unreleased: "Unreleased",
+  demos: "Demos",
+  fragments: "Fragments",
+};
 
 const TYPE_META: Record<string, { label: string; Icon: React.ElementType }> = {
   audio:  { label: "Audio",  Icon: Music2   },
@@ -180,14 +187,30 @@ function VaultAudioPlayer({ item, isAdmin }: { item: VaultItem; isAdmin: boolean
 function VaultItemCard({
   item,
   canDelete,
+  canEdit,
   onDelete,
+  onSaved,
 }: {
   item: VaultItem;
   canDelete: boolean;
+  canEdit: boolean;
   onDelete: (id: string) => void;
+  onSaved: () => void;
 }) {
+  const [editing, setEditing] = useState(false);
   const isAudio = item.type === "audio" || item.type === "demo";
   const meta = TYPE_META[item.type] ?? TYPE_META.audio;
+  const categoryLabel = item.category ? CATEGORY_LABEL[item.category] : null;
+
+  if (editing) {
+    return (
+      <VaultEditForm
+        item={item}
+        onSaved={() => { setEditing(false); onSaved(); }}
+        onCancel={() => setEditing(false)}
+      />
+    );
+  }
 
   return (
     <div
@@ -212,20 +235,42 @@ function VaultItemCard({
               <meta.Icon className="w-3 h-3" />
               {meta.label}
             </Badge>
-            <span className="text-xs text-muted-foreground/50 font-mono">
+            {categoryLabel && (
+              <span
+                className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground/50 font-mono"
+                data-testid={`text-vault-category-${item.id}`}
+              >
+                {categoryLabel}
+              </span>
+            )}
+            <span className="text-xs text-muted-foreground/40 font-mono">
               {format(new Date(item.createdAt), "MMM yyyy")}
             </span>
           </div>
 
-          {canDelete && (
-            <button
-              onClick={() => onDelete(item.id)}
-              className="opacity-0 group-hover:opacity-100 text-muted-foreground/50 hover:text-destructive transition-all"
-              data-testid={`button-delete-vault-${item.id}`}
-              title="Delete"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
+          {(canEdit || canDelete) && (
+            <div className="flex items-center gap-2 invisible group-hover:visible">
+              {canEdit && (
+                <button
+                  onClick={() => setEditing(true)}
+                  className="text-muted-foreground/40 hover:text-muted-foreground transition-colors"
+                  data-testid={`button-edit-vault-${item.id}`}
+                  title="Edit"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                </button>
+              )}
+              {canDelete && (
+                <button
+                  onClick={() => onDelete(item.id)}
+                  className="text-muted-foreground/40 hover:text-destructive transition-colors"
+                  data-testid={`button-delete-vault-${item.id}`}
+                  title="Delete"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
           )}
         </div>
 
@@ -411,6 +456,145 @@ function FileUploadField({
   );
 }
 
+// ── Edit form ─────────────────────────────────────────────────────────────────
+function VaultEditForm({
+  item,
+  onSaved,
+  onCancel,
+}: {
+  item: VaultItem;
+  onSaved: () => void;
+  onCancel: () => void;
+}) {
+  const [form, setForm] = useState({
+    title: item.title,
+    description: item.description,
+    type: item.type,
+    category: item.category,
+    fileUrl: item.fileUrl,
+    coverImage: item.coverImage,
+    notes: item.notes,
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: (data: typeof form) => apiRequest("PATCH", `/api/vault/items/${item.id}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/vault/items"] });
+      onSaved();
+    },
+  });
+
+  const canSubmit = form.title.trim() && !updateMutation.isPending;
+
+  return (
+    <div className="border border-border rounded-md p-5 space-y-4 bg-card" data-testid={`form-vault-edit-${item.id}`}>
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Edit Vault Item</p>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="text-muted-foreground/40 hover:text-muted-foreground transition-colors"
+          data-testid={`button-cancel-vault-edit-${item.id}`}
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+
+      <Input
+        placeholder="Title *"
+        value={form.title}
+        onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+        data-testid={`input-vault-edit-title-${item.id}`}
+      />
+      <Input
+        placeholder="Description"
+        value={form.description}
+        onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+        data-testid={`input-vault-edit-description-${item.id}`}
+      />
+
+      <div className="grid grid-cols-2 gap-3">
+        <select
+          value={form.type}
+          onChange={e => setForm(f => ({ ...f, type: e.target.value, fileUrl: "" }))}
+          className="w-full h-9 border border-border rounded-md px-3 text-sm bg-background text-foreground"
+          data-testid={`select-vault-edit-type-${item.id}`}
+        >
+          <option value="audio">Audio</option>
+          <option value="demo">Demo</option>
+          <option value="video">Video</option>
+          <option value="text">Text</option>
+          <option value="image">Image</option>
+        </select>
+
+        <select
+          value={form.category}
+          onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
+          className="w-full h-9 border border-border rounded-md px-3 text-sm bg-background text-foreground"
+          data-testid={`select-vault-edit-category-${item.id}`}
+        >
+          <option value="">No category</option>
+          {VAULT_CATEGORIES.map(c => (
+            <option key={c} value={c}>{CATEGORY_LABEL[c]}</option>
+          ))}
+        </select>
+      </div>
+
+      <FileUploadField
+        key={`edit-file-${item.id}-${form.type}`}
+        label="File"
+        accept={FILE_ACCEPT[form.type] ?? "*"}
+        value={form.fileUrl}
+        onChange={url => setForm(f => ({ ...f, fileUrl: url }))}
+        previewType={form.type === "image" ? "image" : "generic"}
+        testId={`vault-edit-file-${item.id}`}
+      />
+
+      <FileUploadField
+        label="Cover Image (optional)"
+        accept="image/*"
+        value={form.coverImage}
+        onChange={url => setForm(f => ({ ...f, coverImage: url }))}
+        previewType="image"
+        testId={`vault-edit-cover-${item.id}`}
+      />
+
+      <Input
+        placeholder="Internal notes (optional)"
+        value={form.notes}
+        onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+        data-testid={`input-vault-edit-notes-${item.id}`}
+      />
+
+      <div className="flex gap-2">
+        <Button
+          size="default"
+          className="gap-2 font-mono text-xs"
+          disabled={!canSubmit}
+          onClick={() => updateMutation.mutate(form)}
+          data-testid={`button-submit-vault-edit-${item.id}`}
+        >
+          {updateMutation.isPending ? "Saving…" : "Save Changes"}
+        </Button>
+        <Button
+          variant="ghost"
+          size="default"
+          onClick={onCancel}
+          data-testid={`button-cancel-vault-edit-bottom-${item.id}`}
+        >
+          Cancel
+        </Button>
+      </div>
+
+      {updateMutation.isError && (
+        <p className="text-xs font-mono text-destructive" data-testid={`text-vault-edit-error-${item.id}`}>
+          Failed to save. Please try again.
+        </p>
+      )}
+    </div>
+  );
+}
+
 // ── Add form ──────────────────────────────────────────────────────────────────
 const FILE_ACCEPT: Record<string, string> = {
   audio: "audio/wav,audio/mpeg,audio/mp3,audio/x-wav,audio/m4a,audio/mp4,audio/*",
@@ -423,11 +607,11 @@ const FILE_ACCEPT: Record<string, string> = {
 function VaultAddForm({ onAdded }: { onAdded: () => void }) {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
-    title: "", description: "", type: "audio", fileUrl: "", coverImage: "", notes: "",
+    title: "", description: "", type: "audio", category: "", fileUrl: "", coverImage: "", notes: "",
   });
 
   function resetForm() {
-    setForm({ title: "", description: "", type: "audio", fileUrl: "", coverImage: "", notes: "" });
+    setForm({ title: "", description: "", type: "audio", category: "", fileUrl: "", coverImage: "", notes: "" });
   }
 
   const createMutation = useMutation({
@@ -474,19 +658,33 @@ function VaultAddForm({ onAdded }: { onAdded: () => void }) {
         data-testid="input-vault-description"
       />
 
-      {/* Type */}
-      <select
-        value={form.type}
-        onChange={e => setForm(f => ({ ...f, type: e.target.value, fileUrl: "" }))}
-        className="w-full h-9 border border-border rounded-md px-3 text-sm bg-background text-foreground"
-        data-testid="select-vault-type"
-      >
-        <option value="audio">Audio</option>
-        <option value="demo">Demo</option>
-        <option value="video">Video</option>
-        <option value="text">Text</option>
-        <option value="image">Image</option>
-      </select>
+      {/* Type + Category */}
+      <div className="grid grid-cols-2 gap-3">
+        <select
+          value={form.type}
+          onChange={e => setForm(f => ({ ...f, type: e.target.value, fileUrl: "" }))}
+          className="w-full h-9 border border-border rounded-md px-3 text-sm bg-background text-foreground"
+          data-testid="select-vault-type"
+        >
+          <option value="audio">Audio</option>
+          <option value="demo">Demo</option>
+          <option value="video">Video</option>
+          <option value="text">Text</option>
+          <option value="image">Image</option>
+        </select>
+
+        <select
+          value={form.category}
+          onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
+          className="w-full h-9 border border-border rounded-md px-3 text-sm bg-background text-foreground"
+          data-testid="select-vault-category"
+        >
+          <option value="">No category</option>
+          {VAULT_CATEGORIES.map(c => (
+            <option key={c} value={c}>{CATEGORY_LABEL[c]}</option>
+          ))}
+        </select>
+      </div>
 
       {/* Main file upload */}
       <FileUploadField
@@ -691,6 +889,7 @@ function VaultLocked() {
 function VaultUnlocked() {
   const { logout } = useVault();
   const { isAuthenticated: isAdmin } = useAdmin();
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
 
   const { data: items, isLoading } = useQuery<VaultItem[]>({
     queryKey: ["/api/vault/items"],
@@ -755,7 +954,7 @@ function VaultUnlocked() {
       <main className="max-w-7xl mx-auto px-6 lg:px-8 py-12">
 
         {/* Heading */}
-        <div className="flex items-end justify-between mb-10 flex-wrap gap-6">
+        <div className="flex items-end justify-between mb-8 flex-wrap gap-6">
           <div>
             <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground/50 font-mono mb-2">
               Restricted Access · Vanta OS
@@ -773,43 +972,86 @@ function VaultUnlocked() {
           {isAdmin && <VaultAddForm onAdded={() => {}} />}
         </div>
 
+        {/* Category filter row */}
+        <div
+          className="flex items-center gap-1 mb-10 flex-wrap"
+          data-testid="vault-category-filter"
+        >
+          {(["all", ...VAULT_CATEGORIES] as const).map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setCategoryFilter(cat)}
+              className={`text-[10px] uppercase tracking-[0.25em] font-mono px-3 py-1.5 rounded-sm transition-colors ${
+                categoryFilter === cat
+                  ? "text-foreground bg-muted"
+                  : "text-muted-foreground/40 hover:text-muted-foreground/70"
+              }`}
+              data-testid={`filter-vault-${cat}`}
+            >
+              {cat === "all" ? "All" : CATEGORY_LABEL[cat]}
+            </button>
+          ))}
+        </div>
+
         {/* Content */}
-        {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="vault-loading">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="border border-border rounded-md p-5 space-y-3 animate-pulse">
-                <div className="aspect-video bg-muted rounded" />
-                <div className="h-4 bg-muted rounded w-1/3" />
-                <div className="h-5 bg-muted rounded w-3/4" />
-                <div className="h-4 bg-muted rounded w-full" />
+        {(() => {
+          const filteredItems = !items
+            ? []
+            : categoryFilter === "all"
+              ? items
+              : items.filter(i => i.category === categoryFilter);
+
+          if (isLoading) {
+            return (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="vault-loading">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="border border-border rounded-md p-5 space-y-3 animate-pulse">
+                    <div className="aspect-video bg-muted rounded" />
+                    <div className="h-4 bg-muted rounded w-1/3" />
+                    <div className="h-5 bg-muted rounded w-3/4" />
+                    <div className="h-4 bg-muted rounded w-full" />
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        ) : items && items.length > 0 ? (
-          <div
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-            data-testid="vault-items-grid"
-          >
-            {items.map((item) => (
-              <VaultItemCard
-                key={item.id}
-                item={item}
-                canDelete={isAdmin}
-                onDelete={(id) => deleteMutation.mutate(id)}
-              />
-            ))}
-          </div>
-        ) : (
-          <div
-            className="text-center py-28 border border-dashed border-border rounded-md"
-            data-testid="vault-empty-state"
-          >
-            <LockKeyhole className="w-10 h-10 text-muted-foreground/30 mx-auto mb-4" />
-            <p className="text-muted-foreground/50 font-mono text-sm">
-              {isAdmin ? "No vault items yet. Add the first one above." : "Transmission log empty."}
-            </p>
-          </div>
-        )}
+            );
+          }
+
+          if (filteredItems.length > 0) {
+            return (
+              <div
+                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                data-testid="vault-items-grid"
+              >
+                {filteredItems.map((item) => (
+                  <VaultItemCard
+                    key={item.id}
+                    item={item}
+                    canDelete={isAdmin}
+                    canEdit={isAdmin}
+                    onDelete={(id) => deleteMutation.mutate(id)}
+                    onSaved={() => queryClient.invalidateQueries({ queryKey: ["/api/vault/items"] })}
+                  />
+                ))}
+              </div>
+            );
+          }
+
+          return (
+            <div
+              className="text-center py-28 border border-dashed border-border rounded-md"
+              data-testid="vault-empty-state"
+            >
+              <LockKeyhole className="w-10 h-10 text-muted-foreground/30 mx-auto mb-4" />
+              <p className="text-muted-foreground/50 font-mono text-sm">
+                {categoryFilter !== "all"
+                  ? `No ${CATEGORY_LABEL[categoryFilter]?.toLowerCase() ?? categoryFilter} items yet.`
+                  : isAdmin
+                    ? "No vault items yet. Add the first one above."
+                    : "Transmission log empty."}
+              </p>
+            </div>
+          );
+        })()}
       </main>
     </div>
   );
