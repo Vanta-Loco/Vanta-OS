@@ -1,8 +1,19 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertPostSchema, insertReleaseSchema } from "@shared/schema";
 import { z } from "zod";
+
+declare module "express-session" {
+  interface SessionData {
+    isAdmin: boolean;
+  }
+}
+
+function requireAdmin(req: Request, res: Response, next: NextFunction) {
+  if (req.session?.isAdmin === true) return next();
+  return res.status(401).json({ error: "Unauthorized" });
+}
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -32,8 +43,37 @@ const upload = multer({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // ── Admin Auth ───────────────────────────────────────────────────
+  app.get("/api/admin/me", (req, res) => {
+    res.json({ authenticated: req.session?.isAdmin === true });
+  });
+
+  app.post("/api/admin/login", (req, res) => {
+    const { password } = req.body;
+    const adminPassword = process.env.ADMIN_PASSWORD;
+    if (!adminPassword) {
+      return res.status(500).json({ error: "ADMIN_PASSWORD not configured." });
+    }
+    if (password === adminPassword) {
+      req.session.isAdmin = true;
+      req.session.save((err) => {
+        if (err) return res.status(500).json({ error: "Session error" });
+        res.json({ authenticated: true });
+      });
+    } else {
+      return res.status(401).json({ error: "Invalid password" });
+    }
+  });
+
+  app.post("/api/admin/logout", (req, res) => {
+    req.session.destroy(() => {
+      res.clearCookie("connect.sid");
+      res.json({ success: true });
+    });
+  });
+
   // ── File Upload ──────────────────────────────────────────────────
-  app.post("/api/upload", upload.single("file"), (req, res) => {
+  app.post("/api/upload", requireAdmin, upload.single("file"), (req, res) => {
     if (!req.file) return res.status(400).json({ error: "No file uploaded or file type not allowed" });
     res.json({ url: `/uploads/${req.file.filename}` });
   });
@@ -75,7 +115,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/posts", async (req, res) => {
+  app.post("/api/posts", requireAdmin, async (req, res) => {
     try {
       const validatedData = insertPostSchema.parse(req.body);
       const post = await storage.createPost(validatedData);
@@ -87,7 +127,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/posts/:id", async (req, res) => {
+  app.patch("/api/posts/:id", requireAdmin, async (req, res) => {
     try {
       const { id } = req.params;
       const validatedData = insertPostSchema.partial().parse(req.body);
@@ -101,7 +141,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/posts/:id", async (req, res) => {
+  app.delete("/api/posts/:id", requireAdmin, async (req, res) => {
     try {
       const { id } = req.params;
       const deleted = await storage.deletePost(id);
@@ -136,7 +176,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/releases", async (req, res) => {
+  app.post("/api/releases", requireAdmin, async (req, res) => {
     try {
       const validatedData = insertReleaseSchema.parse(req.body);
       const release = await storage.createRelease(validatedData);
@@ -148,7 +188,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/releases/:id", async (req, res) => {
+  app.patch("/api/releases/:id", requireAdmin, async (req, res) => {
     try {
       const { id } = req.params;
       const validatedData = insertReleaseSchema.partial().parse(req.body);
@@ -162,7 +202,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/releases/:id", async (req, res) => {
+  app.delete("/api/releases/:id", requireAdmin, async (req, res) => {
     try {
       const { id } = req.params;
       const deleted = await storage.deleteRelease(id);

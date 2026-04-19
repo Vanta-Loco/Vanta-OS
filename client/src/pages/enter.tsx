@@ -58,6 +58,16 @@ export default function Enter() {
         >
           <ArrowLeft className="w-3 h-3" /> Return to surface
         </Link>
+
+        <div className="mt-16 pt-8 border-t border-border/40">
+          <Link
+            href="/admin/login"
+            className="text-xs text-muted-foreground/40 hover:text-muted-foreground transition-colors"
+            data-testid="link-admin-access"
+          >
+            Admin access
+          </Link>
+        </div>
       </div>
     </div>
   );

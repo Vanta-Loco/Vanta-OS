@@ -13,8 +13,11 @@ import About from "@/pages/about";
 import Music from "@/pages/music";
 import Releases from "@/pages/releases";
 import ReleasesNew from "@/pages/releases-new";
+import ReleasesEdit from "@/pages/releases-edit";
 import Worlds from "@/pages/worlds";
 import Enter from "@/pages/enter";
+import AdminLogin from "@/pages/admin-login";
+import AdminDashboard from "@/pages/admin";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -29,8 +32,11 @@ function Router() {
       <Route path="/music" component={Music} />
       <Route path="/releases" component={Releases} />
       <Route path="/releases/new" component={ReleasesNew} />
+      <Route path="/releases/edit/:id" component={ReleasesEdit} />
       <Route path="/worlds" component={Worlds} />
       <Route path="/enter" component={Enter} />
+      <Route path="/admin/login" component={AdminLogin} />
+      <Route path="/admin" component={AdminDashboard} />
       <Route component={NotFound} />
     </Switch>
   );
