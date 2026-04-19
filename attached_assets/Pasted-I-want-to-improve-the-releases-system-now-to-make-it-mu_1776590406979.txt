@@ -1,0 +1,80 @@
+I want to improve the releases system now to make it much smoother for my workflow as an artist/admin.
+
+Current issue:
+The release form relies too much on pasted URLs for coverImage and audioPreviewUrl. I want to evolve it so I can upload files directly and choose the preview snippet from the uploaded audio, while still keeping external platform links optional.
+
+Please implement this as an MVP upgrade to the existing codebase without rebuilding the releases system from scratch.
+
+Goals:
+1. Allow direct image upload for release cover art
+2. Allow direct audio upload for the release audio source
+3. Keep Spotify / Apple Music / SoundCloud / YouTube links as optional URL fields
+4. Add support for choosing a manual preview snippet from the uploaded audio
+5. Keep the current releases page and homepage release logic compatible with the new system
+6. Make the workflow Replit-friendly and simple to manage
+
+Implementation requirements:
+
+Phase A — File Upload Support
+- Update the release creation flow so I can upload:
+  - one cover image file
+  - one audio file (wav, mp3, or m4a if possible)
+- Store uploaded files in a simple MVP-friendly way suitable for Replit
+- Save the resulting file paths in the database
+- Preserve backward compatibility with existing URL-based fields if possible
+
+Database/schema updates:
+- Evolve the releases table to support both uploaded assets and external links
+- Add fields like:
+  - coverImageUrl
+  - audioFileUrl
+  - previewStartSeconds
+  - previewDurationSeconds
+- If needed, keep old fields temporarily and migrate carefully rather than breaking existing data
+
+Form behavior:
+- In /releases/new, allow:
+  - image file upload OR image URL fallback
+  - audio file upload OR audio preview URL fallback
+- External platform links remain normal text inputs
+- Show upload success state and basic validation
+- Accepted image types: jpg, jpeg, png, webp
+- Accepted audio types: wav, mp3, m4a if supported
+
+Phase B — Manual Preview Snippet Selection
+- After audio upload, allow me to define which part of the song is the preview
+- MVP version does not need waveform visualization yet unless it is easy
+- At minimum, provide:
+  - previewStartSeconds input
+  - previewDurationSeconds input
+  - preview play/test button
+- The site player should use this saved preview segment instead of requiring a separate preview URL
+- If no preview segment is set, fall back to the full uploaded audio or existing preview URL
+
+Phase C — Frontend Integration
+- Update the releases page so preview playback uses:
+  1. uploaded audio file + saved snippet settings
+  2. existing audioPreviewUrl fallback
+- Update the homepage Featured Release section so it also works with the new uploaded assets
+- Show the uploaded cover image correctly wherever releases are rendered
+
+Technical expectations:
+- Reuse the current React + TypeScript + Express + PostgreSQL + Drizzle setup
+- Do not rebuild the releases system from scratch
+- Keep existing routes/pages where possible
+- Add only the minimum new backend routes needed for upload handling
+- Explain exactly which files you create or edit
+- Explain any environment/setup needed for uploads on Replit
+- Clearly separate:
+  - what is implemented now
+  - what remains for later
+- Do not implement AI preview recommendation yet, but leave the system structured so that can be added later
+
+Deliverables I want from you:
+1. the exact implementation plan
+2. the files to create/edit
+3. the schema changes
+4. the backend route changes
+5. the frontend form changes
+6. any migration/backward compatibility notes
+7. then proceed with the implementation

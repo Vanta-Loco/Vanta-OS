@@ -60,6 +60,7 @@ Preferred communication style: Simple, everyday language.
 - POST /api/releases - Create new release
 - PATCH /api/releases/:id - Update release
 - DELETE /api/releases/:id - Delete release
+- POST /api/upload - Upload image or audio file; returns { url: "/uploads/filename.ext" }
 - JSON request/response format
 - Zod schema validation for request payloads
 

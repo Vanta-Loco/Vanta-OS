@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -45,6 +45,9 @@ export const releases = pgTable("releases", {
   soundcloudUrl: text("soundcloud_url").notNull().default(""),
   youtubeUrl: text("youtube_url").notNull().default(""),
   audioPreviewUrl: text("audio_preview_url").notNull().default(""),
+  audioFileUrl: text("audio_file_url").notNull().default(""),
+  previewStartSeconds: integer("preview_start_seconds").notNull().default(0),
+  previewDurationSeconds: integer("preview_duration_seconds").notNull().default(30),
   tracklist: text("tracklist").array().notNull().default(sql`ARRAY[]::text[]`),
   featured: text("featured").notNull().default("false"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -64,6 +67,9 @@ export const insertReleaseSchema = createInsertSchema(releases).omit({
   soundcloudUrl: z.string().default(""),
   youtubeUrl: z.string().default(""),
   audioPreviewUrl: z.string().default(""),
+  audioFileUrl: z.string().default(""),
+  previewStartSeconds: z.coerce.number().int().min(0).default(0),
+  previewDurationSeconds: z.coerce.number().int().min(1).default(30),
   tracklist: z.array(z.string()).default([]),
   featured: z.string().default("false"),
 });

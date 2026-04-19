@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { SiSpotify, SiApplemusic, SiSoundcloud, SiYoutube } from "react-icons/si";
-import { Play, ChevronDown, ChevronUp, Music, Plus } from "lucide-react";
-import { useState } from "react";
+import { Play, Square, ChevronDown, ChevronUp, Music, Plus } from "lucide-react";
+import { useState, useRef } from "react";
 import { Link } from "wouter";
 import type { Release } from "@shared/schema";
 import { format } from "date-fns";
@@ -20,6 +20,8 @@ const typeLabel: Record<string, string> = {
 
 function ReleaseCard({ release }: { release: Release }) {
   const [tracklistOpen, setTracklistOpen] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const streamingLinks = [
     { url: release.spotifyUrl, icon: SiSpotify, label: "Spotify", testId: "button-spotify" },
@@ -27,6 +29,32 @@ function ReleaseCard({ release }: { release: Release }) {
     { url: release.soundcloudUrl, icon: SiSoundcloud, label: "SoundCloud", testId: "button-soundcloud" },
     { url: release.youtubeUrl, icon: SiYoutube, label: "YouTube", testId: "button-youtube" },
   ].filter((l) => l.url);
+
+  const audioSrc = release.audioFileUrl || release.audioPreviewUrl;
+
+  function handlePreview() {
+    if (isPlaying) {
+      audioRef.current?.pause();
+      setIsPlaying(false);
+      return;
+    }
+    if (!audioSrc) return;
+    const audio = new Audio(audioSrc);
+    audioRef.current = audio;
+    const startSec = release.previewStartSeconds ?? 0;
+    const durationSec = release.previewDurationSeconds ?? 30;
+    audio.currentTime = startSec;
+    audio.play();
+    setIsPlaying(true);
+    const timer = setTimeout(() => {
+      audio.pause();
+      setIsPlaying(false);
+    }, durationSec * 1000);
+    audio.addEventListener("ended", () => {
+      clearTimeout(timer);
+      setIsPlaying(false);
+    });
+  }
 
   return (
     <Card
@@ -93,19 +121,20 @@ function ReleaseCard({ release }: { release: Release }) {
             </div>
           )}
 
-          {release.audioPreviewUrl && (
+          {audioSrc && (
             <div>
               <Button
-                variant="default"
+                variant={isPlaying ? "default" : "outline"}
                 size="default"
                 className="gap-2"
                 data-testid={`button-preview-${release.id}`}
-                onClick={() => {
-                  const audio = new Audio(release.audioPreviewUrl);
-                  audio.play();
-                }}
+                onClick={handlePreview}
               >
-                <Play className="w-4 h-4" /> Play Preview
+                {isPlaying ? (
+                  <><Square className="w-4 h-4" /> Stop</>
+                ) : (
+                  <><Play className="w-4 h-4" /> Play Preview</>
+                )}
               </Button>
             </div>
           )}

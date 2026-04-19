@@ -3,8 +3,41 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertPostSchema, insertReleaseSchema } from "@shared/schema";
 import { z } from "zod";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
+
+const uploadsDir = path.join(process.cwd(), "uploads");
+if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+
+const fileStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, uploadsDir),
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    cb(null, `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`);
+  },
+});
+
+const upload = multer({
+  storage: fileStorage,
+  limits: { fileSize: 100 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const allowed = [
+      "image/jpeg", "image/jpg", "image/png", "image/webp",
+      "audio/mpeg", "audio/mp3", "audio/wav", "audio/x-wav",
+      "audio/x-m4a", "audio/mp4", "audio/aac",
+    ];
+    cb(null, allowed.includes(file.mimetype));
+  },
+});
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // ── File Upload ──────────────────────────────────────────────────
+  app.post("/api/upload", upload.single("file"), (req, res) => {
+    if (!req.file) return res.status(400).json({ error: "No file uploaded or file type not allowed" });
+    res.json({ url: `/uploads/${req.file.filename}` });
+  });
+
   // ── Posts ──────────────────────────────────────────────────────
   app.get("/api/posts/search", async (req, res) => {
     try {
