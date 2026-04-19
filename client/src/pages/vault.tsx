@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   LockKeyhole, ArrowLeft, Play, Pause, Trash2, Plus,
   Mic2, FileText, Film, ImageIcon, Music2, LogOut, Loader2, RefreshCw,
+  Upload, CheckCircle2, X, AlertCircle,
 } from "lucide-react";
 import type { VaultItem } from "@shared/schema";
 import { format } from "date-fns";
@@ -255,17 +256,185 @@ function VaultItemCard({
   );
 }
 
+// ── File upload field ─────────────────────────────────────────────────────────
+type UploadState = "idle" | "uploading" | "done" | "error";
+
+function FileUploadField({
+  label,
+  accept,
+  value,
+  onChange,
+  previewType = "generic",
+  testId,
+}: {
+  label: string;
+  accept: string;
+  value: string;
+  onChange: (url: string) => void;
+  previewType?: "image" | "generic";
+  testId: string;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [uploadState, setUploadState] = useState<UploadState>(value ? "done" : "idle");
+  const [fileName, setFileName] = useState("");
+  const [pasteMode, setPasteMode] = useState(false);
+
+  async function handleFile(file: File) {
+    setFileName(file.name);
+    setUploadState("uploading");
+    const body = new FormData();
+    body.append("file", file);
+    try {
+      const res = await fetch("/api/upload", { method: "POST", body, credentials: "include" });
+      if (!res.ok) throw new Error("upload failed");
+      const { url } = await res.json();
+      onChange(url);
+      setUploadState("done");
+    } catch {
+      setUploadState("error");
+    }
+  }
+
+  function clearFile() {
+    setUploadState("idle");
+    setFileName("");
+    onChange("");
+    if (inputRef.current) inputRef.current.value = "";
+  }
+
+  if (pasteMode) {
+    return (
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-mono text-muted-foreground/60">{label}</span>
+          <button
+            type="button"
+            className="text-xs font-mono text-muted-foreground/40 hover:text-muted-foreground transition-colors"
+            onClick={() => setPasteMode(false)}
+          >
+            ← use file picker
+          </button>
+        </div>
+        <Input
+          placeholder={`${label} URL`}
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          data-testid={`${testId}-url`}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-mono text-muted-foreground/60">{label}</span>
+        <button
+          type="button"
+          className="text-xs font-mono text-muted-foreground/40 hover:text-muted-foreground transition-colors"
+          onClick={() => setPasteMode(true)}
+        >
+          paste URL instead
+        </button>
+      </div>
+
+      <input
+        ref={inputRef}
+        type="file"
+        accept={accept}
+        className="hidden"
+        data-testid={`${testId}-input`}
+        onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
+      />
+
+      {uploadState === "idle" && (
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          className="w-full border border-border border-dashed rounded-md py-4 flex flex-col items-center gap-1.5 text-muted-foreground/40 font-mono text-xs hover-elevate transition-colors cursor-pointer"
+          data-testid={`${testId}-picker`}
+        >
+          <Upload className="w-4 h-4" />
+          Click to upload {label.toLowerCase()}
+        </button>
+      )}
+
+      {uploadState === "uploading" && (
+        <div className="flex items-center gap-3 border border-border rounded-md px-4 py-3 text-xs font-mono text-muted-foreground/60">
+          <Loader2 className="w-4 h-4 animate-spin flex-shrink-0" />
+          <span className="truncate">Uploading {fileName}…</span>
+        </div>
+      )}
+
+      {uploadState === "done" && value && (
+        <div className="space-y-2">
+          {previewType === "image" && (
+            <div className="relative w-28 aspect-square overflow-hidden rounded-md bg-muted">
+              <img src={value} alt="preview" className="w-full h-full object-cover" />
+            </div>
+          )}
+          <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground/60">
+            <CheckCircle2 className="w-3.5 h-3.5 text-green-500/70 flex-shrink-0" />
+            <span className="truncate flex-1">{fileName || value.split("/").pop()}</span>
+            <button
+              type="button"
+              onClick={() => inputRef.current?.click()}
+              className="text-muted-foreground/40 hover:text-muted-foreground transition-colors flex-shrink-0"
+              data-testid={`${testId}-replace`}
+              title="Replace file"
+            >
+              <RefreshCw className="w-3 h-3" />
+            </button>
+            <button
+              type="button"
+              onClick={clearFile}
+              className="text-muted-foreground/40 hover:text-destructive transition-colors flex-shrink-0"
+              data-testid={`${testId}-clear`}
+              title="Remove"
+            >
+              <X className="w-3 h-3" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {uploadState === "error" && (
+        <div className="flex items-center gap-2 text-xs font-mono text-destructive">
+          <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+          Upload failed —
+          <button type="button" onClick={() => { setUploadState("idle"); setFileName(""); }} className="underline">
+            try again
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Add form ──────────────────────────────────────────────────────────────────
+const FILE_ACCEPT: Record<string, string> = {
+  audio: "audio/wav,audio/mpeg,audio/mp3,audio/x-wav,audio/m4a,audio/mp4,audio/*",
+  demo:  "audio/wav,audio/mpeg,audio/mp3,audio/x-wav,audio/m4a,audio/mp4,audio/*",
+  video: "video/*",
+  image: "image/*",
+  text:  ".txt,.pdf,.md",
+};
+
 function VaultAddForm({ onAdded }: { onAdded: () => void }) {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
     title: "", description: "", type: "audio", fileUrl: "", coverImage: "", notes: "",
   });
 
+  function resetForm() {
+    setForm({ title: "", description: "", type: "audio", fileUrl: "", coverImage: "", notes: "" });
+  }
+
   const createMutation = useMutation({
     mutationFn: (data: typeof form) => apiRequest("POST", "/api/vault/items", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/vault/items"] });
-      setForm({ title: "", description: "", type: "audio", fileUrl: "", coverImage: "", notes: "" });
+      resetForm();
       setOpen(false);
       onAdded();
     },
@@ -285,9 +454,13 @@ function VaultAddForm({ onAdded }: { onAdded: () => void }) {
     );
   }
 
+  const canSubmit = form.title.trim() && !createMutation.isPending;
+
   return (
-    <div className="border border-border rounded-md p-5 space-y-3 bg-card" data-testid="form-vault-add">
+    <div className="border border-border rounded-md p-5 space-y-4 bg-card" data-testid="form-vault-add">
       <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">New Vault Item</p>
+
+      {/* Title + description */}
       <Input
         placeholder="Title *"
         value={form.title}
@@ -300,9 +473,11 @@ function VaultAddForm({ onAdded }: { onAdded: () => void }) {
         onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
         data-testid="input-vault-description"
       />
+
+      {/* Type */}
       <select
         value={form.type}
-        onChange={e => setForm(f => ({ ...f, type: e.target.value }))}
+        onChange={e => setForm(f => ({ ...f, type: e.target.value, fileUrl: "" }))}
         className="w-full h-9 border border-border rounded-md px-3 text-sm bg-background text-foreground"
         data-testid="select-vault-type"
       >
@@ -312,29 +487,41 @@ function VaultAddForm({ onAdded }: { onAdded: () => void }) {
         <option value="text">Text</option>
         <option value="image">Image</option>
       </select>
-      <Input
-        placeholder="File URL (audio, video, image…)"
+
+      {/* Main file upload */}
+      <FileUploadField
+        key={`file-${form.type}`}
+        label="File"
+        accept={FILE_ACCEPT[form.type] ?? "*"}
         value={form.fileUrl}
-        onChange={e => setForm(f => ({ ...f, fileUrl: e.target.value }))}
-        data-testid="input-vault-fileurl"
+        onChange={url => setForm(f => ({ ...f, fileUrl: url }))}
+        previewType={form.type === "image" ? "image" : "generic"}
+        testId="vault-file"
       />
-      <Input
-        placeholder="Cover Image URL (optional)"
+
+      {/* Cover image upload (always optional) */}
+      <FileUploadField
+        label="Cover Image (optional)"
+        accept="image/*"
         value={form.coverImage}
-        onChange={e => setForm(f => ({ ...f, coverImage: e.target.value }))}
-        data-testid="input-vault-coverimage"
+        onChange={url => setForm(f => ({ ...f, coverImage: url }))}
+        previewType="image"
+        testId="vault-cover"
       />
+
+      {/* Notes */}
       <Input
         placeholder="Internal notes (optional)"
         value={form.notes}
         onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
         data-testid="input-vault-notes"
       />
+
       <div className="flex gap-2">
         <Button
           size="default"
           className="gap-2 font-mono text-xs"
-          disabled={!form.title.trim() || createMutation.isPending}
+          disabled={!canSubmit}
           onClick={() => createMutation.mutate(form)}
           data-testid="button-submit-vault-item"
         >
@@ -343,12 +530,18 @@ function VaultAddForm({ onAdded }: { onAdded: () => void }) {
         <Button
           variant="ghost"
           size="default"
-          onClick={() => setOpen(false)}
+          onClick={() => { resetForm(); setOpen(false); }}
           data-testid="button-cancel-vault-add"
         >
           Cancel
         </Button>
       </div>
+
+      {createMutation.isError && (
+        <p className="text-xs font-mono text-destructive" data-testid="text-vault-form-error">
+          Failed to add item. Please try again.
+        </p>
+      )}
     </div>
   );
 }
