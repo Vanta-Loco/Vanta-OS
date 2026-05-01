@@ -6,7 +6,6 @@ import { useAdmin } from "@/hooks/use-admin";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import {
   LockKeyhole, ArrowLeft, Play, Pause, Trash2, Plus, Pencil,
   Mic2, FileText, Film, ImageIcon, Music2, LogOut, Loader2, RefreshCw,
@@ -142,12 +141,12 @@ function VaultAudioPlayer({ item, isAdmin }: { item: VaultItem; isAdmin: boolean
 
         <div
           ref={barRef}
-          className="flex-1 h-1 bg-muted rounded-full cursor-pointer relative"
+          className="flex-1 h-px bg-border/60 cursor-pointer relative group/bar"
           onClick={handleSeek}
           data-testid={`seekbar-${item.id}`}
         >
           <div
-            className="absolute inset-y-0 left-0 bg-foreground/50 rounded-full transition-none"
+            className="absolute inset-y-0 left-0 bg-muted-foreground/60 transition-none"
             style={{ width: `${progress * 100}%` }}
           />
         </div>
@@ -201,6 +200,7 @@ function VaultItemCard({
   const isAudio = item.type === "audio" || item.type === "demo";
   const meta = TYPE_META[item.type] ?? TYPE_META.audio;
   const categoryLabel = item.category ? CATEGORY_LABEL[item.category] : null;
+  const formattedDate = format(new Date(item.createdAt), "MMM yyyy");
 
   if (editing) {
     return (
@@ -214,46 +214,54 @@ function VaultItemCard({
 
   return (
     <div
-      className="group border border-border rounded-md overflow-hidden bg-card hover-elevate transition-all"
+      className="group relative border border-border/55 rounded-md bg-card hover-elevate transition-all"
       data-testid={`card-vault-item-${item.id}`}
     >
+      {/* Cover image — clipped by its own container, not the card */}
       {item.coverImage && (
-        <div className="aspect-video overflow-hidden bg-muted">
+        <div className="aspect-square overflow-hidden rounded-t-md bg-muted/60">
           <img
             src={item.coverImage}
             alt={item.title}
-            className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
+            className="w-full h-full object-cover opacity-70 group-hover:opacity-90 transition-opacity duration-500"
             data-testid={`img-vault-${item.id}`}
           />
         </div>
       )}
 
-      <div className="p-5 space-y-3">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-2 flex-wrap">
-            <Badge variant="outline" className="text-xs uppercase tracking-wide font-mono gap-1.5">
-              <meta.Icon className="w-3 h-3" />
+      <div className="p-5 space-y-4">
+
+        {/* ── Metadata row ── */}
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <meta.Icon className="w-3 h-3 text-muted-foreground/35 flex-shrink-0" />
+            <span className="text-[10px] font-mono uppercase tracking-[0.22em] text-muted-foreground/40">
               {meta.label}
-            </Badge>
+            </span>
             {categoryLabel && (
-              <span
-                className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground/50 font-mono"
-                data-testid={`text-vault-category-${item.id}`}
-              >
-                {categoryLabel}
-              </span>
+              <>
+                <span className="text-border/50 select-none">·</span>
+                <span
+                  className="text-[10px] font-mono uppercase tracking-[0.22em] text-muted-foreground/40"
+                  data-testid={`text-vault-category-${item.id}`}
+                >
+                  {categoryLabel}
+                </span>
+              </>
             )}
-            <span className="text-xs text-muted-foreground/40 font-mono">
-              {format(new Date(item.createdAt), "MMM yyyy")}
+            <span className="text-border/50 select-none">·</span>
+            <span className="text-[10px] font-mono text-muted-foreground/30 tracking-wide">
+              {formattedDate}
             </span>
           </div>
 
+          {/* Admin controls — fade in on hover, no layout shift */}
           {(canEdit || canDelete) && (
-            <div className="flex items-center gap-2 invisible group-hover:visible">
+            <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
               {canEdit && (
                 <button
                   onClick={() => setEditing(true)}
-                  className="text-muted-foreground/40 hover:text-muted-foreground transition-colors"
+                  className="text-muted-foreground/30 hover:text-muted-foreground transition-colors"
                   data-testid={`button-edit-vault-${item.id}`}
                   title="Edit"
                 >
@@ -263,7 +271,7 @@ function VaultItemCard({
               {canDelete && (
                 <button
                   onClick={() => onDelete(item.id)}
-                  className="text-muted-foreground/40 hover:text-destructive transition-colors"
+                  className="text-muted-foreground/30 hover:text-destructive transition-colors"
                   data-testid={`button-delete-vault-${item.id}`}
                   title="Delete"
                 >
@@ -274,28 +282,41 @@ function VaultItemCard({
           )}
         </div>
 
+        {/* ── Title + description ── */}
         <div>
           <h3
-            className="font-display font-bold text-lg leading-tight"
+            className="font-display font-bold text-base leading-snug tracking-tight"
             data-testid={`text-vault-title-${item.id}`}
           >
             {item.title}
           </h3>
           {item.description && (
-            <p className="text-sm text-muted-foreground mt-1 leading-relaxed" data-testid={`text-vault-desc-${item.id}`}>
+            <p
+              className="text-sm text-muted-foreground/60 mt-1.5 leading-relaxed"
+              data-testid={`text-vault-desc-${item.id}`}
+            >
               {item.description}
-            </p>
-          )}
-          {item.notes && (
-            <p className="text-xs text-muted-foreground/50 italic mt-2" data-testid={`text-vault-notes-${item.id}`}>
-              {item.notes}
             </p>
           )}
         </div>
 
+        {/* ── Audio player — separated from content ── */}
         {isAudio && (item.fileUrl || item.compressedUrl) && (
-          <VaultAudioPlayer item={item} isAdmin={canDelete} />
+          <div className="border-t border-border/40 pt-3.5">
+            <VaultAudioPlayer item={item} isAdmin={canDelete} />
+          </div>
         )}
+
+        {/* ── Internal notes — dim annotation at the bottom ── */}
+        {item.notes && (
+          <p
+            className="text-[11px] font-mono text-muted-foreground/35 italic leading-relaxed border-t border-border/30 pt-3"
+            data-testid={`text-vault-notes-${item.id}`}
+          >
+            {item.notes}
+          </p>
+        )}
+
       </div>
     </div>
   );
@@ -954,10 +975,10 @@ function VaultUnlocked() {
       <main className="max-w-7xl mx-auto px-6 lg:px-8 py-12">
 
         {/* Heading */}
-        <div className="flex items-end justify-between mb-8 flex-wrap gap-6">
+        <div className="flex items-end justify-between mb-10 flex-wrap gap-6">
           <div>
-            <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground/50 font-mono mb-2">
-              Restricted Access · Vanta OS
+            <p className="text-[9px] uppercase tracking-[0.4em] text-muted-foreground/35 font-mono mb-3">
+              Vanta&nbsp;OS&nbsp;&nbsp;·&nbsp;&nbsp;Restricted&nbsp;Archive
             </p>
             <h1
               className="text-4xl md:text-5xl font-display font-bold tracking-wide"
@@ -965,8 +986,8 @@ function VaultUnlocked() {
             >
               VAULT
             </h1>
-            <p className="text-sm text-muted-foreground mt-2">
-              Unreleased sessions, raw demos, and transmissions that never surfaced.
+            <p className="text-[11px] font-mono text-muted-foreground/45 mt-3 tracking-wide">
+              Unreleased sessions · raw demos · transmissions that never surfaced
             </p>
           </div>
           {isAdmin && <VaultAddForm onAdded={() => {}} />}
@@ -974,17 +995,17 @@ function VaultUnlocked() {
 
         {/* Category filter row */}
         <div
-          className="flex items-center gap-1 mb-10 flex-wrap"
+          className="flex items-center gap-0.5 mb-10 border-b border-border/40 pb-5"
           data-testid="vault-category-filter"
         >
           {(["all", ...VAULT_CATEGORIES] as const).map((cat) => (
             <button
               key={cat}
               onClick={() => setCategoryFilter(cat)}
-              className={`text-[10px] uppercase tracking-[0.25em] font-mono px-3 py-1.5 rounded-sm transition-colors ${
+              className={`text-[10px] uppercase tracking-[0.25em] font-mono px-3.5 py-1.5 rounded-sm transition-colors ${
                 categoryFilter === cat
                   ? "text-foreground bg-muted"
-                  : "text-muted-foreground/40 hover:text-muted-foreground/70"
+                  : "text-muted-foreground/35 hover:text-muted-foreground/65"
               }`}
               data-testid={`filter-vault-${cat}`}
             >
@@ -1019,7 +1040,7 @@ function VaultUnlocked() {
           if (filteredItems.length > 0) {
             return (
               <div
-                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"
                 data-testid="vault-items-grid"
               >
                 {filteredItems.map((item) => (
