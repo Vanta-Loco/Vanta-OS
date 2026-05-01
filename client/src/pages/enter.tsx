@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useVault } from "@/hooks/use-vault";
 import {
   LockKeyhole, LockKeyholeOpen, Disc3, Globe,
-  ShieldAlert, ArrowRight, ArrowLeft,
+  ShieldAlert, ArrowRight, ArrowLeft, KeyRound,
 } from "lucide-react";
 
 const SECONDARY_DESTINATIONS = [
@@ -24,7 +24,7 @@ const SECONDARY_DESTINATIONS = [
 ] as const;
 
 export default function Enter() {
-  const { isAuthorized, verify } = useVault();
+  const { isAuthorized, isLoading, verify, logout } = useVault();
   const [showInput, setShowInput] = useState(false);
   const [code, setCode] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
@@ -42,6 +42,12 @@ export default function Enter() {
     }
   }
 
+  function handleCancel() {
+    setShowInput(false);
+    setCode("");
+    setErrorMsg("");
+  }
+
   return (
     <div
       className="min-h-screen bg-background flex flex-col items-center justify-center px-6 relative overflow-hidden"
@@ -55,12 +61,12 @@ export default function Enter() {
           100% { transform: translateY(100vh); opacity: 0; }
         }
         @keyframes enter-granted-pulse {
-          0%, 100% { opacity: 0.45; }
-          50%       { opacity: 0.85; }
+          0%, 100% { opacity: 0.5; }
+          50%       { opacity: 0.9; }
         }
       `}</style>
 
-      {/* Ambient glow — brightens subtly on access granted */}
+      {/* Ambient glow */}
       <div
         className="absolute inset-0 pointer-events-none transition-all duration-1000"
         style={{
@@ -88,11 +94,11 @@ export default function Enter() {
         <div className="text-center mb-10">
           <div
             className={`inline-flex items-center justify-center w-12 h-12 rounded-full border bg-background/60 mb-7 transition-all duration-700 ${
-              isAuthorized ? "border-primary/30" : "border-border/40"
+              isAuthorized ? "border-primary/40" : "border-border/40"
             }`}
           >
             {isAuthorized
-              ? <LockKeyholeOpen className="w-5 h-5 text-primary/60" />
+              ? <LockKeyholeOpen className="w-5 h-5 text-primary/70" />
               : <LockKeyhole className="w-5 h-5 text-muted-foreground/50" />
             }
           </div>
@@ -105,26 +111,26 @@ export default function Enter() {
           </h1>
           <p
             className={`text-[10px] uppercase tracking-[0.35em] font-mono mt-3 transition-colors duration-700 ${
-              isAuthorized ? "text-primary/50" : "text-muted-foreground/40"
+              isAuthorized ? "text-primary/60" : "text-muted-foreground/40"
             }`}
             data-testid="text-enter-status"
           >
-            {isAuthorized ? "System Online" : "System Interface"}
+            {isLoading ? "Initializing…" : isAuthorized ? "System Online" : "System Interface"}
           </p>
         </div>
 
         {/* Separator */}
         <div className="w-full h-px bg-gradient-to-r from-transparent via-border/60 to-transparent mb-8" />
 
-        {/* ── Vault node — two states ── */}
+        {/* ── Vault node ── */}
         {isAuthorized ? (
 
-          /* GRANTED — clickable, unlocked styling */
+          /* GRANTED state — clickable card */
           <Link href="/vault" data-testid="link-enter-vault">
-            <div className="group border border-primary/25 rounded-md p-4 mb-2 hover-elevate transition-all cursor-pointer">
+            <div className="group border border-primary/30 rounded-md p-4 mb-2 hover-elevate transition-all cursor-pointer">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <LockKeyholeOpen className="w-3.5 h-3.5 text-primary/50 flex-shrink-0" />
+                  <LockKeyholeOpen className="w-3.5 h-3.5 text-primary/60 flex-shrink-0" />
                   <span
                     className="text-sm font-mono uppercase tracking-[0.22em] text-foreground"
                     data-testid="text-enter-vault-label"
@@ -132,16 +138,16 @@ export default function Enter() {
                     Vault
                   </span>
                   <span
-                    className="text-[9px] uppercase tracking-[0.25em] text-primary/55 font-mono"
+                    className="text-[9px] uppercase tracking-[0.25em] text-primary/65 font-mono"
                     style={{ animation: "enter-granted-pulse 3s ease-in-out infinite" }}
                     data-testid="text-enter-vault-status"
                   >
                     Access Granted
                   </span>
                 </div>
-                <ArrowRight className="w-3.5 h-3.5 text-primary/30 group-hover:text-primary/60 transition-colors flex-shrink-0" />
+                <ArrowRight className="w-3.5 h-3.5 text-primary/35 group-hover:text-primary/70 transition-colors flex-shrink-0" />
               </div>
-              <p className="text-[11px] text-muted-foreground/50 font-mono mt-2 pl-[26px] leading-relaxed">
+              <p className="text-[11px] text-muted-foreground/55 font-mono mt-2 pl-[26px] leading-relaxed">
                 Clearance confirmed — enter the restricted archive.
               </p>
             </div>
@@ -149,11 +155,12 @@ export default function Enter() {
 
         ) : (
 
-          /* LOCKED — passkey interaction inline */
+          /* LOCKED state — passkey interaction */
           <div
-            className="border border-border/60 rounded-md p-4 mb-2 transition-all"
+            className="border border-border/60 rounded-md p-4 mb-2"
             data-testid="vault-node-locked"
           >
+            {/* Card header row */}
             <div className="flex items-center gap-3">
               <LockKeyhole className="w-3.5 h-3.5 text-muted-foreground/50 flex-shrink-0" />
               <span
@@ -162,56 +169,62 @@ export default function Enter() {
               >
                 Vault
               </span>
-              <span className="text-[9px] uppercase tracking-[0.25em] text-muted-foreground/35 font-mono">
+              <span className="text-[9px] uppercase tracking-[0.25em] text-muted-foreground/40 font-mono">
                 restricted
               </span>
             </div>
-            <p className="text-[11px] text-muted-foreground/35 font-mono mt-2 pl-[26px] leading-relaxed">
+
+            {/* Descriptor */}
+            <p className="text-[11px] text-muted-foreground/40 font-mono mt-2 pl-[26px] leading-relaxed">
               Unreleased sessions, raw demos, and transmissions that never surfaced.
             </p>
 
             {/* Passkey interaction */}
             {!showInput ? (
-              <div className="mt-4 pl-[26px]">
-                <button
-                  type="button"
-                  onClick={() => setShowInput(true)}
-                  className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground/30 font-mono hover:text-muted-foreground/65 transition-colors"
-                  data-testid="button-initialize-access"
-                >
-                  — Initialize Access —
-                </button>
-              </div>
+              /* Trigger button */
+              <button
+                type="button"
+                onClick={() => setShowInput(true)}
+                className="mt-4 w-full flex items-center justify-center gap-2 py-2.5 rounded border border-border/50 text-[11px] uppercase tracking-[0.25em] text-muted-foreground/70 font-mono hover:text-foreground hover:border-border/80 transition-colors"
+                data-testid="button-initialize-access"
+              >
+                <KeyRound className="w-3 h-3" />
+                Initialize Access
+              </button>
             ) : (
+              /* Passkey form */
               <form
                 onSubmit={handleSubmit}
-                className="mt-4 space-y-2"
+                className="mt-4 space-y-2.5"
                 data-testid="form-enter-access"
               >
-                <div className="h-px bg-border/25 mb-3" />
+                <div className="h-px bg-border/30" />
+                <p className="text-[9px] uppercase tracking-[0.3em] text-muted-foreground/40 font-mono text-center pt-1">
+                  Access Key
+                </p>
                 <Input
                   type="password"
-                  placeholder="— access key —"
+                  placeholder="· · · · · · · ·"
                   value={code}
                   onChange={e => { setCode(e.target.value); setErrorMsg(""); }}
-                  className="font-mono tracking-[0.2em] text-center text-sm bg-background/40 border-border/50 placeholder:text-muted-foreground/25 placeholder:tracking-[0.15em]"
+                  className="font-mono tracking-[0.3em] text-center text-sm bg-background/60 border-border/60 placeholder:text-muted-foreground/30 placeholder:tracking-[0.25em]"
                   autoFocus
                   autoComplete="off"
                   data-testid="input-enter-access-key"
                 />
                 {errorMsg && (
                   <p
-                    className="text-[10px] text-destructive/70 font-mono tracking-[0.1em] text-center"
+                    className="text-[10px] text-destructive/80 font-mono tracking-[0.1em] text-center"
                     data-testid="text-enter-error"
                   >
                     {errorMsg}
                   </p>
                 )}
-                <div className="flex gap-2">
+                <div className="flex gap-2 pt-0.5">
                   <Button
                     type="submit"
                     size="default"
-                    className="flex-1 font-mono tracking-[0.1em] uppercase text-xs"
+                    className="flex-1 font-mono tracking-[0.12em] uppercase text-xs"
                     disabled={!code.trim() || verify.isPending}
                     data-testid="button-transmit-key"
                   >
@@ -219,12 +232,13 @@ export default function Enter() {
                   </Button>
                   <Button
                     type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => { setShowInput(false); setCode(""); setErrorMsg(""); }}
+                    variant="outline"
+                    size="default"
+                    onClick={handleCancel}
+                    className="font-mono text-xs text-muted-foreground/60"
                     data-testid="button-cancel-access"
                   >
-                    ×
+                    Cancel
                   </Button>
                 </div>
               </form>
@@ -269,21 +283,33 @@ export default function Enter() {
         <div className="flex items-center justify-between px-1">
           <Link
             href="/"
-            className="flex items-center gap-1.5 text-[11px] text-muted-foreground/35 hover:text-muted-foreground/70 transition-colors font-mono"
+            className="flex items-center gap-1.5 text-[11px] text-muted-foreground/40 hover:text-muted-foreground/80 transition-colors font-mono"
             data-testid="link-back-home"
           >
             <ArrowLeft className="w-3 h-3" />
             Surface
           </Link>
 
-          <Link
-            href="/admin/login"
-            className="flex items-center gap-1.5 text-[11px] text-muted-foreground/25 hover:text-muted-foreground/55 transition-colors font-mono"
-            data-testid="link-admin-access"
-          >
-            <ShieldAlert className="w-3 h-3" />
-            Admin
-          </Link>
+          <div className="flex items-center gap-4">
+            {isAuthorized && (
+              <button
+                type="button"
+                onClick={() => logout.mutate()}
+                className="text-[11px] text-muted-foreground/30 hover:text-muted-foreground/60 transition-colors font-mono"
+                data-testid="button-lock-session"
+              >
+                Lock Session
+              </button>
+            )}
+            <Link
+              href="/admin/login"
+              className="flex items-center gap-1.5 text-[11px] text-muted-foreground/25 hover:text-muted-foreground/55 transition-colors font-mono"
+              data-testid="link-admin-access"
+            >
+              <ShieldAlert className="w-3 h-3" />
+              Admin
+            </Link>
+          </div>
         </div>
 
       </div>
