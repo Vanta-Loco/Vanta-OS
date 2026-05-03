@@ -24,6 +24,7 @@ export function PostCard({ post, featured = false }: PostCardProps) {
               src={post.coverImage}
               alt={post.title}
               className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+              style={{ objectPosition: post.coverImagePosition || "50% 50%" }}
               data-testid={`img-post-${post.id}`}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-background/95 via-background/50 to-transparent" />

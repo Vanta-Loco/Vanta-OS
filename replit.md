@@ -83,7 +83,8 @@ Preferred communication style: Simple, everyday language.
 - Schema defined with pgTable for posts table
 
 **Data Schema**
-- Posts table with columns: id (UUID), title, excerpt, content, coverImage, images (array), category, readTime, createdAt, featured
+- Posts table with columns: id (UUID), title, excerpt, content, coverImage, coverImagePosition, images (array), category, readTime, createdAt, featured
+- `coverImagePosition` stored as CSS `object-position` string e.g. `"50% 50%"`, defaults to `"50% 50%"` (center)
 - Validation using drizzle-zod for type-safe inserts
 - Default values for arrays and timestamps
 

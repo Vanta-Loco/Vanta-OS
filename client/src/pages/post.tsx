@@ -126,6 +126,7 @@ export default function PostPage() {
             src={post.coverImage}
             alt={post.title}
             className="w-full h-full object-cover"
+            style={{ objectPosition: post.coverImagePosition || "50% 50%" }}
             data-testid="img-post-cover"
           />
           <div className="absolute inset-0 hero-gradient-overlay" />

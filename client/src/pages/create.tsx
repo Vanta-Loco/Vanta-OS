@@ -22,6 +22,7 @@ import {
 import { ArrowLeft, Upload, X, Loader2 } from "lucide-react";
 import { Link } from "wouter";
 import { insertPostSchema, type InsertPost } from "@shared/schema";
+import { CoverImagePositionPicker } from "@/components/cover-image-position-picker";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
@@ -56,6 +57,7 @@ export default function CreatePost() {
       excerpt: "",
       content: "",
       coverImage: "",
+      coverImagePosition: "50% 50%",
       images: [],
       category: "",
       readTime: "5 min read",
@@ -278,26 +280,34 @@ export default function CreatePost() {
                       />
                     </label>
                   ) : (
-                    <div className="relative aspect-video rounded-lg overflow-hidden">
-                      <img
-                        src={coverImagePreview}
-                        alt="Cover preview"
-                        className="w-full h-full object-cover"
-                        data-testid="img-cover-preview"
+                    <div className="space-y-4">
+                      <div className="relative aspect-video rounded-lg overflow-hidden">
+                        <img
+                          src={coverImagePreview}
+                          alt="Cover preview"
+                          className="w-full h-full object-cover"
+                          style={{ objectPosition: form.watch("coverImagePosition") || "50% 50%" }}
+                          data-testid="img-cover-preview"
+                        />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="icon"
+                          className="absolute top-2 right-2"
+                          onClick={() => {
+                            setCoverImagePreview("");
+                            form.setValue("coverImage", "");
+                            form.setValue("coverImagePosition", "50% 50%");
+                          }}
+                          data-testid="button-remove-cover"
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                      <CoverImagePositionPicker
+                        value={form.watch("coverImagePosition") || "50% 50%"}
+                        onChange={(val) => form.setValue("coverImagePosition", val)}
                       />
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="icon"
-                        className="absolute top-2 right-2"
-                        onClick={() => {
-                          setCoverImagePreview("");
-                          form.setValue("coverImage", "");
-                        }}
-                        data-testid="button-remove-cover"
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
                     </div>
                   )}
                   {form.formState.errors.coverImage && (
