@@ -13,6 +13,10 @@ export default function About() {
 
   const c = data ?? ABOUT_DEFAULTS;
 
+  const heroSrc   = c.heroImageUrl   || aboutImage;
+  const studioSrc = c.studioImageUrl || studioImage;
+  const citySrc   = c.cityImageUrl   || cityImage;
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
@@ -23,7 +27,7 @@ export default function About() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
               <div className="relative aspect-[4/5] rounded-2xl overflow-hidden">
                 <img
-                  src={aboutImage}
+                  src={heroSrc}
                   alt="Vanta Cold Artist"
                   className="w-full h-full object-cover"
                   data-testid="img-about-hero"
@@ -59,7 +63,7 @@ export default function About() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="relative aspect-[16/9] rounded-2xl overflow-hidden">
                 <img
-                  src={studioImage}
+                  src={studioSrc}
                   alt="Studio Sessions"
                   className="w-full h-full object-cover"
                   data-testid="img-studio"
@@ -84,7 +88,7 @@ export default function About() {
               </div>
               <div className="relative aspect-[16/9] rounded-2xl overflow-hidden md:order-1">
                 <img
-                  src={cityImage}
+                  src={citySrc}
                   alt="Building Vision"
                   className="w-full h-full object-cover"
                   data-testid="img-vision"

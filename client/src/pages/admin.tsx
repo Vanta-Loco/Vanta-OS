@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import type { Post, Release, SiteContent } from "@shared/schema";
 import { ABOUT_DEFAULTS } from "@shared/schema";
 import {
   LogOut, Plus, Pencil, Trash2, Star, StarOff, Loader2, Save,
+  Upload, ImageIcon, X,
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -64,6 +65,123 @@ function SectionDivider({ label }: { label: string }) {
   );
 }
 
+function ImageUploadField({
+  label,
+  value,
+  onChange,
+  testId,
+  defaultLabel,
+}: {
+  label: string;
+  value: string;
+  onChange: (url: string) => void;
+  testId: string;
+  defaultLabel: string;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState(false);
+
+  async function handleFile(file: File) {
+    setUploading(true);
+    setUploadError(false);
+    const fd = new FormData();
+    fd.append("file", file);
+    try {
+      const res = await fetch("/api/upload", { method: "POST", body: fd, credentials: "include" });
+      if (!res.ok) throw new Error();
+      const { url } = await res.json();
+      onChange(url);
+    } catch {
+      setUploadError(true);
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  return (
+    <div>
+      <FieldLabel>{label}</FieldLabel>
+      <div className="flex gap-3 items-start">
+        <div className="w-24 h-16 rounded-md overflow-hidden bg-muted border border-border shrink-0 flex items-center justify-center">
+          {value ? (
+            <img
+              src={value}
+              alt=""
+              className="w-full h-full object-cover"
+              data-testid={`img-preview-${testId}`}
+            />
+          ) : (
+            <ImageIcon className="w-5 h-5 text-muted-foreground/30" />
+          )}
+        </div>
+
+        <div className="flex-1 space-y-2 min-w-0">
+          <Input
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder="Paste image URL…"
+            className="text-sm"
+            data-testid={`input-${testId}-url`}
+          />
+          <div className="flex items-center gap-2 flex-wrap">
+            <input
+              ref={inputRef}
+              type="file"
+              accept="image/jpeg,image/jpg,image/png,image/webp"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleFile(file);
+                e.target.value = "";
+              }}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="default"
+              className="gap-2 text-xs"
+              onClick={() => inputRef.current?.click()}
+              disabled={uploading}
+              data-testid={`button-upload-${testId}`}
+            >
+              {uploading ? (
+                <Loader2 className="w-3 h-3 animate-spin" />
+              ) : (
+                <Upload className="w-3 h-3" />
+              )}
+              {uploading ? "Uploading…" : "Upload Image"}
+            </Button>
+
+            {value && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                title="Clear (revert to default)"
+                onClick={() => onChange("")}
+                data-testid={`button-clear-${testId}`}
+              >
+                <X className="w-3.5 h-3.5" />
+              </Button>
+            )}
+
+            {uploadError && (
+              <span className="text-xs text-destructive">Upload failed. Try again.</span>
+            )}
+          </div>
+
+          {!value && (
+            <p className="text-[11px] font-mono text-muted-foreground/45">
+              Using default — {defaultLabel}
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function AboutEditor() {
   const { toast } = useToast();
 
@@ -72,33 +190,39 @@ function AboutEditor() {
   });
 
   const [form, setForm] = useState<Omit<SiteContent, "key" | "updatedAt">>({
-    title:         ABOUT_DEFAULTS.title,
-    heroP1:        ABOUT_DEFAULTS.heroP1,
-    heroP2:        ABOUT_DEFAULTS.heroP2,
-    heroP3:        ABOUT_DEFAULTS.heroP3,
-    journeyTitle:  ABOUT_DEFAULTS.journeyTitle,
-    creativeTitle: ABOUT_DEFAULTS.creativeTitle,
-    creativeBody:  ABOUT_DEFAULTS.creativeBody,
-    visionTitle:   ABOUT_DEFAULTS.visionTitle,
-    visionBody:    ABOUT_DEFAULTS.visionBody,
-    missionTitle:  ABOUT_DEFAULTS.missionTitle,
-    missionBody:   ABOUT_DEFAULTS.missionBody,
+    title:          ABOUT_DEFAULTS.title,
+    heroP1:         ABOUT_DEFAULTS.heroP1,
+    heroP2:         ABOUT_DEFAULTS.heroP2,
+    heroP3:         ABOUT_DEFAULTS.heroP3,
+    heroImageUrl:   ABOUT_DEFAULTS.heroImageUrl,
+    journeyTitle:   ABOUT_DEFAULTS.journeyTitle,
+    creativeTitle:  ABOUT_DEFAULTS.creativeTitle,
+    creativeBody:   ABOUT_DEFAULTS.creativeBody,
+    studioImageUrl: ABOUT_DEFAULTS.studioImageUrl,
+    visionTitle:    ABOUT_DEFAULTS.visionTitle,
+    visionBody:     ABOUT_DEFAULTS.visionBody,
+    cityImageUrl:   ABOUT_DEFAULTS.cityImageUrl,
+    missionTitle:   ABOUT_DEFAULTS.missionTitle,
+    missionBody:    ABOUT_DEFAULTS.missionBody,
   });
 
   useEffect(() => {
     if (data) {
       setForm({
-        title:         data.title,
-        heroP1:        data.heroP1,
-        heroP2:        data.heroP2,
-        heroP3:        data.heroP3,
-        journeyTitle:  data.journeyTitle,
-        creativeTitle: data.creativeTitle,
-        creativeBody:  data.creativeBody,
-        visionTitle:   data.visionTitle,
-        visionBody:    data.visionBody,
-        missionTitle:  data.missionTitle,
-        missionBody:   data.missionBody,
+        title:          data.title,
+        heroP1:         data.heroP1,
+        heroP2:         data.heroP2,
+        heroP3:         data.heroP3,
+        heroImageUrl:   data.heroImageUrl,
+        journeyTitle:   data.journeyTitle,
+        creativeTitle:  data.creativeTitle,
+        creativeBody:   data.creativeBody,
+        studioImageUrl: data.studioImageUrl,
+        visionTitle:    data.visionTitle,
+        visionBody:     data.visionBody,
+        cityImageUrl:   data.cityImageUrl,
+        missionTitle:   data.missionTitle,
+        missionBody:    data.missionBody,
       });
     }
   }, [data]);
@@ -117,6 +241,10 @@ function AboutEditor() {
       setForm((prev) => ({ ...prev, [key]: e.target.value }));
   }
 
+  function setImage(key: keyof typeof form) {
+    return (url: string) => setForm((prev) => ({ ...prev, [key]: url }));
+  }
+
   if (isLoading) {
     return (
       <div className="space-y-3 animate-pulse">
@@ -129,8 +257,17 @@ function AboutEditor() {
 
   return (
     <div className="border border-border rounded-md p-6 space-y-5" data-testid="form-about-editor">
-      {/* Hero */}
+
+      {/* ── Hero ── */}
       <SectionDivider label="Hero" />
+
+      <ImageUploadField
+        label="Hero Image"
+        value={form.heroImageUrl}
+        onChange={setImage("heroImageUrl")}
+        testId="about-hero-image"
+        defaultLabel="Artist portrait"
+      />
 
       <div>
         <FieldLabel>Page Title</FieldLabel>
@@ -175,7 +312,7 @@ function AboutEditor() {
         />
       </div>
 
-      {/* Journey */}
+      {/* ── Journey ── */}
       <SectionDivider label="Journey" />
 
       <div>
@@ -190,6 +327,13 @@ function AboutEditor() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <div className="space-y-3">
+          <ImageUploadField
+            label="Creative Process Image"
+            value={form.studioImageUrl}
+            onChange={setImage("studioImageUrl")}
+            testId="about-studio-image"
+            defaultLabel="Recording session"
+          />
           <div>
             <FieldLabel>Creative Process — Title</FieldLabel>
             <Input
@@ -212,6 +356,13 @@ function AboutEditor() {
         </div>
 
         <div className="space-y-3">
+          <ImageUploadField
+            label="Building the Vision Image"
+            value={form.cityImageUrl}
+            onChange={setImage("cityImageUrl")}
+            testId="about-city-image"
+            defaultLabel="Urban cityscape"
+          />
           <div>
             <FieldLabel>Building the Vision — Title</FieldLabel>
             <Input
@@ -234,7 +385,7 @@ function AboutEditor() {
         </div>
       </div>
 
-      {/* Mission */}
+      {/* ── Mission ── */}
       <SectionDivider label="Mission" />
 
       <div>
