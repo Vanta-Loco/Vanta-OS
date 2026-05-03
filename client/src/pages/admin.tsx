@@ -1,14 +1,17 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { useAdmin } from "@/hooks/use-admin";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { Post, Release } from "@shared/schema";
+import type { Post, Release, SiteContent } from "@shared/schema";
+import { ABOUT_DEFAULTS } from "@shared/schema";
 import {
-  LogOut, Plus, Pencil, Trash2, Star, StarOff, Loader2,
+  LogOut, Plus, Pencil, Trash2, Star, StarOff, Loader2, Save,
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -39,6 +42,238 @@ function AdminHeader({ onLogout, isPending }: { onLogout: () => void; isPending:
         </div>
       </div>
     </header>
+  );
+}
+
+function FieldLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="text-xs uppercase tracking-widest text-muted-foreground font-medium mb-1.5">
+      {children}
+    </p>
+  );
+}
+
+function SectionDivider({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-3 pt-2">
+      <span className="text-[11px] uppercase tracking-widest text-muted-foreground/60 font-mono whitespace-nowrap">
+        {label}
+      </span>
+      <div className="flex-1 border-t border-border/50" />
+    </div>
+  );
+}
+
+function AboutEditor() {
+  const { toast } = useToast();
+
+  const { data, isLoading } = useQuery<SiteContent>({
+    queryKey: ["/api/site-content/about"],
+  });
+
+  const [form, setForm] = useState<Omit<SiteContent, "key" | "updatedAt">>({
+    title:         ABOUT_DEFAULTS.title,
+    heroP1:        ABOUT_DEFAULTS.heroP1,
+    heroP2:        ABOUT_DEFAULTS.heroP2,
+    heroP3:        ABOUT_DEFAULTS.heroP3,
+    journeyTitle:  ABOUT_DEFAULTS.journeyTitle,
+    creativeTitle: ABOUT_DEFAULTS.creativeTitle,
+    creativeBody:  ABOUT_DEFAULTS.creativeBody,
+    visionTitle:   ABOUT_DEFAULTS.visionTitle,
+    visionBody:    ABOUT_DEFAULTS.visionBody,
+    missionTitle:  ABOUT_DEFAULTS.missionTitle,
+    missionBody:   ABOUT_DEFAULTS.missionBody,
+  });
+
+  useEffect(() => {
+    if (data) {
+      setForm({
+        title:         data.title,
+        heroP1:        data.heroP1,
+        heroP2:        data.heroP2,
+        heroP3:        data.heroP3,
+        journeyTitle:  data.journeyTitle,
+        creativeTitle: data.creativeTitle,
+        creativeBody:  data.creativeBody,
+        visionTitle:   data.visionTitle,
+        visionBody:    data.visionBody,
+        missionTitle:  data.missionTitle,
+        missionBody:   data.missionBody,
+      });
+    }
+  }, [data]);
+
+  const save = useMutation({
+    mutationFn: () => apiRequest("PATCH", "/api/site-content/about", form),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/site-content/about"] });
+      toast({ title: "About page saved." });
+    },
+    onError: () => toast({ title: "Save failed.", variant: "destructive" }),
+  });
+
+  function field(key: keyof typeof form) {
+    return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+      setForm((prev) => ({ ...prev, [key]: e.target.value }));
+  }
+
+  if (isLoading) {
+    return (
+      <div className="space-y-3 animate-pulse">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="h-12 bg-muted rounded-md" />
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="border border-border rounded-md p-6 space-y-5" data-testid="form-about-editor">
+      {/* Hero */}
+      <SectionDivider label="Hero" />
+
+      <div>
+        <FieldLabel>Page Title</FieldLabel>
+        <Input
+          value={form.title}
+          onChange={field("title")}
+          placeholder="About Vanta Cold"
+          data-testid="input-about-title"
+        />
+      </div>
+
+      <div>
+        <FieldLabel>Paragraph 1</FieldLabel>
+        <Textarea
+          value={form.heroP1}
+          onChange={field("heroP1")}
+          rows={3}
+          className="resize-none"
+          data-testid="textarea-about-hero-p1"
+        />
+      </div>
+
+      <div>
+        <FieldLabel>Paragraph 2</FieldLabel>
+        <Textarea
+          value={form.heroP2}
+          onChange={field("heroP2")}
+          rows={3}
+          className="resize-none"
+          data-testid="textarea-about-hero-p2"
+        />
+      </div>
+
+      <div>
+        <FieldLabel>Paragraph 3</FieldLabel>
+        <Textarea
+          value={form.heroP3}
+          onChange={field("heroP3")}
+          rows={3}
+          className="resize-none"
+          data-testid="textarea-about-hero-p3"
+        />
+      </div>
+
+      {/* Journey */}
+      <SectionDivider label="Journey" />
+
+      <div>
+        <FieldLabel>Section Heading</FieldLabel>
+        <Input
+          value={form.journeyTitle}
+          onChange={field("journeyTitle")}
+          placeholder="The Journey"
+          data-testid="input-about-journey-title"
+        />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div className="space-y-3">
+          <div>
+            <FieldLabel>Creative Process — Title</FieldLabel>
+            <Input
+              value={form.creativeTitle}
+              onChange={field("creativeTitle")}
+              placeholder="Creative Process"
+              data-testid="input-about-creative-title"
+            />
+          </div>
+          <div>
+            <FieldLabel>Creative Process — Body</FieldLabel>
+            <Textarea
+              value={form.creativeBody}
+              onChange={field("creativeBody")}
+              rows={4}
+              className="resize-none"
+              data-testid="textarea-about-creative-body"
+            />
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          <div>
+            <FieldLabel>Building the Vision — Title</FieldLabel>
+            <Input
+              value={form.visionTitle}
+              onChange={field("visionTitle")}
+              placeholder="Building the Vision"
+              data-testid="input-about-vision-title"
+            />
+          </div>
+          <div>
+            <FieldLabel>Building the Vision — Body</FieldLabel>
+            <Textarea
+              value={form.visionBody}
+              onChange={field("visionBody")}
+              rows={4}
+              className="resize-none"
+              data-testid="textarea-about-vision-body"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Mission */}
+      <SectionDivider label="Mission" />
+
+      <div>
+        <FieldLabel>Mission Title</FieldLabel>
+        <Input
+          value={form.missionTitle}
+          onChange={field("missionTitle")}
+          placeholder="Our Mission"
+          data-testid="input-about-mission-title"
+        />
+      </div>
+
+      <div>
+        <FieldLabel>Mission Body</FieldLabel>
+        <Textarea
+          value={form.missionBody}
+          onChange={field("missionBody")}
+          rows={4}
+          className="resize-none"
+          data-testid="textarea-about-mission-body"
+        />
+      </div>
+
+      <div className="flex justify-end pt-2">
+        <Button
+          onClick={() => save.mutate()}
+          disabled={save.isPending}
+          className="gap-2"
+          data-testid="button-save-about"
+        >
+          {save.isPending ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Save className="w-4 h-4" />
+          )}
+          {save.isPending ? "Saving…" : "Save Changes"}
+        </Button>
+      </div>
+    </div>
   );
 }
 
@@ -333,6 +568,28 @@ export default function Admin() {
             </div>
           )}
         </section>
+
+        {/* ── About Page ── */}
+        <section data-testid="section-admin-about">
+          <div className="flex items-end justify-between mb-6 flex-wrap gap-4">
+            <div>
+              <p className="text-xs uppercase tracking-widest text-muted-foreground mb-1 font-medium">
+                Site Content
+              </p>
+              <h2 className="text-2xl font-display font-bold" data-testid="text-admin-about-heading">
+                About Page
+              </h2>
+            </div>
+            <Link href="/about" target="_blank" data-testid="link-view-about">
+              <Button variant="ghost" size="default" className="text-xs">
+                View Page
+              </Button>
+            </Link>
+          </div>
+
+          <AboutEditor />
+        </section>
+
       </main>
     </div>
   );

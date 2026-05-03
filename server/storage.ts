@@ -1,4 +1,4 @@
-import { type Post, type InsertPost, posts, type Release, type InsertRelease, releases, type VaultItem, type InsertVaultItem, vaultItems } from "@shared/schema";
+import { type Post, type InsertPost, posts, type Release, type InsertRelease, releases, type VaultItem, type InsertVaultItem, vaultItems, type SiteContent, type UpdateSiteContent, siteContent, ABOUT_DEFAULTS } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, or, ilike, and } from "drizzle-orm";
 
@@ -20,6 +20,9 @@ export interface IStorage {
   createVaultItem(item: InsertVaultItem): Promise<VaultItem>;
   updateVaultItem(id: string, data: Partial<InsertVaultItem>): Promise<VaultItem | undefined>;
   deleteVaultItem(id: string): Promise<boolean>;
+
+  getAboutContent(): Promise<SiteContent>;
+  upsertAboutContent(data: UpdateSiteContent): Promise<SiteContent>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -107,6 +110,26 @@ export class DatabaseStorage implements IStorage {
   async deleteVaultItem(id: string): Promise<boolean> {
     const result = await db.delete(vaultItems).where(eq(vaultItems.id, id));
     return result.rowCount !== null && result.rowCount > 0;
+  }
+
+  async getAboutContent(): Promise<SiteContent> {
+    const [row] = await db.select().from(siteContent).where(eq(siteContent.key, "about"));
+    return row ?? ABOUT_DEFAULTS;
+  }
+
+  async upsertAboutContent(data: UpdateSiteContent): Promise<SiteContent> {
+    const current = await this.getAboutContent();
+    const { key: _k, updatedAt: _u, ...currentFields } = current;
+    const merged = { ...currentFields, ...data };
+    const [row] = await db
+      .insert(siteContent)
+      .values({ key: "about", ...merged, updatedAt: new Date() })
+      .onConflictDoUpdate({
+        target: siteContent.key,
+        set: { ...merged, updatedAt: new Date() },
+      })
+      .returning();
+    return row;
   }
 }
 

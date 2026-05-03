@@ -87,6 +87,18 @@ Preferred communication style: Simple, everyday language.
 - Validation using drizzle-zod for type-safe inserts
 - Default values for arrays and timestamps
 
+### Site Content (Editable Pages)
+
+**About Page**
+- Schema: `siteContent` pgTable in `shared/schema.ts` with `key` (varchar PK) + 11 text content fields + `updatedAt`
+- Fields: `title`, `heroP1`, `heroP2`, `heroP3`, `journeyTitle`, `creativeTitle`, `creativeBody`, `visionTitle`, `visionBody`, `missionTitle`, `missionBody`
+- `ABOUT_DEFAULTS` exported from schema — hardcoded fallback when no DB row exists
+- `updateSiteContentSchema` (Zod) validates partial PATCH payloads
+- Storage: `getAboutContent()` returns DB row or `ABOUT_DEFAULTS`; `upsertAboutContent()` merges current (or defaults) with patch data before upserting — prevents partial saves from zeroing untouched fields
+- API: `GET /api/site-content/about` (public), `PATCH /api/site-content/about` (admin-only)
+- Admin UI: `AboutEditor` component in `/admin` — grouped form with Input/Textarea per field, saves via PATCH
+- Public page (`/about`): `useQuery(['/api/site-content/about'])`, falls back to `ABOUT_DEFAULTS` while loading; layout/images unchanged
+
 ### Authentication and Authorization
 
 **Current State**

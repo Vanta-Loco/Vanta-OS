@@ -1,7 +1,7 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertPostSchema, insertReleaseSchema, insertVaultItemSchema } from "@shared/schema";
+import { insertPostSchema, insertReleaseSchema, insertVaultItemSchema, updateSiteContentSchema } from "@shared/schema";
 import { z } from "zod";
 import { generateAudioPreview, deleteAudioPreview } from "./audio-preview";
 import { compressAudioFile, deleteCompressedAudio } from "./audio-compress";
@@ -394,6 +394,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting vault item:", error);
       res.status(500).json({ error: "Failed to delete vault item" });
+    }
+  });
+
+  // ── Site Content ─────────────────────────────────────────────────
+  app.get("/api/site-content/about", async (req, res) => {
+    try {
+      const content = await storage.getAboutContent();
+      res.json(content);
+    } catch (error) {
+      console.error("Error fetching about content:", error);
+      res.status(500).json({ error: "Failed to load about content" });
+    }
+  });
+
+  app.patch("/api/site-content/about", requireAdmin, async (req, res) => {
+    try {
+      const parsed = updateSiteContentSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid data", details: parsed.error.flatten() });
+      }
+      const content = await storage.upsertAboutContent(parsed.data);
+      res.json(content);
+    } catch (error) {
+      console.error("Error updating about content:", error);
+      res.status(500).json({ error: "Failed to update about content" });
     }
   });
 

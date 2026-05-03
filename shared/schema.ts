@@ -130,3 +130,54 @@ export const insertVaultItemSchema = createInsertSchema(vaultItems).omit({
 
 export type InsertVaultItem = z.infer<typeof insertVaultItemSchema>;
 export type VaultItem = typeof vaultItems.$inferSelect;
+
+// ── Site Content (editable pages) ────────────────────────────────────────────
+
+export const siteContent = pgTable("site_content", {
+  key:           varchar("key").primaryKey(),
+  title:         text("title").notNull().default(""),
+  heroP1:        text("hero_p1").notNull().default(""),
+  heroP2:        text("hero_p2").notNull().default(""),
+  heroP3:        text("hero_p3").notNull().default(""),
+  journeyTitle:  text("journey_title").notNull().default(""),
+  creativeTitle: text("creative_title").notNull().default(""),
+  creativeBody:  text("creative_body").notNull().default(""),
+  visionTitle:   text("vision_title").notNull().default(""),
+  visionBody:    text("vision_body").notNull().default(""),
+  missionTitle:  text("mission_title").notNull().default(""),
+  missionBody:   text("mission_body").notNull().default(""),
+  updatedAt:     timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const updateSiteContentSchema = z.object({
+  title:         z.string().optional(),
+  heroP1:        z.string().optional(),
+  heroP2:        z.string().optional(),
+  heroP3:        z.string().optional(),
+  journeyTitle:  z.string().optional(),
+  creativeTitle: z.string().optional(),
+  creativeBody:  z.string().optional(),
+  visionTitle:   z.string().optional(),
+  visionBody:    z.string().optional(),
+  missionTitle:  z.string().optional(),
+  missionBody:   z.string().optional(),
+});
+
+export type SiteContent = typeof siteContent.$inferSelect;
+export type UpdateSiteContent = z.infer<typeof updateSiteContentSchema>;
+
+export const ABOUT_DEFAULTS: SiteContent = {
+  key:           "about",
+  title:         "About Vanta Cold",
+  heroP1:        "Vanta Cold is more than a music label—it's a journey documented through sound, visuals, and stories. Born from a passion for authentic creativity and raw expression, we're building something genuine from the ground up.",
+  heroP2:        "This blog serves as a window into the creative process. From late night studio sessions to lifestyle moments that inspire the music, every post captures a piece of the journey. It's about transparency, connection, and sharing the real story behind the music.",
+  heroP3:        "We believe in the power of storytelling through multiple mediums—combining music production with photography, videography, and written narratives to create a complete artistic vision.",
+  journeyTitle:  "The Journey",
+  creativeTitle: "Creative Process",
+  creativeBody:  "Every track starts with an idea, a feeling, or a moment of inspiration. Through countless hours in the studio, experimenting with sounds, beats, and melodies, these ideas transform into the music that defines Vanta Cold.",
+  visionTitle:   "Building the Vision",
+  visionBody:    "From navigating the music industry to building a brand identity, every step is a learning experience. This platform documents not just the successes, but the challenges, setbacks, and lessons learned along the way.",
+  missionTitle:  "Our Mission",
+  missionBody:   "To create music that resonates, tell stories that inspire, and build a community around authentic artistic expression. Vanta Cold represents the journey of turning passion into reality, one post, one track, one moment at a time.",
+  updatedAt:     new Date(0),
+};
