@@ -1,2 +1,2 @@
-- [World District canvas](world-district.md) — each building's col-row must be unique or buildings fully occlude each other; canvas is fixed inset-0 z-0, Header is fixed z-50.
+- [World walkable city](world-district.md) — /world is a WALKABLE iso city (avatar+camera-follow); collision must sample a footprint not center-only; cull tall towers by max height; painter-sort with player inserted by col+row.
 - [Startup boot screen](startup-boot-screen.md) — fresh-session screenshots show the 2.8s VANTA COLD splash (gated by sessionStorage vc-boot), not the page; verify via tsc + console, not one capture.
