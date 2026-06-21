@@ -13,6 +13,7 @@ Every post here represents a piece of the puzzle, a chapter in the story of buil
 
 Let's create something unforgettable together.`,
     coverImage: "/attached_assets/generated_images/Music_studio_lifestyle_hero_cf7ae2f2.png",
+    coverImagePosition: "50% 50%",
     images: [
       "/attached_assets/generated_images/Recording_session_behind_scenes_04ce1f60.png",
       "/attached_assets/generated_images/Artist_portrait_lifestyle_photo_4eb94ae9.png"
@@ -34,6 +35,7 @@ The coffee helps. The ambient lighting sets the mood. But ultimately, it's about
 
 These are the moments that define Vanta Cold.`,
     coverImage: "/attached_assets/generated_images/Recording_session_behind_scenes_04ce1f60.png",
+    coverImagePosition: "50% 50%",
     images: [],
     category: "Behind the Scenes",
     readTime: "4 min read",
@@ -52,6 +54,7 @@ It's all part of the process. And sharing that process openly creates connection
 
 Looking ahead, there's so much more to build. More music to create, more stories to tell, more moments to capture. And you're invited to be part of it all.`,
     coverImage: "/attached_assets/generated_images/Urban_night_cityscape_mood_2c3c2c61.png",
+    coverImagePosition: "50% 50%",
     images: [],
     category: "Creative Process",
     readTime: "5 min read",

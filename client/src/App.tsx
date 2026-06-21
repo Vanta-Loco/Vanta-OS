@@ -22,6 +22,10 @@ import AdminLogin from "@/pages/admin-login";
 import AdminDashboard from "@/pages/admin";
 import Vault from "@/pages/vault";
 import World from "@/pages/world";
+import Wireline from "@/pages/wireline";
+import Fract from "@/pages/fract";
+import Himalayas from "@/pages/himalayas";
+import FracturedGodhead from "@/pages/fgh";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -43,6 +47,10 @@ function Router() {
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/vault" component={Vault} />
       <Route path="/world" component={World} />
+      <Route path="/wireline" component={Wireline} />
+      <Route path="/fract" component={Fract} />
+      <Route path="/himalayas" component={Himalayas} />
+      <Route path="/fgh" component={FracturedGodhead} />
       <Route component={NotFound} />
     </Switch>
   );

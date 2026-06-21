@@ -1,0 +1,161 @@
+Upgrade Vanta OS with the next systems layer.
+
+Build these features into the existing React + TypeScript + Vite + Express + PostgreSQL app without breaking current routes.
+
+1. Upgrade Black Index Search Engine
+
+Route: /search
+
+Make Black Index feel like a secret Vanta archive/search engine.
+
+Search should include:
+- Transmissions/posts from /api/posts/search?q=
+- Releases from /api/releases
+- Worlds/projects from hardcoded worlds data or existing worlds page data
+- Vault items only if user is authorized/admin
+- Future lore placeholder results
+
+UI direction:
+- dark terminal/archive aesthetic
+- black/purple/red palette
+- search command bar style
+- result type badges: TRANSMISSION, RELEASE, WORLD, VAULT, LORE
+- empty state: “NO SIGNAL FOUND”
+- loading state with scanline/terminal effect
+
+Black Index should still be reachable from:
+- /search route
+- /world Black Index building
+
+2. Add Wireline Terminal placeholder
+
+Create route:
+/wireline
+
+Purpose:
+A terminal-style messenger/dispatch system.
+
+For now use mock data:
+- Public Channel
+- Announcements
+- Mission Dispatches
+- Transmission Feed
+
+UI:
+- terminal/chat layout
+- left channel list
+- main message feed
+- Vanta-style timestamps
+- locked/private channels shown but disabled
+
+Add /wireline link to:
+- Wireline Terminal building in /world
+- optional Header nav if space allows
+
+3. Add FRACT Terminal placeholder
+
+Create route:
+/fract
+
+Purpose:
+Reputation/economy system, not real crypto yet.
+
+Show:
+- Current FRACT balance placeholder: 0 FRACT
+- Ways to earn:
+  +5 FRACT — Read transmission
+  +20 FRACT — Complete mission
+  +100 FRACT — Verified worldbuilder
+- Locked status: “Economy layer not yet active”
+
+Add /fract link to:
+- FRACT Terminal building in /world
+
+4. Add Hidden Himalayas page
+
+Create route:
+/himalayas
+
+Purpose:
+Secret spiritual/mythology expansion zone.
+
+UI:
+- cold mountain/night aesthetic
+- ancient terminals
+- Equinox Eye shrine
+- locked lore fragments
+- CTA: “ACCESS DENIED — PATCH NOT DEPLOYED”
+
+Add /himalayas link to:
+- Hidden Himalayas Portal building in /world
+
+5. Add Fractured Godhead Archive
+
+Create route:
+/fgh
+
+Purpose:
+Dedicated lore archive for Fractured Godhead.
+
+Sections:
+- Characters
+- Factions
+- Locations
+- Timeline
+- Artifacts
+- Powers
+
+Use placeholder cards for now:
+- Amon
+- Vanessa
+- Neon Fangz
+- Block Saints
+- Pale Masks
+- The Board
+- Equinox Eye
+
+Add /fgh link to:
+- Fractured Godhead District building in /world
+- Worlds page Fractured Godhead card if appropriate
+
+6. Upgrade /world city
+
+Update /world buildings/routes:
+
+Black Index → /search
+Transmissions Tower → /
+Music Hub → /releases
+Vault Gate → /vault
+Mission Handler → /enter
+Worlds Archive → /worlds
+Vanta OS Core → /enter
+Vanta Box → coming soon
+FRACT Terminal → /fract
+Wireline Terminal → /wireline
+Hidden Himalayas Portal → /himalayas
+Fractured Godhead District → /fgh
+
+Keep:
+- WASD + arrow movement
+- touch drag
+- fast travel menu
+- clickable buildings/modal
+- Vanta Radio HUD
+- no WebGL
+- no new dependencies unless absolutely necessary
+
+7. Add Header access
+
+Add nav links where clean:
+- District → /world
+- Black Index → /search
+
+If the header gets crowded, put extra links in a small “OS” dropdown/menu.
+
+8. Make sure everything compiles
+
+After changes:
+- run typecheck/build
+- fix any TypeScript errors
+- do not remove existing functionality
+- preserve current database routes and admin/vault auth

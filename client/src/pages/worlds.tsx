@@ -5,76 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowRight, MapPin } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
+import { worlds, worldStatusStyle as statusStyle } from "@/data/worlds";
 import cityImage from "@assets/generated_images/Urban_night_cityscape_mood_2c3c2c61.png";
-
-const worlds = [
-  {
-    id: "vanta-cold",
-    name: "Vanta Cold",
-    tagline: "The Label",
-    status: "Active",
-    description:
-      "The creative headquarters. Music, visuals, and the architecture of the sound. Vanta Cold documents the journey of building an independent music label from the ground up — raw, deliberate, and uncompromising.",
-    detail:
-      "Albums, singles, transmissions, and lifestyle content all originate here. The label is the root of the system.",
-    href: "/releases",
-    cta: "View Releases",
-  },
-  {
-    id: "vanta-os",
-    name: "Vanta OS",
-    tagline: "The System",
-    status: "In Development",
-    description:
-      "An evolving interface for navigating the Vanta universe. Vanta OS is a conceptual operating system — part mythology, part music infrastructure — designed to gate premium access and frame the world around Vanta Cold.",
-    detail:
-      "Authentication required. A private system is being built. Invite-only access will open when the system is ready.",
-    href: "/enter",
-    cta: "Request Access",
-  },
-  {
-    id: "fractured-godhead",
-    name: "Fractured Godhead",
-    tagline: "The Mythology",
-    status: "In Development",
-    description:
-      "A conceptual universe built through sound, story, and visual language. Fractured Godhead is a long-form artistic world with its own cosmology, characters, and aesthetic logic — told across music, writing, and visuals.",
-    detail:
-      "This world is being built piece by piece. Transmissions and fragments will surface over time.",
-    href: "/",
-    cta: "Read Transmissions",
-  },
-  {
-    id: "solo-mission",
-    name: "Solo Mission",
-    tagline: "The Solo Project",
-    status: "Active",
-    description:
-      "Independent transmissions from the artist. Personal, direct, unfiltered. Solo Mission captures the individual voice behind the label — stripped of ensemble and closest to the source.",
-    detail:
-      "No collaborators. No compromise. Just the work.",
-    href: "/",
-    cta: "Read Transmissions",
-  },
-  {
-    id: "mobbrats",
-    name: "Mobbrats",
-    tagline: "The Collective",
-    status: "Coming Soon",
-    description:
-      "A crew-based project living at the intersection of street culture and music. Mobbrats is collaborative, energetic, and rooted in the culture that shaped the sound.",
-    detail:
-      "Details releasing soon. Watch for signals.",
-    href: "/",
-    cta: "Coming Soon",
-  },
-];
-
-const statusStyle: Record<string, string> = {
-  "Active": "bg-primary/20 text-primary border-primary/30",
-  "In Development": "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
-  "Coming Soon": "bg-muted/40 text-muted-foreground border-border",
-};
 
 export default function Worlds() {
   return (

@@ -3,7 +3,14 @@ import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { PenSquare, Search, LayoutDashboard, LogOut, LockKeyhole } from "lucide-react";
+import {
+  PenSquare, Search, LayoutDashboard, LogOut, LockKeyhole, Terminal, ChevronDown,
+  MapPin, Database, Radio, Coins, Mountain, Skull,
+} from "lucide-react";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
+  DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useAdmin } from "@/hooks/use-admin";
 
 const navLinks = [
@@ -11,6 +18,15 @@ const navLinks = [
   { href: "/releases", label: "Releases" },
   { href: "/worlds", label: "Worlds" },
   { href: "/about", label: "About" },
+];
+
+const osLinks = [
+  { href: "/world", label: "District", desc: "Vanta City map", Icon: MapPin },
+  { href: "/search", label: "Black Index", desc: "Archive search", Icon: Database },
+  { href: "/wireline", label: "Wireline", desc: "Dispatch relay", Icon: Radio },
+  { href: "/fract", label: "FRACT", desc: "Reputation economy", Icon: Coins },
+  { href: "/himalayas", label: "Hidden Himalayas", desc: "Cold expansion", Icon: Mountain },
+  { href: "/fgh", label: "Fractured Godhead", desc: "Lore archive", Icon: Skull },
 ];
 
 export function Header() {
@@ -49,6 +65,39 @@ export function Header() {
                 </Button>
               </Link>
             ))}
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className={`text-sm uppercase tracking-wide font-medium gap-1.5 ${
+                    osLinks.some((l) => l.href === location) ? "text-foreground" : "text-muted-foreground"
+                  }`}
+                  data-testid="button-nav-os"
+                >
+                  <Terminal className="w-3.5 h-3.5" />
+                  OS
+                  <ChevronDown className="w-3.5 h-3.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-64">
+                <DropdownMenuLabel className="font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground/60">
+                  Vanta OS
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {osLinks.map(({ href, label, desc, Icon }) => (
+                  <DropdownMenuItem key={href} asChild className="gap-3 cursor-pointer">
+                    <Link href={href} data-testid={`link-os-${label.toLowerCase().replace(/\s+/g, "-")}`}>
+                      <Icon className="w-4 h-4 text-muted-foreground/60 flex-shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium leading-tight">{label}</p>
+                        <p className="text-[11px] text-muted-foreground/50 font-mono leading-tight mt-0.5">{desc}</p>
+                      </div>
+                    </Link>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </nav>
 
           <div className="flex items-center gap-2">

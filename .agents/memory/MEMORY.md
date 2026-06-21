@@ -1,1 +1,2 @@
 - [World District canvas](world-district.md) — each building's col-row must be unique or buildings fully occlude each other; canvas is fixed inset-0 z-0, Header is fixed z-50.
+- [Startup boot screen](startup-boot-screen.md) — fresh-session screenshots show the 2.8s VANTA COLD splash (gated by sessionStorage vc-boot), not the page; verify via tsc + console, not one capture.
