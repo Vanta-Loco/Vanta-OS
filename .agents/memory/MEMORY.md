@@ -1,0 +1,1 @@
+- [World District canvas](world-district.md) — each building's col-row must be unique or buildings fully occlude each other; canvas is fixed inset-0 z-0, Header is fixed z-50.

@@ -21,6 +21,7 @@ import Enter from "@/pages/enter";
 import AdminLogin from "@/pages/admin-login";
 import AdminDashboard from "@/pages/admin";
 import Vault from "@/pages/vault";
+import World from "@/pages/world";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -41,6 +42,7 @@ function Router() {
       <Route path="/admin/login" component={AdminLogin} />
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/vault" component={Vault} />
+      <Route path="/world" component={World} />
       <Route component={NotFound} />
     </Switch>
   );
