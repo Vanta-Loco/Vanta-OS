@@ -809,95 +809,42 @@ function MobileControls() {
   );
 }
 
-// ─── WebGL guard + graceful fallback ──────────────────────────────────────────────
-// A plain getContext() check is NOT enough: some environments (Replit's headless
-// preview/screenshot browser, certain remote/software GL stacks) hand back a context
-// that is immediately LOST the moment three actually renders to it. That throws
-// asynchronously deep inside R3F, which React 18 dev re-dispatches to window.onerror,
-// tripping the runtime-error overlay. So we do a real warmup: build an actual
-// THREE.WebGLRenderer, render one frame with an instanced mesh (like the real scene),
-// then wait a beat to see whether the context survives. Only mount the <Canvas> if it does.
-async function probeWebGL(): Promise<boolean> {
-  if (typeof window === "undefined") return false;
-  let renderer: THREE.WebGLRenderer | undefined;
-  let canvas: HTMLCanvasElement | undefined;
-  try {
-    canvas = document.createElement("canvas");
-    canvas.width = 32;
-    canvas.height = 32;
-    let lost = false;
-    canvas.addEventListener("webglcontextlost", () => (lost = true), { once: true });
-
-    const ctx =
-      (canvas.getContext("webgl2") as WebGLRenderingContext | null) ||
-      (canvas.getContext("webgl") as WebGLRenderingContext | null);
-    if (!ctx) return false;
-
-    renderer = new THREE.WebGLRenderer({ canvas, antialias: false });
-    renderer.setSize(32, 32, false);
-    const scene = new THREE.Scene();
-    const cam = new THREE.PerspectiveCamera(50, 1, 0.1, 10);
-    cam.position.z = 3;
-    const inst = new THREE.InstancedMesh(
-      new THREE.BoxGeometry(),
-      new THREE.MeshBasicMaterial(),
-      8,
-    );
-    const m = new THREE.Matrix4();
-    for (let i = 0; i < 8; i++) {
-      m.setPosition((i % 4) - 1.5, 0, 0);
-      inst.setMatrixAt(i, m);
-    }
-    scene.add(inst);
-    // Render several frames spread over 300 ms — a single-frame probe on a software GL
-    // stack can pass even though the context dies under load (which is what triggers the
-    // acc[key2] crash in R3F). Multiple ticks give the driver time to report the loss.
-    for (let f = 0; f < 4; f++) {
-      renderer.render(scene, cam);
-      await new Promise((r) => setTimeout(r, 75));
-      if (lost || renderer.getContext().isContextLost()) break;
-    }
-
-    const glLost = lost || renderer.getContext().isContextLost();
-    inst.geometry.dispose();
-    (inst.material as THREE.Material).dispose();
-    return !glLost;
-  } catch {
-    return false;
-  } finally {
-    try {
-      renderer?.dispose();
-      const lose = renderer
-        ?.getContext()
-        ?.getExtension("WEBGL_lose_context") as { loseContext?: () => void } | null;
-      lose?.loseContext?.();
-    } catch {
-      /* ignore */
-    }
-  }
-}
-
+// ─── Error boundary + fallback ────────────────────────────────────────────────────
 class GLBoundary extends Component<
-  { fallback: ReactNode; children: ReactNode },
-  { failed: boolean }
+  { fallback: (error: string) => ReactNode; children: ReactNode; onError: (msg: string) => void },
+  { error: string | null }
 > {
-  state = { failed: false };
-  static getDerivedStateFromError() {
-    return { failed: true };
+  state: { error: string | null } = { error: null };
+  static getDerivedStateFromError(e: Error) {
+    return { error: e.message ?? String(e) };
+  }
+  componentDidCatch(error: Error) {
+    console.error("[Vanta City] R3F render error:", error.message);
+    console.error(error.stack);
+    this.props.onError(error.message ?? String(error));
   }
   render() {
-    return this.state.failed ? this.props.fallback : this.props.children;
+    return this.state.error
+      ? this.props.fallback(this.state.error)
+      : this.props.children;
   }
 }
 
-function WebGLFallback() {
+function WebGLFallback({ error }: { error?: string | null }) {
   return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#05030c] gap-3">
+    <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#05030c] gap-4 p-8">
       <div className="text-xs uppercase tracking-[0.3em] text-purple-500/60">
         Vanta City
       </div>
-      <div className="text-sm text-zinc-600 max-w-xs text-center">
-        WebGL is not available in this environment. Open in a desktop browser to explore the city.
+      {error && (
+        <div className="rounded border border-red-800/50 bg-red-950/40 px-4 py-2 font-mono text-[11px] text-red-400 max-w-md text-center break-all">
+          {error}
+        </div>
+      )}
+      <div className="text-sm text-zinc-500 max-w-xs text-center">
+        {error
+          ? "The 3D renderer failed. Check the browser console for details."
+          : "WebGL is unavailable in this environment."}
       </div>
     </div>
   );
@@ -906,23 +853,15 @@ function WebGLFallback() {
 // ─── Page ───────────────────────────────────────────────────────────────────────
 export default function World() {
   const [, navigate] = useLocation();
-  const [phase, setPhase] = useState<"checking" | "3d" | "fallback">("checking");
   const [glLost, setGlLost] = useState(false);
+  const [glError, setGlError] = useState<string | null>(null);
   const city = useMemo(() => buildCity(), []);
   const [nearId, setNearId] = useState<string | null>(null);
   const [selected, setSelected] = useState<Landmark | null>(null);
 
-  useEffect(() => {
-    let alive = true;
-    probeWebGL().then((ok) => {
-      if (alive) setPhase(ok ? "3d" : "fallback");
-    });
-    return () => {
-      alive = false;
-    };
-  }, []);
-
-  const showCanvas = phase === "3d" && !glLost;
+  // Canvas is always attempted — no pre-flight probe. The error boundary and
+  // onCreated context-loss handler catch failures and surface the real error.
+  const showCanvas = !glLost && !glError;
 
   const onNear = useCallback((id: string | null) => setNearId(id), []);
   const onEnter = useCallback((id: string) => {
@@ -940,18 +879,21 @@ export default function World() {
         style={{ touchAction: "none", cursor: showCanvas ? "grab" : "default" }}
       >
         {showCanvas ? (
-          <GLBoundary fallback={<WebGLFallback />}>
+          <GLBoundary
+            onError={setGlError}
+            fallback={(err) => <WebGLFallback error={err} />}
+          >
             <Canvas
               dpr={[1, 1.6]}
               camera={{ fov: 62, near: 0.1, far: 460, position: [0, 9, 56] }}
               gl={{ antialias: true, powerPreference: "high-performance" }}
               onCreated={({ gl }) => {
-                // If the GPU drops the context (driver reset, headless GL, etc.),
-                // fall back to the navigable directory instead of a blank/crashed canvas.
+                console.log("[Vanta City] WebGL renderer created:", gl.getContext().constructor.name);
                 gl.domElement.addEventListener(
                   "webglcontextlost",
                   (e) => {
                     e.preventDefault();
+                    console.error("[Vanta City] WebGL context lost");
                     setGlLost(true);
                   },
                   { once: true },
@@ -961,14 +903,8 @@ export default function World() {
               <Scene city={city} paused={!!selected} onNear={onNear} onEnter={onEnter} />
             </Canvas>
           </GLBoundary>
-        ) : phase === "checking" ? (
-          <div className="absolute inset-0 flex items-center justify-center bg-[#05030c]">
-            <div className="text-xs uppercase tracking-[0.3em] text-purple-400/60 animate-pulse">
-              Booting Vanta City…
-            </div>
-          </div>
         ) : (
-          <WebGLFallback />
+          <WebGLFallback error={glError} />
         )}
       </div>
 

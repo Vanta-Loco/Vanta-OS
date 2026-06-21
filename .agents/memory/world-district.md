@@ -42,36 +42,30 @@ is to NEVER mount the Canvas in a broken env. A getContext check can't tell you 
 directory renders/routes + user tests in their real browser. You will NOT get a 3D screenshot
 from this environment; that is expected, not a failure.
 
-## Graceful degradation is three layered guards, all required
-Because of the trap above (and real-world GPU resets), the page degrades to a navigable
-`CityDirectory` (a grid of the 12 landmark cards using the SAME route map as the 3D modal,
-comingSoon item disabled). Three layers:
-1. **`probeWebGL()` — an ASYNC warmup, the primary guard.** It builds a REAL
-   `THREE.WebGLRenderer`, renders one frame with an `InstancedMesh` (same op class as the
-   scene), `await`s ~80ms for an async `webglcontextlost`, then checks the lost flag /
-   `getContext().isContextLost()`, disposes, and releases via `WEBGL_lose_context`. Returns
-   `false` in broken envs so the Canvas NEVER mounts → no throw → no dev overlay. Driven by a
-   3-phase state `"checking" | "3d" | "fallback"` set from a `useEffect`; `<Canvas>` renders
-   only when `phase==="3d" && !glLost`, "checking" shows a brief loader, else `CityDirectory`.
-   Compute the return value BEFORE the intentional context-loss in `finally` so it stays valid.
-2. `GLBoundary` (class error boundary) wraps `<Canvas>` — catches a synchronous render-time
-   crash if a browser passes the warmup but fails the full scene. Backup only.
-3. `<Canvas onCreated>` adds a `webglcontextlost` listener that flips `glLost` → directory.
-   Covers POST-mount context loss (driver reset). Backup only.
-**Why async warmup beats the old sync getContext probe:** only actually rendering a frame and
-waiting reveals the "context lost on first render" envs; getContext lies. Keep all three, but
-the async probe is what actually fixed the user's crash — the boundary can't suppress the dev
-overlay, and onCreated can't catch a create-time throw.
-4. **`client/index.html` early error suppressor (final safety net).** A classic (non-module)
-   `<script>` at the top of `<head>` registers `capture: true` error/unhandledrejection
-   listeners. Capture-phase listeners fire BEFORE any bubble listener regardless of registration
-   order, so `stopImmediatePropagation()` here silences the vite `runtime-error-modal` plugin
-   even if the Canvas somehow mounts and crashes. Patterns matched: `acc[key2]`, `WebGL`,
-   `webgl`, `Context Lost`, `context lost`, `THREE.WebGL`, `applyProps`, `getContext`.
-   **Why this works:** the vite plugin uses bubble-phase `window.addEventListener('error')` via
-   its own deferred module; our inline classic script runs synchronously first and registers in
-   capture, winning regardless. **Only suppress if you're sure the pattern is WebGL-specific** —
-   a too-broad suppressor would hide real bugs.
+## Graceful degradation — two layers, NO pre-flight probe
+Pre-flight probes (`probeWebGL()`) are DANGEROUS: they create a competing WebGL context that
+can exhaust browser limits (Chrome allows ~16 contexts), fail on off-screen canvases, or
+incorrectly detect "no WebGL" on perfectly capable desktops. **Never use a probe as a gate.**
+Instead, always attempt to mount the Canvas and let real failures surface:
+
+1. **`GLBoundary` (class error boundary wraps `<Canvas>`)** — `componentDidCatch` logs the
+   real error to console (`[Vanta City] R3F render error:`) and calls `onError(msg)` which
+   sets `glError` state → hides Canvas and shows `<WebGLFallback error={msg}>` with the
+   actual error text. `getDerivedStateFromError` captures the error string.
+2. **`<Canvas onCreated>` context-loss handler** — registers `webglcontextlost` on the canvas
+   DOM element; on fire sets `glLost` state → hides Canvas and shows `<WebGLFallback>`.
+   Logs `[Vanta City] WebGL context lost` to console. Also logs on success:
+   `[Vanta City] WebGL renderer created: WebGL2RenderingContext`.
+3. **`client/index.html` early error suppressor (dev overlay safety net).** A classic
+   (non-module) `<script>` at the top of `<head>` registers `capture: true`
+   error/unhandledrejection listeners. Capture-phase fires before the vite
+   `runtime-error-modal` plugin's bubble listener, so `stopImmediatePropagation()` here
+   stops the red crash overlay. Patterns: `acc[key2]`, `WebGL`, `webgl`, `Context Lost`,
+   `context lost`, `THREE.WebGL`, `applyProps`, `getContext`.
+
+**Why no probe:** probes failed on real desktop browsers (context limit / off-screen canvas
+quirks), showing "WebGL unavailable" to users who had working WebGL. The boundary + context-
+loss handler is sufficient: real failures surface with the actual error message.
 
 ## Per-frame correctness (R3F)
 - All movement/camera state lives in refs; the `useFrame` loop mutates them and only calls
