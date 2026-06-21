@@ -1,0 +1,115 @@
+Upgrade /world into Vanta City Alpha.
+
+Keep the current HTML5 Canvas isometric setup, but expand it into a larger gothic mob militant cyberpunk street-swag city map.
+
+Visual direction:
+- black / purple / deep red palette
+- brutalist towers
+- gothic arches
+- neon signs
+- alleyways
+- militant checkpoint energy
+- mob headquarters / street empire vibe
+- fog, glow, scanlines, vignette
+- denser city layout, not just 8 blocks
+
+Navigation:
+- Add WASD and arrow-key camera movement
+- Smooth camera panning across the city
+- Add boundary limits
+- Keep hover/click working on buildings
+- Add HUD text: “WASD / ARROWS TO MOVE”
+- On mobile, support drag/pan if possible
+- Do not add character model yet
+- Do not add NPCs yet
+- Do not add missions yet
+
+Clickable districts/buildings:
+- Black Index → /search
+- Transmissions Tower → /
+- Music Hub → /releases
+- Vault Gate → /vault
+- Mission Handler → /enter
+- Worlds Archive → /worlds
+- Vanta OS Core → /enter
+- Vanta Box → coming soon
+- FRACT Terminal → coming soon
+- Wireline Terminal → coming soon
+- Hidden Himalayas Portal → locked / coming soon
+- Fractured Godhead District → locked / under construction
+
+Each building click should open a Vanta-styled lore modal with:
+- location name
+- status
+- short lore line
+- Enter button if route exists
+- Coming Soon / Locked badge if unavailable
+
+Add district lore examples:
+Black Index:
+“The archive of forbidden transmissions. Every signal leaves a trace.”
+
+Music Hub:
+“The sound engine of Vanta Cold. Releases, previews, and sonic artifacts.”
+
+Vault Gate:
+“Restricted archive. Code-gated access only.”
+
+Mission Handler:
+“The command layer. Assignments, access, and OS directives begin here.”
+
+Worlds Archive:
+“The map of connected universes.”
+
+Vanta OS Core:
+“The central system node. All roads eventually route back to the core.”
+
+Hidden Himalayas:
+“Patch not yet deployed. Signal buried beneath the mountain.”
+
+Fractured Godhead:
+“World status: under construction. Mythology loading.”
+
+Add HUD elements:
+- VANTA CITY
+- DISTRICT 01
+- Nodes Online count
+- “WASD / ARROWS TO MOVE”
+- optional coordinates/camera position
+
+Add ambience:
+- subtle animated fog
+- pulsing neon lights
+- window flicker
+- hover glow
+- scanline overlay
+- ambient city energy
+
+Add a small “Vanta Radio” placeholder panel:
+- text only for now
+- “VANTA RADIO”
+- “● LIVE”
+- “Now Playing: Babyboi Loco”
+- no audio playback needed yet
+
+Add fast travel / district jump menu:
+- Black Index
+- Music Hub
+- Vault Gate
+- Vanta OS Core
+- Hidden Himalayas
+Clicking a jump should pan camera toward that district.
+
+Add a visible “Enter Vanta District” button on /worlds in the hero section under the intro text. It should link to /world.
+
+Keep /search as the search engine/archive route using the existing transmissions search system. Black Index must route to /search.
+
+Keep this Phase 1.5 scope:
+- bigger city
+- keyboard movement
+- clickable lore nodes
+- locked future portals
+- no combat
+- no player character
+- no NPCs
+- no missions yet

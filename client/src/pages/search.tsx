@@ -7,7 +7,7 @@ import { PostCard } from "@/components/post-card";
 import { SkeletonPostCard } from "@/components/skeleton-post-card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, X } from "lucide-react";
+import { Search, X, Database } from "lucide-react";
 import { Link } from "wouter";
 import type { Post } from "@shared/schema";
 
@@ -21,12 +21,8 @@ export default function SearchPage() {
 
   const [inputVal, setInputVal] = useState(urlQ);
 
-  // Sync input when URL changes (e.g. header navigates here)
-  useEffect(() => {
-    setInputVal(urlQ);
-  }, [urlQ]);
+  useEffect(() => { setInputVal(urlQ); }, [urlQ]);
 
-  // Fetch search results (with optional category filter from URL)
   const { data: results, isLoading } = useQuery<Post[]>({
     queryKey: ["/api/posts/search", urlQ, urlCategory],
     enabled: !!urlQ,
@@ -39,7 +35,6 @@ export default function SearchPage() {
     },
   });
 
-  // Fetch unfiltered results to derive available category pills
   const { data: allResults } = useQuery<Post[]>({
     queryKey: ["/api/posts/search", urlQ, ""],
     enabled: !!urlQ,
@@ -75,28 +70,51 @@ export default function SearchPage() {
       <Header />
 
       <main className="flex-1 bg-background pt-20">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8 py-16 md:py-24">
 
-          {/* Page headline */}
-          <div className="mb-10">
-            <p className="text-xs uppercase tracking-widest text-muted-foreground mb-2 font-medium">
-              Transmissions
+        {/* ── Black Index hero ── */}
+        <section className="relative border-b border-border overflow-hidden">
+          {/* Background grid pattern */}
+          <div
+            className="absolute inset-0 opacity-[0.03]"
+            style={{
+              backgroundImage: "linear-gradient(#a855f7 1px, transparent 1px), linear-gradient(90deg, #a855f7 1px, transparent 1px)",
+              backgroundSize: "40px 40px",
+            }}
+          />
+          {/* Bottom fade */}
+          <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-background to-transparent" />
+
+          <div className="relative max-w-7xl mx-auto px-6 lg:px-8 py-20 md:py-28">
+            <p className="text-xs uppercase tracking-widest text-purple-500/70 mb-4 font-mono font-medium" data-testid="text-black-index-label">
+              Vanta OS / Search Protocol
             </p>
-            <h1
-              className="text-4xl md:text-5xl lg:text-6xl font-display font-bold mb-8"
-              data-testid="text-page-title"
-            >
-              Search
-            </h1>
+
+            <div className="flex items-end gap-5 mb-4">
+              <h1
+                className="text-5xl md:text-6xl lg:text-7xl font-display font-bold leading-none tracking-tight"
+                data-testid="text-page-title"
+              >
+                BLACK INDEX
+              </h1>
+              <div className="mb-2 hidden md:flex items-center gap-2">
+                <span className="inline-block w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
+                <span className="text-xs font-mono text-muted-foreground tracking-widest">LIVE</span>
+              </div>
+            </div>
+
+            <p className="text-muted-foreground font-mono text-sm max-w-xl leading-relaxed mb-10" data-testid="text-black-index-lore">
+              The encrypted archive of all Vanta transmissions. Every signal indexed,
+              cross-referenced, and retrievable. Query the record.
+            </p>
 
             {/* Search bar */}
             <form onSubmit={handleSubmit} className="relative max-w-2xl">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-purple-500/60 pointer-events-none" />
               <Input
                 value={inputVal}
                 onChange={(e) => setInputVal(e.target.value)}
-                placeholder="Search transmissions…"
-                className="pl-10 pr-10 h-12 text-base"
+                placeholder="Query the index…"
+                className="pl-11 pr-11 h-13 text-base font-mono bg-background/80 border-border/60 focus-visible:border-purple-500/40 focus-visible:ring-purple-500/10 placeholder:text-muted-foreground/40"
                 autoFocus
                 data-testid="input-search-page"
               />
@@ -104,7 +122,7 @@ export default function SearchPage() {
                 <button
                   type="button"
                   onClick={() => { setInputVal(""); navigate("/search"); }}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                   aria-label="Clear search"
                   data-testid="button-clear-search"
                 >
@@ -113,24 +131,30 @@ export default function SearchPage() {
               )}
             </form>
           </div>
+        </section>
 
-          {/* Prompt state — no query yet */}
+        {/* ── Results area ── */}
+        <div className="max-w-7xl mx-auto px-6 lg:px-8 py-12 md:py-16">
+
+          {/* Idle state */}
           {!urlQ && (
             <div
-              className="text-center py-28 border border-border rounded-md"
+              className="text-center py-28 border border-border/50 rounded-sm"
               data-testid="text-search-prompt"
             >
-              <Search className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-40" />
-              <p className="text-xl text-muted-foreground">
-                Type something above to search transmissions.
+              <Database className="w-10 h-10 text-purple-500/20 mx-auto mb-5" />
+              <p className="text-xs font-mono tracking-widest text-muted-foreground/50 uppercase mb-2">
+                Archive ready
+              </p>
+              <p className="text-muted-foreground/60 text-sm font-mono">
+                Enter a query above to search the transmission index.
               </p>
             </div>
           )}
 
-          {/* Results section */}
           {urlQ && (
             <>
-              {/* Category filter pills (derived from actual unfiltered results) */}
+              {/* Category pills */}
               {!isLoading && categories.length > 1 && (
                 <div className="flex flex-wrap gap-2 mb-8" data-testid="search-category-filters">
                   {categories.map((cat) => {
@@ -142,10 +166,10 @@ export default function SearchPage() {
                         onClick={() => toggleCategory(cat)}
                         data-testid={`filter-category-${cat.toLowerCase().replace(/\s+/g, "-")}`}
                         className={[
-                          "px-4 py-1.5 text-xs rounded-sm border transition-colors font-medium tracking-wide",
+                          "px-4 py-1.5 text-xs rounded-sm border transition-colors font-mono tracking-wide",
                           active
-                            ? "bg-foreground text-background border-foreground"
-                            : "bg-transparent text-muted-foreground border-border hover:border-foreground/40 hover:text-foreground",
+                            ? "bg-purple-500/15 text-purple-400 border-purple-500/30"
+                            : "bg-transparent text-muted-foreground border-border hover:border-purple-500/25 hover:text-foreground",
                         ].join(" ")}
                       >
                         {cat}
@@ -157,7 +181,7 @@ export default function SearchPage() {
                       type="button"
                       onClick={() => toggleCategory(urlCategory)}
                       data-testid="button-clear-category"
-                      className="px-4 py-1.5 text-xs rounded-sm border border-dashed border-border text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
+                      className="px-4 py-1.5 text-xs rounded-sm border border-dashed border-border text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5 font-mono"
                     >
                       <X className="w-3 h-3" /> Clear filter
                     </button>
@@ -167,49 +191,41 @@ export default function SearchPage() {
 
               {/* Result count */}
               {!isLoading && results && (
-                <p className="text-sm text-muted-foreground mb-6" data-testid="text-results-count">
+                <p className="text-xs font-mono text-muted-foreground/60 mb-8 tracking-widest uppercase" data-testid="text-results-count">
                   {results.length === 0
-                    ? `No transmissions found for "${urlQ}"${urlCategory ? ` in ${urlCategory}` : ""}`
-                    : `${results.length} transmission${results.length === 1 ? "" : "s"} for "${urlQ}"${urlCategory ? ` · ${urlCategory}` : ""}`}
+                    ? `No records found for "${urlQ}"${urlCategory ? ` in ${urlCategory}` : ""}`
+                    : `${results.length} record${results.length === 1 ? "" : "s"} retrieved for "${urlQ}"${urlCategory ? ` · ${urlCategory}` : ""}`}
                 </p>
               )}
 
-              {/* Loading skeletons */}
+              {/* Loading */}
               {isLoading && (
-                <div
-                  className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8"
-                  data-testid="search-loading"
-                >
-                  {[1, 2, 3].map((i) => (
-                    <SkeletonPostCard key={i} />
-                  ))}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8" data-testid="search-loading">
+                  {[1, 2, 3].map((i) => <SkeletonPostCard key={i} />)}
                 </div>
               )}
 
               {/* Results grid */}
               {!isLoading && results && results.length > 0 && (
-                <div
-                  className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8"
-                  data-testid="search-results"
-                >
-                  {results.map((post) => (
-                    <PostCard key={post.id} post={post} />
-                  ))}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8" data-testid="search-results">
+                  {results.map((post) => <PostCard key={post.id} post={post} />)}
                 </div>
               )}
 
-              {/* Empty results */}
+              {/* No results */}
               {!isLoading && results && results.length === 0 && (
                 <div
-                  className="text-center py-24 border border-border rounded-md"
+                  className="text-center py-24 border border-border/50 rounded-sm"
                   data-testid="text-no-results"
                 >
-                  <Search className="w-16 h-16 text-muted-foreground mx-auto mb-4 opacity-40" />
-                  <h2 className="text-2xl font-display font-bold mb-2">No Results Found</h2>
-                  <p className="text-muted-foreground mb-6">
+                  <Database className="w-14 h-14 text-muted-foreground/20 mx-auto mb-5 opacity-40" />
+                  <p className="text-xs font-mono tracking-widest text-muted-foreground/50 uppercase mb-3">
+                    No records found
+                  </p>
+                  <p className="text-muted-foreground/60 text-sm font-mono mb-6">
                     {urlCategory ? (
                       <>
-                        Nothing in <strong>{urlCategory}</strong> matches that query.{" "}
+                        Nothing in <strong className="text-muted-foreground">{urlCategory}</strong> matches that query.{" "}
                         <button
                           onClick={() => toggleCategory(urlCategory)}
                           className="underline underline-offset-2 hover:text-foreground transition-colors"
@@ -220,11 +236,11 @@ export default function SearchPage() {
                         to search all categories.
                       </>
                     ) : (
-                      "Try searching with different keywords."
+                      "Try a different query string."
                     )}
                   </p>
                   <Link href="/">
-                    <Button variant="default" data-testid="button-browse-all">
+                    <Button variant="outline" className="font-mono text-xs tracking-widest" data-testid="button-browse-all">
                       Browse All Transmissions
                     </Button>
                   </Link>

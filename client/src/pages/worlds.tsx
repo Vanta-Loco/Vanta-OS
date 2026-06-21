@@ -2,8 +2,9 @@ import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, MapPin } from "lucide-react";
 import { Link } from "wouter";
+import { Button } from "@/components/ui/button";
 import cityImage from "@assets/generated_images/Urban_night_cityscape_mood_2c3c2c61.png";
 
 const worlds = [
@@ -103,6 +104,14 @@ export default function Worlds() {
               Vanta Cold is not one project. It is a system of interconnected worlds — each with its own voice,
               aesthetic, and purpose. This is the map.
             </p>
+            <div className="mt-8">
+              <Link href="/world">
+                <Button variant="outline" size="lg" className="font-mono text-xs uppercase tracking-widest gap-2" data-testid="button-enter-district">
+                  <MapPin className="w-4 h-4" />
+                  Enter Vanta District
+                </Button>
+              </Link>
+            </div>
           </div>
         </section>
 
