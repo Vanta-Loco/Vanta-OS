@@ -58,7 +58,9 @@ function Router() {
 
 function App() {
   const [showStartup, setShowStartup] = useState(
-    () => !sessionStorage.getItem(STARTUP_SESSION_KEY)
+    () =>
+      !sessionStorage.getItem(STARTUP_SESSION_KEY) &&
+      window.location.pathname !== "/world"
   );
 
   return (
