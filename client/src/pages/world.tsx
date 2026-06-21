@@ -664,7 +664,7 @@ function PlayerRig({
   const pos = useRef(new THREE.Vector3(PLAYER_START[0], 0, PLAYER_START[1]));
   const yaw = useRef(0); // camera azimuth
   const faceYaw = useRef(Math.PI);
-  const keys = useRef<Record<string, boolean>>({});
+  const keys = useRef<Set<string>>(new Set());
   const nearId = useRef<string | null>(null);
   const dragging = useRef(false);
   const lastX = useRef(0);
@@ -679,19 +679,28 @@ function PlayerRig({
   });
 
   useEffect(() => {
+    const isTyping = () => {
+      const el = document.activeElement;
+      if (!el) return false;
+      const tag = el.tagName.toLowerCase();
+      return tag === "input" || tag === "textarea" ||
+        (el as HTMLElement).isContentEditable;
+    };
+
     const down = (e: KeyboardEvent) => {
+      if (isTyping()) return;
       const k = e.key.toLowerCase();
       if (["arrowup", "arrowdown", "arrowleft", "arrowright", " "].includes(k))
         e.preventDefault();
-      keys.current[k] = true;
+      keys.current.add(k);
       if (k === "e" && nearId.current && !pausedRef.current)
         onEnter(nearId.current);
     };
     const up = (e: KeyboardEvent) => {
-      keys.current[e.key.toLowerCase()] = false;
+      keys.current.delete(e.key.toLowerCase());
     };
     const blur = () => {
-      keys.current = {};
+      keys.current.clear();
     };
     window.addEventListener("keydown", down);
     window.addEventListener("keyup", up);
@@ -741,10 +750,10 @@ function PlayerRig({
     let iz = 0;
     let ix = 0;
     if (!pausedRef.current) {
-      if (k["w"] || k["arrowup"]) iz += 1;
-      if (k["s"] || k["arrowdown"]) iz -= 1;
-      if (k["d"] || k["arrowright"]) ix += 1;
-      if (k["a"] || k["arrowleft"]) ix -= 1;
+      if (k.has("w") || k.has("arrowup"))    iz += 1;
+      if (k.has("s") || k.has("arrowdown"))  iz -= 1;
+      if (k.has("d") || k.has("arrowright")) ix += 1;
+      if (k.has("a") || k.has("arrowleft"))  ix -= 1;
     }
 
     const move = t.move.set(0, 0, 0);
