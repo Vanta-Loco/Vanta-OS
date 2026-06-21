@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { Header } from "@/components/header";
 import {
-  X, ChevronRight, AlertTriangle, Lock, Compass,
+  X, ChevronRight, AlertTriangle, Compass,
   ChevronUp, ChevronDown, ChevronLeft, ChevronsRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,12 +10,14 @@ import { Badge } from "@/components/ui/badge";
 
 // ─── Isometric constants ──────────────────────────────────────────────────────
 const TW = 56, TH = 28, HW = TW / 2, HH = TH / 2, WU = 15;
-const COLS = 34, ROWS = 22;
-const PLAYER_SPEED = 4.4;        // tiles / second
+const COLS = 48, ROWS = 32;
+const PLAYER_SPEED = 4.8;        // tiles / second
 const ENTER_DIST = 1.7;          // tile distance to a node entrance to allow entry
 const CAM_ANCHOR_Y = 0.6;        // fraction of height the avatar sits at (near street-level)
+const SIGN_NEAR = 13;            // Manhattan tile distance to light up minor signs
+const WIN_NEAR = 9;              // Manhattan tile distance to draw lit windows
 
-// ─── Palettes ─────────────────────────────────────────────────────────────────
+// ─── Building palettes (purple / black / crimson / deep-blue family) ───────────
 const PALETTES = {
   violet:  { top: "#1a0835", left: "#110521", right: "#16072e", neon: "#a855f7", accent: "#7c3aed" },
   blue:    { top: "#061530", left: "#04101f", right: "#051228", neon: "#38bdf8", accent: "#0ea5e9" },
@@ -30,7 +32,20 @@ const PALETTES = {
 } as const;
 type PaletteKey = keyof typeof PALETTES;
 
+// ─── Neon sign colors ─────────────────────────────────────────────────────────
+const SIGNS = {
+  purple: "#c084fc", magenta: "#e879f9", crimson: "#f87171", red: "#ef4444",
+  blue: "#60a5fa", cyan: "#22d3ee", amber: "#fbbf24", pink: "#fb7185",
+  green: "#a3e635", white: "#e5e7eb",
+} as const;
+type SignKey = keyof typeof SIGNS;
+
 // ─── Types ────────────────────────────────────────────────────────────────────
+type DrawKind =
+  | "tower" | "lowrise" | "rowhouse" | "compound" | "hotel" | "lounge"
+  | "shop" | "warehouse" | "garage" | "civic" | "club"
+  | "billboard" | "radiotower" | "gas" | "tunnel" | "openlot";
+
 interface NodeDef {
   id: string; name: string; subtitle: string; lore: string; region: string;
   href: string | null; col: number; row: number;
@@ -39,65 +54,76 @@ interface NodeDef {
 }
 interface Building {
   col: number; row: number; height: number; palette: PaletteKey;
-  interactive: boolean; node?: NodeDef;
+  kind: DrawKind; label?: string; sign?: SignKey; category?: string;
+  interactive: boolean; hoverable: boolean; node?: NodeDef; seed: number;
 }
+interface Feature { col: number; row: number; kind: "truck" | "stall" | "bridge"; label?: string; sign?: SignKey; }
 interface RenderItem {
-  kind: "building" | "lamp"; col: number; row: number; sort: number;
-  building?: Building;
+  kind: "building" | "lamp" | "feature"; col: number; row: number; sort: number;
+  building?: Building; feature?: Feature;
 }
 
-// ─── Interactive nodes (routes preserved) ─────────────────────────────────────
+// ─── Interactive nodes — the 12 Vanta landmarks (routes preserved, spread out) ──
 const NODES: NodeDef[] = [
-  { id: "black-index", name: "BLACK INDEX", subtitle: "Search Protocol", region: "INDEX QUARTER",
-    col: 2, row: 1, entranceCol: 3, entranceRow: 1, height: 9, palette: "violet", href: "/search",
-    lore: "The archive of forbidden transmissions. Every signal leaves a trace." },
   { id: "transmissions", name: "TRANSMISSIONS", subtitle: "Signal Tower", region: "SIGNAL HEIGHTS",
-    col: 8, row: 2, entranceCol: 9, entranceRow: 2, height: 12, palette: "slate", href: "/",
+    col: 7, row: 2, entranceCol: 7, entranceRow: 3, height: 13, palette: "slate", href: "/",
     lore: "The primary broadcast node. Raw signal originating from the label's core. Every thought routes through this tower." },
-  { id: "music-hub", name: "MUSIC HUB", subtitle: "Audio Node", region: "SOUND DISTRICT",
-    col: 14, row: 2, entranceCol: 15, entranceRow: 2, height: 9, palette: "blue", href: "/releases",
+  { id: "black-index", name: "BLACK INDEX", subtitle: "Search Protocol", region: "INDEX QUARTER",
+    col: 22, row: 2, entranceCol: 22, entranceRow: 3, height: 10, palette: "violet", href: "/search",
+    lore: "The archive of forbidden transmissions. Every signal leaves a trace." },
+  { id: "music-hub", name: "MUSIC HUB", subtitle: "Audio Node", region: "ARCHIVE WARD",
+    col: 38, row: 2, entranceCol: 38, entranceRow: 3, height: 10, palette: "blue", href: "/releases",
     lore: "The sound engine of Vanta Cold. Releases, previews, and sonic artifacts. The heartbeat of the city, measured in BPM." },
-  { id: "worlds-archive", name: "WORLDS ARCHIVE", subtitle: "Universe Registry", region: "ARCHIVE WARD",
-    col: 20, row: 2, entranceCol: 21, entranceRow: 2, height: 8, palette: "violet", href: "/worlds",
+  { id: "worlds-archive", name: "WORLDS ARCHIVE", subtitle: "Universe Registry", region: "INDEX QUARTER",
+    col: 28, row: 7, entranceCol: 28, entranceRow: 8, height: 8, palette: "violet", href: "/worlds",
     lore: "The map of connected universes. Every project, mythology, and territory catalogued here." },
   { id: "vault-gate", name: "VAULT GATE", subtitle: "Restricted Access", region: "VAULT PRECINCT",
-    col: 2, row: 7, entranceCol: 3, entranceRow: 7, height: 11, palette: "red", href: "/vault",
+    col: 4, row: 16, entranceCol: 3, entranceRow: 16, height: 11, palette: "red", href: "/vault",
     lore: "Restricted archive. Code-gated access only. The city's deepest secrets sit behind this door." },
-  { id: "mission-handler", name: "MISSION HANDLER", subtitle: "Command Node", region: "COMMAND ROW",
-    col: 8, row: 7, entranceCol: 9, entranceRow: 7, height: 6, palette: "green", href: "/enter",
+  { id: "mission-handler", name: "MISSION HANDLER", subtitle: "Command Node", region: "THE CORE",
+    col: 19, row: 12, entranceCol: 19, entranceRow: 13, height: 7, palette: "green", href: "/enter",
     lore: "The command layer. Assignments, access, and OS directives begin here." },
   { id: "vanta-os-core", name: "VANTA OS CORE", subtitle: "System Heart", region: "THE CORE",
-    col: 14, row: 11, entranceCol: 15, entranceRow: 11, height: 16, palette: "core", href: "/enter",
+    col: 25, row: 16, entranceCol: 25, entranceRow: 15, height: 17, palette: "core", href: "/enter",
     lore: "The central system node. All roads in Vanta City eventually route back to the core." },
-  { id: "vanta-box", name: "VANTA BOX", subtitle: "Sector Unknown", region: "DEAD SECTOR",
-    col: 25, row: 11, entranceCol: 24, entranceRow: 11, height: 4, palette: "dark", comingSoon: true, href: null,
-    lore: "A structure whose purpose remains classified. Signals go in. Nothing comes back." },
-  { id: "fract-terminal", name: "FRACT TERMINAL", subtitle: "Reputation Economy", region: "FRACT EXCHANGE",
-    col: 2, row: 12, entranceCol: 3, entranceRow: 12, height: 5, palette: "plague", href: "/fract",
-    lore: "Terminal node for the FRACT network — the reputation layer of the system. Earned, never bought." },
   { id: "wireline-terminal", name: "WIRELINE TERMINAL", subtitle: "Dispatch Relay", region: "WIRELINE YARDS",
-    col: 20, row: 12, entranceCol: 21, entranceRow: 12, height: 5, palette: "noir", href: "/wireline",
+    col: 38, row: 12, entranceCol: 38, entranceRow: 13, height: 6, palette: "noir", href: "/wireline",
     lore: "A hardwired access point. Monitor public channels, announcements, and mission relays." },
-  { id: "fractured-godhead", name: "FRACTURED GODHEAD", subtitle: "Lore Archive", region: "GODHEAD SLUMS",
-    col: 14, row: 17, entranceCol: 15, entranceRow: 17, height: 8, palette: "crimson", href: "/fgh",
-    lore: "The mythology archive — characters, factions, locations, and artifacts of the universe." },
+  { id: "vanta-box", name: "VANTA BOX", subtitle: "Sector Unknown", region: "DEAD SECTOR",
+    col: 40, row: 16, entranceCol: 39, entranceRow: 16, height: 4, palette: "dark", comingSoon: true, href: null,
+    lore: "A structure whose purpose remains classified. Signals go in. Nothing comes back." },
   { id: "hidden-himalayas", name: "HIDDEN HIMALAYAS", subtitle: "Cold Expansion", region: "HIMALAYA GATE",
-    col: 32, row: 9, entranceCol: 32, entranceRow: 8, height: 7, palette: "blue", href: "/himalayas",
+    col: 46, row: 14, entranceCol: 45, entranceRow: 14, height: 8, palette: "blue", href: "/himalayas",
     lore: "A spiritual zone buried in the snow at the city's edge. The Equinox Eye shrine waits beneath the mountain." },
+  { id: "fract-terminal", name: "FRACT TERMINAL", subtitle: "Reputation Economy", region: "FRACT EXCHANGE",
+    col: 4, row: 26, entranceCol: 4, entranceRow: 25, height: 5, palette: "plague", href: "/fract",
+    lore: "Terminal node for the FRACT network — the reputation layer of the system. Earned, never bought." },
+  { id: "fractured-godhead", name: "FRACTURED GODHEAD", subtitle: "Lore Archive", region: "NEON MILE",
+    col: 22, row: 26, entranceCol: 22, entranceRow: 25, height: 9, palette: "crimson", href: "/fgh",
+    lore: "The mythology archive — characters, factions, locations, and artifacts of the universe." },
 ];
 
-// ─── Street / alley / lot grid ────────────────────────────────────────────────
+// ─── Street / alley / plaza / lot grid ────────────────────────────────────────
 const isStreet = (c: number, r: number) => c % 6 === 3 || r % 5 === 3;
 const isAlley = (c: number, r: number) => c % 6 === 0 || r % 5 === 0;
 const inGrid = (c: number, r: number) => c >= 0 && c < COLS && r >= 0 && r < ROWS;
 
+const PLAZAS = [
+  { c0: 22, c1: 27, r0: 13, r1: 15, center: [24, 14] as [number, number] }, // Core plaza
+  { c0: 16, c1: 18, r0: 5, r1: 6, center: [17, 5] as [number, number] },     // Transit plaza
+  { c0: 20, c1: 24, r0: 22, r1: 24, center: [22, 23] as [number, number] },  // Neon plaza
+];
+const isPlaza = (c: number, r: number) =>
+  PLAZAS.some((p) => c >= p.c0 && c <= p.c1 && r >= p.r0 && r <= p.r1);
+const plazaCenter = (c: number, r: number) =>
+  PLAZAS.some((p) => p.center[0] === c && p.center[1] === r);
+
 const LOTS = new Set([
-  "5,1", "5,2", "11,6", "11,7", "23,1", "23,2", "7,12", "7,11",
-  "26,16", "26,17", "17,11", "17,12", "29,6", "29,7", "11,17", "5,17",
+  "5,1", "11,7", "31,2", "13,11", "44,12", "8,21", "35,21", "29,29", "11,17",
 ]);
 const isLot = (c: number, r: number) => LOTS.has(`${c},${r}`);
 const isWalkable = (c: number, r: number) =>
-  inGrid(c, r) && (isStreet(c, r) || isAlley(c, r) || isLot(c, r));
+  inGrid(c, r) && (isStreet(c, r) || isAlley(c, r) || isPlaza(c, r) || isLot(c, r));
 
 // ─── Deterministic city generation ────────────────────────────────────────────
 function mulberry32(a: number) {
@@ -109,42 +135,190 @@ function mulberry32(a: number) {
   };
 }
 
-function zoneInfo(c: number, r: number) {
-  const cb = c < 11 ? 0 : c < 23 ? 1 : 2;
-  const rb = r < 8 ? 0 : r < 14 ? 1 : 2;
-  const PAL: PaletteKey[][][] = [
-    [["violet", "noir", "dark"], ["slate", "noir", "dark"], ["blue", "noir", "dark"]],
-    [["red", "crimson", "noir"], ["core", "violet", "dark"], ["dark", "noir", "slate"]],
-    [["plague", "noir", "dark"], ["crimson", "red", "noir"], ["blue", "noir", "dark"]],
-  ];
-  const pals = PAL[rb][cb];
-  let hMin = 2, hMax = 4;
-  if (rb === 1 && cb === 1) { hMin = 4; hMax = 8; }
-  else if (rb === 0) { hMin = 3; hMax = 7; }
-  else if (rb === 1) { hMin = 3; hMax = 6; }
-  return { pals, hMin, hMax };
+// ─── Building type catalogue ──────────────────────────────────────────────────
+interface BType {
+  cat: string; kind: DrawKind; hMin: number; hMax: number;
+  names: string[]; sign: SignKey; signFreq: number;
+}
+const TYPES: Record<string, BType> = {
+  // Residential
+  apt_tower: { cat: "Residential", kind: "tower", hMin: 7, hMax: 12, sign: "purple", signFreq: 0.5,
+    names: ["VANTA HEIGHTS", "OBSIDIAN TOWER", "CROWN BLOCK", "ASH SPIRE", "NULL HEIGHTS", "GRID TOWER", "BLACKSTONE"] },
+  lowrise: { cat: "Residential", kind: "lowrise", hMin: 3, hMax: 5, sign: "purple", signFreq: 0.22,
+    names: ["BLOCK 7", "UNIT D", "ROW 12", "THE STACKS", "FLATS", "TENEMENT 9", "BLOCK C"] },
+  rowhouse: { cat: "Residential", kind: "rowhouse", hMin: 2, hMax: 3, sign: "purple", signFreq: 0.04, names: [] },
+  penthouse: { cat: "Residential", kind: "tower", hMin: 11, hMax: 15, sign: "magenta", signFreq: 0.7,
+    names: ["THE PENTHOUSE", "SKY SUITE", "APEX", "HALO DECK"] },
+  // Hospitality
+  hotel: { cat: "Hospitality", kind: "hotel", hMin: 6, hMax: 9, sign: "pink", signFreq: 0.85,
+    names: ["HOTEL NOIR", "THE MERIDIAN", "HOTEL 88", "VELVET INN", "THE OBSIDIAN"] },
+  motel: { cat: "Hospitality", kind: "lowrise", hMin: 2, hMax: 3, sign: "amber", signFreq: 0.85,
+    names: ["ROADSIDE MOTEL", "MOTEL 6IX", "NIGHTOWL MOTEL", "REST STOP"] },
+  lounge: { cat: "Hospitality", kind: "lounge", hMin: 4, hMax: 6, sign: "cyan", signFreq: 0.8,
+    names: ["ROOFTOP LOUNGE", "SKY BAR", "ALTITUDE", "THE TERRACE"] },
+  // Food & drink
+  noodle: { cat: "Food & Drink", kind: "shop", hMin: 1, hMax: 2, sign: "crimson", signFreq: 0.9,
+    names: ["NOODLE BAR", "RAMEN 24", "WOK HOUSE", "SLURP"] },
+  diner: { cat: "Food & Drink", kind: "shop", hMin: 1, hMax: 2, sign: "amber", signFreq: 0.9,
+    names: ["NITE DINER", "CHROME DINER", "EATS", "THE COUNTER"] },
+  coffee: { cat: "Food & Drink", kind: "shop", hMin: 1, hMax: 2, sign: "amber", signFreq: 0.85,
+    names: ["COFFEE", "ESPRESSO BAR", "BREW", "CAFFEINE"] },
+  pizza: { cat: "Food & Drink", kind: "shop", hMin: 1, hMax: 2, sign: "crimson", signFreq: 0.9,
+    names: ["PIZZA", "SLICE", "CRUST", "NEON PIZZA"] },
+  corner: { cat: "Food & Drink", kind: "shop", hMin: 1, hMax: 3, sign: "blue", signFreq: 0.8,
+    names: ["CORNER STORE", "BODEGA", "24HR MART", "KWIK STOP"] },
+  takeaway: { cat: "Food & Drink", kind: "shop", hMin: 1, hMax: 2, sign: "amber", signFreq: 0.9,
+    names: ["LATE NIGHT", "TAKEAWAY", "FRIED", "NIGHT BITE"] },
+  // Business
+  office: { cat: "Business", kind: "tower", hMin: 6, hMax: 11, sign: "blue", signFreq: 0.45,
+    names: ["VANTA CORP", "MERIDIAN LTD", "DATA WORKS", "HOLDINGS", "BLACK LEDGER", "OFFICE TOWER"] },
+  warehouse: { cat: "Business", kind: "warehouse", hMin: 2, hMax: 3, sign: "blue", signFreq: 0.4,
+    names: ["WAREHOUSE 12", "DEPOT", "STORAGE", "FREIGHT", "DRY DOCK", "UNIT 9"] },
+  studio: { cat: "Business", kind: "lowrise", hMin: 3, hMax: 4, sign: "magenta", signFreq: 0.8,
+    names: ["RECORDING STUDIO", "STUDIO B", "WAX ROOM", "CUTROOM"] },
+  pawn: { cat: "Business", kind: "shop", hMin: 2, hMax: 3, sign: "amber", signFreq: 0.9,
+    names: ["PAWN", "CASH 4 GOLD", "HOCK SHOP", "LOANS"] },
+  clothing: { cat: "Business", kind: "shop", hMin: 2, hMax: 3, sign: "magenta", signFreq: 0.85,
+    names: ["VANTA WEAR", "STREETWEAR", "THREADS", "FIT CHECK", "DRIP"] },
+  netcafe: { cat: "Business", kind: "shop", hMin: 2, hMax: 3, sign: "cyan", signFreq: 0.85,
+    names: ["INTERNET CAFE", "NET CAFE", "CYBER LOUNGE", "LAN HOUSE"] },
+  tattoo: { cat: "Business", kind: "shop", hMin: 2, hMax: 3, sign: "crimson", signFreq: 0.9,
+    names: ["TATTOO", "INK", "NEEDLE & SIN", "BLACKWORK"] },
+  barber: { cat: "Business", kind: "shop", hMin: 1, hMax: 2, sign: "blue", signFreq: 0.85,
+    names: ["BARBER", "FADE CO", "CUTS", "THE CHAIR"] },
+  // Infrastructure / entertainment fillers
+  garage: { cat: "Infrastructure", kind: "garage", hMin: 3, hMax: 5, sign: "blue", signFreq: 0.4,
+    names: ["PARKING", "GARAGE P3", "STACK PARK"] },
+  club: { cat: "Entertainment", kind: "club", hMin: 3, hMax: 5, sign: "magenta", signFreq: 0.95,
+    names: ["PULSE", "AFTERLIFE", "BASEMENT", "VOID CLUB", "RED ROOM", "NOCTURNE"] },
+  arcade: { cat: "Entertainment", kind: "shop", hMin: 2, hMax: 3, sign: "cyan", signFreq: 0.95,
+    names: ["ARCADE", "PLAY", "TOKENS", "8-BIT"] },
+};
+
+// ─── Neighborhoods (explicit bounds + weighted type tables) ────────────────────
+interface Hood {
+  name: string; kind: string; c0: number; c1: number; r0: number; r1: number;
+  pals: PaletteKey[]; weights: [string, number][]; hBias: number;
+}
+const HOODS: Hood[] = [
+  { name: "SIGNAL HEIGHTS", kind: "rich", c0: 0, c1: 15, r0: 0, r1: 9,
+    pals: ["violet", "slate", "blue", "dark"], hBias: 0.6,
+    weights: [["office", 5], ["apt_tower", 4], ["penthouse", 2], ["studio", 2], ["hotel", 2], ["lounge", 1], ["coffee", 1], ["clothing", 1]] },
+  { name: "INDEX QUARTER", kind: "civic", c0: 16, c1: 31, r0: 0, r1: 9,
+    pals: ["slate", "violet", "blue", "dark"], hBias: 0.35,
+    weights: [["office", 4], ["netcafe", 2], ["clothing", 2], ["coffee", 2], ["corner", 2], ["lowrise", 2], ["pizza", 1], ["barber", 1]] },
+  { name: "ARCHIVE WARD", kind: "commercial", c0: 32, c1: 47, r0: 0, r1: 9,
+    pals: ["blue", "slate", "violet", "noir"], hBias: 0.3,
+    weights: [["clothing", 3], ["coffee", 2], ["corner", 2], ["office", 2], ["netcafe", 2], ["pizza", 2], ["lowrise", 2], ["arcade", 1]] },
+  { name: "VAULT PRECINCT", kind: "industrial", c0: 0, c1: 15, r0: 10, r1: 20,
+    pals: ["red", "crimson", "noir", "dark"], hBias: 0.1,
+    weights: [["warehouse", 5], ["garage", 2], ["pawn", 2], ["corner", 1], ["lowrise", 2], ["office", 1]] },
+  { name: "THE CORE", kind: "civic", c0: 16, c1: 31, r0: 10, r1: 20,
+    pals: ["core", "violet", "dark", "slate"], hBias: 0.45,
+    weights: [["office", 4], ["lowrise", 2], ["coffee", 2], ["clothing", 1], ["corner", 1], ["netcafe", 1]] },
+  { name: "WIRELINE YARDS", kind: "industrial", c0: 32, c1: 47, r0: 10, r1: 20,
+    pals: ["noir", "dark", "blue", "slate"], hBias: 0.1,
+    weights: [["warehouse", 5], ["garage", 2], ["office", 1], ["corner", 1], ["pawn", 1], ["lowrise", 1]] },
+  { name: "FRACT EXCHANGE", kind: "streetwear", c0: 0, c1: 15, r0: 21, r1: 31,
+    pals: ["violet", "crimson", "noir", "dark"], hBias: 0.15,
+    weights: [["pawn", 3], ["tattoo", 2], ["clothing", 3], ["barber", 2], ["diner", 2], ["corner", 2], ["netcafe", 1], ["lowrise", 2], ["noodle", 1]] },
+  { name: "NEON MILE", kind: "nightlife", c0: 16, c1: 31, r0: 21, r1: 31,
+    pals: ["core", "crimson", "violet", "dark"], hBias: 0.2,
+    weights: [["club", 5], ["takeaway", 2], ["noodle", 2], ["pizza", 2], ["hotel", 1], ["lounge", 2], ["arcade", 2], ["diner", 1], ["clothing", 1], ["corner", 1]] },
+  { name: "GODHEAD SLUMS", kind: "residential", c0: 32, c1: 47, r0: 21, r1: 31,
+    pals: ["noir", "dark", "crimson", "violet"], hBias: 0.05,
+    weights: [["rowhouse", 4], ["lowrise", 4], ["motel", 2], ["diner", 2], ["corner", 2], ["noodle", 1], ["pawn", 1]] },
+];
+const DEFAULT_HOOD = HOODS[4];
+function hoodAt(c: number, r: number): Hood {
+  for (const h of HOODS) if (c >= h.c0 && c <= h.c1 && r >= h.r0 && r <= h.r1) return h;
+  return DEFAULT_HOOD;
 }
 
+// ─── Curated special structures (override generation) ──────────────────────────
+interface Special {
+  col: number; row: number; kind: DrawKind; height: number;
+  label?: string; sign: SignKey; palette: PaletteKey; category: string;
+}
+const SPECIALS: Special[] = [
+  { col: 10, row: 2, kind: "hotel", height: 12, label: "VANTA GRAND HOTEL", sign: "amber", palette: "violet", category: "Hospitality" },
+  { col: 13, row: 2, kind: "compound", height: 4, label: "THE ESTATE", sign: "crimson", palette: "violet", category: "Residential" },
+  { col: 19, row: 24, kind: "hotel", height: 10, label: "NEON LOTUS HOTEL", sign: "pink", palette: "core", category: "Hospitality" },
+  { col: 17, row: 4, kind: "civic", height: 3, label: "VANTA CENTRAL", sign: "blue", palette: "slate", category: "Transit" },
+  { col: 40, row: 4, kind: "civic", height: 3, label: "BUS TERMINAL", sign: "amber", palette: "noir", category: "Transit" },
+  { col: 2, row: 14, kind: "gas", height: 1, label: "FUEL", sign: "blue", palette: "dark", category: "Infrastructure" },
+  { col: 44, row: 22, kind: "gas", height: 1, label: "CHARGE", sign: "crimson", palette: "dark", category: "Infrastructure" },
+  { col: 14, row: 9, kind: "billboard", height: 0, label: "BABYBOI LOCO", sign: "magenta", palette: "dark", category: "Billboard" },
+  { col: 31, row: 21, kind: "billboard", height: 0, label: "COLD WORLD", sign: "crimson", palette: "dark", category: "Billboard" },
+  { col: 35, row: 11, kind: "billboard", height: 0, label: "NEW DROP", sign: "blue", palette: "dark", category: "Billboard" },
+  { col: 1, row: 7, kind: "radiotower", height: 0, sign: "red", palette: "dark", category: "Infrastructure" },
+  { col: 46, row: 9, kind: "radiotower", height: 0, sign: "red", palette: "dark", category: "Infrastructure" },
+  { col: 8, row: 16, kind: "garage", height: 4, label: "PARKING P3", sign: "blue", palette: "noir", category: "Infrastructure" },
+  { col: 34, row: 17, kind: "garage", height: 4, label: "STACK PARK", sign: "blue", palette: "noir", category: "Infrastructure" },
+  { col: 16, row: 12, kind: "civic", height: 3, label: "PRECINCT 9", sign: "crimson", palette: "crimson", category: "Security" },
+  { col: 34, row: 19, kind: "civic", height: 3, label: "SECURITY OUTPOST", sign: "crimson", palette: "crimson", category: "Security" },
+  { col: 26, row: 22, kind: "club", height: 4, label: "PULSE", sign: "magenta", palette: "core", category: "Entertainment" },
+  { col: 28, row: 24, kind: "civic", height: 4, label: "THE ODEON", sign: "amber", palette: "crimson", category: "Cinema" },
+  { col: 23, row: 29, kind: "club", height: 6, label: "LIVE MUSIC", sign: "magenta", palette: "violet", category: "Live Venue" },
+  { col: 43, row: 29, kind: "openlot", height: 0, label: "COURT", sign: "blue", palette: "noir", category: "Recreation" },
+  { col: 37, row: 29, kind: "openlot", height: 0, label: "SKATE PARK", sign: "cyan", palette: "noir", category: "Recreation" },
+  { col: 44, row: 19, kind: "tunnel", height: 2, label: "UNDERPASS", sign: "crimson", palette: "dark", category: "Infrastructure" },
+  { col: 44, row: 26, kind: "compound", height: 4, label: "WARD GATE", sign: "crimson", palette: "noir", category: "Residential" },
+];
+
 const NODE_TILES = new Set(NODES.map((n) => `${n.col},${n.row}`));
+const SPECIAL_TILES = new Set(SPECIALS.map((s) => `${s.col},${s.row}`));
+
+function pickWeighted(rng: () => number, weights: [string, number][]) {
+  let tot = 0; for (const [, w] of weights) tot += w;
+  let x = rng() * tot;
+  for (const [id, w] of weights) { if ((x -= w) <= 0) return id; }
+  return weights[0][0];
+}
 
 const BUILDINGS: Building[] = (() => {
   const out: Building[] = [];
+  // Nodes
   for (const n of NODES) {
-    out.push({ col: n.col, row: n.row, height: n.height, palette: n.palette, interactive: true, node: n });
+    out.push({ col: n.col, row: n.row, height: n.height, palette: n.palette, kind: "tower",
+      label: n.name, category: "Vanta Landmark", interactive: true, hoverable: true, node: n, seed: n.col * 31 + n.row });
   }
-  const rng = mulberry32(1337);
+  // Specials
+  for (const s of SPECIALS) {
+    out.push({ col: s.col, row: s.row, height: s.height, palette: s.palette, kind: s.kind,
+      label: s.label, sign: s.sign, category: s.category, interactive: false, hoverable: !!s.label,
+      seed: s.col * 17 + s.row * 7 });
+  }
+  // Procedural fill
+  const rng = mulberry32(20260621);
   for (let c = 0; c < COLS; c++) {
     for (let r = 0; r < ROWS; r++) {
-      if (isWalkable(c, r) || NODE_TILES.has(`${c},${r}`)) continue;
-      const z = zoneInfo(c, r);
-      const pal = z.pals[Math.floor(rng() * z.pals.length)];
-      let h = z.hMin + Math.floor(rng() * (z.hMax - z.hMin + 1));
-      if (rng() < 0.06) h += 2 + Math.floor(rng() * 4); // occasional spire
-      out.push({ col: c, row: r, height: h, palette: pal, interactive: false });
+      if (isWalkable(c, r) || NODE_TILES.has(`${c},${r}`) || SPECIAL_TILES.has(`${c},${r}`)) continue;
+      const hood = hoodAt(c, r);
+      const typeId = pickWeighted(rng, hood.weights);
+      const t = TYPES[typeId];
+      const pal = hood.pals[Math.floor(rng() * hood.pals.length)];
+      let h = t.hMin + Math.floor(rng() * (t.hMax - t.hMin + 1));
+      if (h > 0 && rng() < hood.hBias) h += 1 + Math.floor(rng() * 2);
+      if (h > 0 && rng() < 0.05) h += 2 + Math.floor(rng() * 4); // occasional spire
+      const label = t.names.length && rng() < t.signFreq ? t.names[Math.floor(rng() * t.names.length)] : undefined;
+      out.push({ col: c, row: r, height: h, palette: pal, kind: t.kind, label,
+        sign: t.sign, category: t.cat, interactive: false, hoverable: !!label, seed: c * 73856 + r * 19349 });
     }
   }
   return out;
 })();
+
+const FEATURES: Feature[] = [
+  { col: 21, row: 23, kind: "truck", label: "NOODLES", sign: "amber" },
+  { col: 22, row: 24, kind: "truck", label: "TACOS", sign: "crimson" },
+  { col: 16, row: 5, kind: "stall", label: "MARKET", sign: "cyan" },
+  { col: 18, row: 6, kind: "stall", sign: "purple" },
+  { col: 5, row: 25, kind: "truck", label: "FRIED", sign: "amber" },
+  { col: 33, row: 23, kind: "truck", label: "BBQ", sign: "crimson" },
+  { col: 45, row: 11, kind: "bridge", label: "BRIDGE", sign: "blue" },
+  { col: 45, row: 12, kind: "bridge", sign: "blue" },
+];
 
 const LAMPS: { col: number; row: number }[] = (() => {
   const out: { col: number; row: number }[] = [];
@@ -155,134 +329,240 @@ const LAMPS: { col: number; row: number }[] = (() => {
 })();
 
 const CHECKPOINTS = [
-  { col: 9, row: 8 }, { col: 21, row: 8 }, { col: 15, row: 13 },
-  { col: 9, row: 13 }, { col: 21, row: 13 }, { col: 15, row: 3 },
+  { col: 21, row: 13 }, { col: 33, row: 13 }, { col: 21, row: 18 },
+  { col: 27, row: 18 }, { col: 15, row: 18 }, { col: 39, row: 18 },
 ];
 
-// Combined, painter-sorted render list (buildings + lamps)
 const RENDER_LIST: RenderItem[] = [
   ...BUILDINGS.map<RenderItem>((b) => ({ kind: "building", col: b.col, row: b.row, sort: b.col + b.row, building: b })),
   ...LAMPS.map<RenderItem>((l) => ({ kind: "lamp", col: l.col, row: l.row, sort: l.col + l.row - 0.05 })),
+  ...FEATURES.map<RenderItem>((f) => ({ kind: "feature", col: f.col, row: f.row, sort: f.col + f.row + 0.02, feature: f })),
 ].sort((a, b) => a.sort - b.sort || a.row - b.row);
 
 const FAST_TRAVEL = [
-  "black-index", "music-hub", "vault-gate", "vanta-os-core",
-  "fractured-godhead", "hidden-himalayas",
+  "transmissions", "black-index", "music-hub", "vault-gate",
+  "vanta-os-core", "wireline-terminal", "fract-terminal", "fractured-godhead", "hidden-himalayas",
 ].map((id) => NODES.find((n) => n.id === id)!);
 
 const NODES_ONLINE = NODES.filter((n) => !n.comingSoon).length;
+const regionAt = (col: number, row: number) => hoodAt(col, row).name;
 
-function regionAt(col: number, row: number) {
-  const cb = col < 11 ? 0 : col < 23 ? 1 : 2;
-  const rb = row < 8 ? 0 : row < 14 ? 1 : 2;
-  const NAMES = [
-    ["INDEX QUARTER", "SIGNAL HEIGHTS", "ARCHIVE WARD"],
-    ["VAULT PRECINCT", "THE CORE", "DEAD SECTOR"],
-    ["FRACT EXCHANGE", "GODHEAD SLUMS", "HIMALAYA GATE"],
-  ];
-  return NAMES[rb][cb];
-}
+// ─── Reachability validator (dev sanity check) ────────────────────────────────
+(() => {
+  const start: [number, number] = [24, 14];
+  const seen = new Set<string>();
+  const q: [number, number][] = [start];
+  seen.add(start.join(","));
+  while (q.length) {
+    const [c, r] = q.shift()!;
+    for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
+      const nc = c + dc, nr = r + dr, k = `${nc},${nr}`;
+      if (!seen.has(k) && isWalkable(nc, nr)) { seen.add(k); q.push([nc, nr]); }
+    }
+  }
+  const blocked = NODES.filter((n) => !seen.has(`${n.entranceCol},${n.entranceRow}`)).map((n) => n.id);
+  if (blocked.length) console.warn("[world] unreachable node entrances:", blocked);
+})();
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function isoXY(col: number, row: number, ox: number, oy: number) {
   return { x: (col - row) * HW + ox, y: (col + row) * HH + oy };
 }
 
-// ─── Drawing ──────────────────────────────────────────────────────────────────
+// ─── Ground ───────────────────────────────────────────────────────────────────
 function drawGround(ctx: CanvasRenderingContext2D, col: number, row: number, ox: number, oy: number) {
   const { x, y } = isoXY(col, row, ox, oy);
   const street = isStreet(col, row);
   const alley = isAlley(col, row);
+  const plaza = isPlaza(col, row);
   const lot = isLot(col, row);
   const intersection = col % 6 === 3 && row % 5 === 3;
   ctx.beginPath();
   ctx.moveTo(x, y); ctx.lineTo(x + HW, y + HH);
   ctx.lineTo(x, y + TH); ctx.lineTo(x - HW, y + HH);
   ctx.closePath();
-  ctx.fillStyle = intersection ? "#0e0e1e"
+  ctx.fillStyle = plaza ? "#100d1e"
+    : intersection ? "#0e0e1e"
     : street ? "#0a0a16"
     : lot ? "#0c0a12"
     : alley ? "#08080f"
     : (col + row) % 2 === 0 ? "#07070f" : "#060609";
   ctx.fill();
-  ctx.strokeStyle = street ? "#13132a" : "#0c0c16"; ctx.lineWidth = 0.5; ctx.stroke();
-  // center road dashes along horizontal street rows
+  ctx.strokeStyle = plaza ? "#1c1838" : street ? "#13132a" : "#0c0c16";
+  ctx.lineWidth = 0.5; ctx.stroke();
+  // road center dashes
   if (row % 5 === 3 && col % 6 !== 3) {
     ctx.beginPath();
     ctx.moveTo(x - HW * 0.35, y + HH); ctx.lineTo(x + HW * 0.35, y + HH);
     ctx.strokeStyle = "#26264a40"; ctx.lineWidth = 1; ctx.stroke();
   }
+  if (col % 6 === 3 && row % 5 !== 3) {
+    ctx.beginPath();
+    ctx.moveTo(x, y + HH - HH * 0.5); ctx.lineTo(x, y + HH + HH * 0.5);
+    ctx.strokeStyle = "#26264a40"; ctx.lineWidth = 1; ctx.stroke();
+  }
+  if (plaza) {
+    ctx.strokeStyle = "#2a2450"; ctx.globalAlpha = 0.25; ctx.lineWidth = 0.5;
+    ctx.beginPath();
+    ctx.moveTo(x, y + 3); ctx.lineTo(x + HW - 3, y + HH);
+    ctx.lineTo(x, y + TH - 3); ctx.lineTo(x - HW + 3, y + HH);
+    ctx.closePath(); ctx.stroke(); ctx.globalAlpha = 1;
+    if (plazaCenter(col, row)) {
+      ctx.strokeStyle = "#a855f7"; ctx.globalAlpha = 0.35; ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.ellipse(x, y + HH, 13, 6, 0, 0, Math.PI * 2); ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+  }
   if (lot) {
-    // rubble specks
     ctx.fillStyle = "#1a1622";
     ctx.fillRect(x - 6, y + HH - 1, 3, 2);
     ctx.fillRect(x + 3, y + HH + 3, 4, 2);
   }
 }
 
+// ─── Box body (used by most building kinds) ───────────────────────────────────
+function drawBox(
+  ctx: CanvasRenderingContext2D, x: number, y: number, wh: number, p: typeof PALETTES[PaletteKey],
+  alpha: number,
+) {
+  ctx.globalAlpha = alpha;
+  // left
+  ctx.beginPath();
+  ctx.moveTo(x, y - wh); ctx.lineTo(x - HW, y + HH - wh);
+  ctx.lineTo(x - HW, y + HH); ctx.lineTo(x, y);
+  ctx.closePath(); ctx.fillStyle = p.left; ctx.fill();
+  // right
+  ctx.beginPath();
+  ctx.moveTo(x, y - wh); ctx.lineTo(x + HW, y + HH - wh);
+  ctx.lineTo(x + HW, y + HH); ctx.lineTo(x, y);
+  ctx.closePath(); ctx.fillStyle = p.right; ctx.fill();
+  // roof
+  ctx.beginPath();
+  ctx.moveTo(x, y - wh); ctx.lineTo(x + HW, y + HH - wh);
+  ctx.lineTo(x, y + TH - wh); ctx.lineTo(x - HW, y + HH - wh);
+  ctx.closePath(); ctx.fillStyle = p.top; ctx.fill();
+}
+
+function drawWindows(
+  ctx: CanvasRenderingContext2D, b: Building, x: number, y: number, wh: number,
+  p: typeof PALETTES[PaletteKey], tick: number, dim: number,
+) {
+  const winRows = Math.max(1, b.height - 1);
+  for (let wr = 0; wr < winRows; wr++) {
+    for (let wc = 0; wc < 2; wc++) {
+      if (Math.sin(tick * 0.018 + b.col * 1.5 + b.row * 0.9 + wr * 2.3 + wc * 1.8) < 0.25) continue;
+      const wx = x - HW * (0.25 + wc * 0.35), wy = y - wh + wr * WU + WU * 0.4;
+      ctx.globalAlpha = (b.interactive ? 0.7 : 0.4) * dim;
+      ctx.fillStyle = p.neon;
+      ctx.beginPath();
+      ctx.moveTo(wx, wy - 2.2); ctx.lineTo(wx - 3, wy);
+      ctx.lineTo(wx, wy + 2.2); ctx.lineTo(wx + 3, wy);
+      ctx.closePath(); ctx.fill();
+    }
+  }
+}
+
+// ─── Minor neon sign (1-2 glow pass, proximity-gated) ─────────────────────────
+function drawMinorSign(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, color: string) {
+  ctx.save();
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.font = "bold 6px monospace";
+  const w = ctx.measureText(text).width + 6;
+  ctx.globalAlpha = 0.5;
+  ctx.fillStyle = "#05050c"; ctx.fillRect(x - w / 2, y - 5, w, 9);
+  ctx.globalAlpha = 1;
+  ctx.shadowColor = color; ctx.shadowBlur = 6; ctx.fillStyle = color;
+  ctx.fillText(text, x, y);
+  ctx.restore();
+}
+
+// ─── Building dispatcher ──────────────────────────────────────────────────────
 function drawBuilding(
   ctx: CanvasRenderingContext2D, b: Building, ox: number, oy: number,
   hovered: boolean, near: boolean, tick: number,
 ) {
   const { x, y } = isoXY(b.col, b.row, ox, oy);
   const p = PALETTES[b.palette];
+  const sign = b.sign ? SIGNS[b.sign] : p.neon;
+
+  // Flat / special silhouettes
+  if (b.kind === "billboard") return drawBillboard(ctx, b, x, y, sign, tick, hovered);
+  if (b.kind === "radiotower") return drawRadioTower(ctx, b, x, y, tick, hovered);
+  if (b.kind === "gas") return drawGas(ctx, b, x, y, p, sign, near, hovered);
+  if (b.kind === "openlot") return drawOpenLot(ctx, b, x, y, sign, near, hovered);
+  if (b.kind === "tunnel") return drawTunnel(ctx, b, x, y, p, sign, hovered);
+
   const wh = b.height * WU;
   const node = b.node;
   const comingSoon = node?.comingSoon;
   const pulse = Math.sin(tick * 0.05 + b.col * 0.7 + b.row * 0.4) * 0.15 + 0.85;
 
-  if (hovered) { ctx.save(); ctx.shadowColor = p.neon; ctx.shadowBlur = 26; }
-  ctx.save(); ctx.globalAlpha = comingSoon ? 0.7 : 1;
+  if (hovered) { ctx.save(); ctx.shadowColor = sign; ctx.shadowBlur = 24; }
+  ctx.save();
 
-  // Left face
-  ctx.beginPath();
-  ctx.moveTo(x, y - wh); ctx.lineTo(x - HW, y + HH - wh);
-  ctx.lineTo(x - HW, y + HH); ctx.lineTo(x, y);
-  ctx.closePath(); ctx.fillStyle = p.left; ctx.fill();
-  if (hovered) { ctx.strokeStyle = p.neon + "55"; ctx.lineWidth = 0.5; ctx.stroke(); }
+  drawBox(ctx, x, y, wh, p, comingSoon ? 0.7 : 1);
 
-  // Right face
-  ctx.beginPath();
-  ctx.moveTo(x, y - wh); ctx.lineTo(x + HW, y + HH - wh);
-  ctx.lineTo(x + HW, y + HH); ctx.lineTo(x, y);
-  ctx.closePath(); ctx.fillStyle = p.right; ctx.fill();
-  if (hovered) { ctx.strokeStyle = p.neon + "40"; ctx.lineWidth = 0.5; ctx.stroke(); }
-
-  // Roof
-  ctx.beginPath();
-  ctx.moveTo(x, y - wh); ctx.lineTo(x + HW, y + HH - wh);
-  ctx.lineTo(x, y + TH - wh); ctx.lineTo(x - HW, y + HH - wh);
-  ctx.closePath(); ctx.fillStyle = p.top; ctx.fill();
-
-  // Gothic peaked roof for tall landmarks
-  if (b.height >= 8) {
+  // Roof treatments by kind
+  if ((b.kind === "tower" || b.kind === "hotel" || b.kind === "civic") && b.height >= 8) {
     ctx.beginPath();
     ctx.moveTo(x - HW, y + HH - wh); ctx.lineTo(x, y - wh - b.height * 1.4);
     ctx.lineTo(x + HW, y + HH - wh);
     ctx.fillStyle = p.top + "90"; ctx.fill();
-    ctx.strokeStyle = p.neon + "26"; ctx.lineWidth = 0.5; ctx.stroke();
+    ctx.strokeStyle = sign + "26"; ctx.lineWidth = 0.5; ctx.stroke();
+  }
+  if (b.kind === "warehouse") {
+    // roller door on the right face + sawtooth roof hint
+    ctx.fillStyle = "#00000055";
+    ctx.beginPath();
+    ctx.moveTo(x + HW * 0.2, y); ctx.lineTo(x + HW * 0.85, y + HH * 0.65);
+    ctx.lineTo(x + HW * 0.85, y + HH * 0.65 - wh * 0.55); ctx.lineTo(x + HW * 0.2, y - wh * 0.55);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = sign + "30"; ctx.lineWidth = 0.5;
+    for (let i = 1; i < 4; i++) {
+      const t = i / 4;
+      ctx.beginPath(); ctx.moveTo(x + HW * 0.2, y - wh * 0.55 * t); ctx.lineTo(x + HW * 0.85, y + HH * 0.65 - wh * 0.55 * t); ctx.stroke();
+    }
+  }
+  if (b.kind === "garage") {
+    // open parking decks: dark horizontal slots across both faces
+    ctx.fillStyle = "#00000050";
+    for (let lvl = 0; lvl < b.height; lvl++) {
+      const ly = y - lvl * WU - WU * 0.45;
+      ctx.beginPath();
+      ctx.moveTo(x - HW, ly + HH - 2); ctx.lineTo(x, ly - 2);
+      ctx.lineTo(x, ly + 1); ctx.lineTo(x - HW, ly + HH + 1);
+      ctx.closePath(); ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(x, ly - 2); ctx.lineTo(x + HW, ly + HH - 2);
+      ctx.lineTo(x + HW, ly + HH + 1); ctx.lineTo(x, ly + 1);
+      ctx.closePath(); ctx.fill();
+    }
+  }
+  if (b.kind === "compound") {
+    // perimeter wall suggestion + crenellation
+    ctx.strokeStyle = sign + "44"; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(x - HW, y + HH); ctx.lineTo(x, y + TH); ctx.lineTo(x + HW, y + HH); ctx.stroke();
   }
 
-  // Windows — only when near the player (perf) or interactive
-  if (near || b.interactive) {
-    const winRows = Math.max(1, b.height - 1);
-    for (let wr = 0; wr < winRows; wr++) {
-      for (let wc = 0; wc < 2; wc++) {
-        if (Math.sin(tick * 0.018 + b.col * 1.5 + b.row * 0.9 + wr * 2.3 + wc * 1.8) < 0.25) continue;
-        const wx = x - HW * (0.25 + wc * 0.35), wy = y - wh + wr * WU + WU * 0.4;
-        ctx.globalAlpha = (b.interactive ? 0.7 : 0.4) * (comingSoon ? 0.4 : 1);
-        ctx.fillStyle = p.neon;
-        ctx.beginPath();
-        ctx.moveTo(wx, wy - 2.2); ctx.lineTo(wx - 3, wy);
-        ctx.lineTo(wx, wy + 2.2); ctx.lineTo(wx + 3, wy);
-        ctx.closePath(); ctx.fill();
-      }
-    }
-    ctx.globalAlpha = comingSoon ? 0.7 : 1;
+  // Windows (proximity-gated) — skip kinds with their own facade detail
+  if ((near || b.interactive) && b.kind !== "warehouse" && b.kind !== "garage") {
+    drawWindows(ctx, b, x, y, wh, p, tick, comingSoon ? 0.4 : 1);
+    ctx.globalAlpha = 1;
+  }
+
+  // Club / venue marquee glow band + ground light pool
+  if (b.kind === "club") {
+    ctx.save();
+    ctx.shadowColor = sign; ctx.shadowBlur = 10 * pulse;
+    ctx.strokeStyle = sign + "cc"; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(x - HW, y + HH - WU * 0.6); ctx.lineTo(x, y - WU * 0.6); ctx.lineTo(x + HW, y + HH - WU * 0.6); ctx.stroke();
+    ctx.globalAlpha = 0.08; ctx.fillStyle = sign;
+    ctx.beginPath(); ctx.ellipse(x, y + HH + 2, 22, 9, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
   }
   ctx.restore();
 
-  // Neon roof edges + sign (interactive only)
+  // Node neon roof edges + 4-pass sign + antenna (interactive only)
   if (b.interactive && node) {
     ctx.save();
     ctx.shadowColor = p.neon; ctx.shadowBlur = 13 * pulse * (comingSoon ? 0.35 : 1);
@@ -292,7 +572,6 @@ function drawBuilding(
     ctx.beginPath(); ctx.moveTo(x, y - wh); ctx.lineTo(x + HW, y + HH - wh); ctx.stroke();
     ctx.restore();
 
-    // Antenna for tall towers
     if (b.height >= 9 && !comingSoon) {
       ctx.save();
       ctx.strokeStyle = hovered ? p.neon : p.accent + "66"; ctx.lineWidth = 1;
@@ -305,7 +584,6 @@ function drawBuilding(
       ctx.restore();
     }
 
-    // Floating sign
     const sy = y - wh - (b.height >= 8 ? 24 : 14);
     ctx.save();
     ctx.textAlign = "center"; ctx.textBaseline = "middle";
@@ -318,7 +596,6 @@ function drawBuilding(
     }
     ctx.restore();
 
-    // Ground label
     ctx.save();
     ctx.textAlign = "center"; ctx.textBaseline = "middle";
     ctx.font = '8px "Space Grotesk", monospace';
@@ -326,9 +603,152 @@ function drawBuilding(
     if (hovered) { ctx.shadowColor = p.neon; ctx.shadowBlur = 8; }
     ctx.fillText(node.name, x, y + HH + 14);
     ctx.restore();
+  } else if (b.label && near) {
+    // Minor neon sign for normal city buildings
+    const sy = y - wh - (b.height >= 6 ? 16 : b.height >= 3 ? 11 : 7);
+    drawMinorSign(ctx, b.label, x, sy, sign);
   }
 
   if (hovered) ctx.restore();
+}
+
+// ─── Specialised structures ───────────────────────────────────────────────────
+function drawBillboard(ctx: CanvasRenderingContext2D, b: Building, x: number, y: number, color: string, tick: number, hovered: boolean) {
+  const ph = 6 * WU, pw = 30;
+  ctx.save();
+  ctx.strokeStyle = "#1a1a2a"; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(x - 6, y + HH); ctx.lineTo(x - 6, y + HH - ph); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x + 6, y + HH); ctx.lineTo(x + 6, y + HH - ph); ctx.stroke();
+  const panelY = y + HH - ph - 18;
+  const flick = Math.sin(tick * 0.06 + b.col) * 0.12 + 0.88;
+  ctx.fillStyle = "#0a0a14"; ctx.fillRect(x - pw / 2, panelY, pw, 22);
+  ctx.strokeStyle = color + "aa"; ctx.lineWidth = hovered ? 1.5 : 1;
+  ctx.shadowColor = color; ctx.shadowBlur = (hovered ? 16 : 9) * flick;
+  ctx.strokeRect(x - pw / 2, panelY, pw, 22);
+  if (b.label) {
+    ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.font = "bold 5px monospace";
+    ctx.fillStyle = color; ctx.fillText(b.label, x, panelY + 11);
+  }
+  ctx.restore();
+}
+
+function drawRadioTower(ctx: CanvasRenderingContext2D, b: Building, x: number, y: number, tick: number, hovered: boolean) {
+  const th = 11 * WU;
+  ctx.save();
+  ctx.strokeStyle = hovered ? "#9aa0b5" : "#2a2a3c"; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(x - 7, y + HH); ctx.lineTo(x, y + HH - th); ctx.lineTo(x + 7, y + HH); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x - 7, y + HH); ctx.lineTo(x + 7, y + HH); ctx.stroke();
+  for (let i = 1; i < 8; i++) {
+    const t1 = (i - 1) / 8, t2 = i / 8;
+    const lx1 = x - 7 * (1 - t1), lx2 = x + 7 * (1 - t2);
+    ctx.beginPath(); ctx.moveTo(lx1, y + HH - th * t1); ctx.lineTo(lx2, y + HH - th * t2); ctx.stroke();
+  }
+  if (Math.floor(tick / 22) % 2 === 0) {
+    ctx.fillStyle = "#ef4444"; ctx.shadowColor = "#ef4444"; ctx.shadowBlur = 10;
+    ctx.beginPath(); ctx.arc(x, y + HH - th, 2.2, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawGas(ctx: CanvasRenderingContext2D, b: Building, x: number, y: number, p: typeof PALETTES[PaletteKey], color: string, near: boolean, hovered: boolean) {
+  ctx.save();
+  // forecourt slab
+  ctx.fillStyle = "#0c0c16";
+  ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + HW, y + HH); ctx.lineTo(x, y + TH); ctx.lineTo(x - HW, y + HH); ctx.closePath(); ctx.fill();
+  // canopy posts
+  const ch = 3 * WU;
+  ctx.strokeStyle = "#23233a"; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(x - HW * 0.5, y + HH * 0.5); ctx.lineTo(x - HW * 0.5, y + HH * 0.5 - ch); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x + HW * 0.5, y + HH * 0.5); ctx.lineTo(x + HW * 0.5, y + HH * 0.5 - ch); ctx.stroke();
+  // canopy roof
+  ctx.fillStyle = p.top;
+  ctx.beginPath();
+  ctx.moveTo(x, y - ch); ctx.lineTo(x + HW, y + HH - ch); ctx.lineTo(x, y + TH - ch); ctx.lineTo(x - HW, y + HH - ch); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = color + (hovered ? "cc" : "88"); ctx.lineWidth = 1.5;
+  ctx.shadowColor = color; ctx.shadowBlur = hovered ? 14 : 7;
+  ctx.beginPath(); ctx.moveTo(x - HW, y + HH - ch); ctx.lineTo(x, y + TH - ch); ctx.lineTo(x + HW, y + HH - ch); ctx.stroke();
+  // pump
+  ctx.shadowBlur = 0; ctx.fillStyle = "#15151f"; ctx.fillRect(x - 3, y + HH - 9, 6, 9);
+  if (b.label && near) drawMinorSign(ctx, b.label, x, y + HH * 0.5 - ch - 6, color);
+  ctx.restore();
+}
+
+function drawOpenLot(ctx: CanvasRenderingContext2D, b: Building, x: number, y: number, color: string, near: boolean, hovered: boolean) {
+  ctx.save();
+  // slab
+  ctx.fillStyle = "#0b0b15";
+  ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + HW, y + HH); ctx.lineTo(x, y + TH); ctx.lineTo(x - HW, y + HH); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = color + (hovered ? "88" : "44"); ctx.lineWidth = 1;
+  if (b.label === "COURT") {
+    // center line + circle
+    ctx.beginPath(); ctx.moveTo(x - HW * 0.6, y + HH * 0.4); ctx.lineTo(x + HW * 0.6, y + HH * 1.6 - HH); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(x, y + HH, 8, 4, 0, 0, Math.PI * 2); ctx.stroke();
+  } else {
+    // skate ramps — a couple of angled quads
+    ctx.fillStyle = "#15131f";
+    ctx.beginPath(); ctx.moveTo(x - HW * 0.5, y + HH * 0.7); ctx.lineTo(x - HW * 0.1, y + HH * 0.4); ctx.lineTo(x - HW * 0.1, y + HH * 0.4 - 8); ctx.lineTo(x - HW * 0.5, y + HH * 0.7 - 8); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(x + HW * 0.5, y + HH * 0.9); ctx.lineTo(x + HW * 0.1, y + HH * 0.6); ctx.lineTo(x + HW * 0.1, y + HH * 0.6 - 7); ctx.lineTo(x + HW * 0.5, y + HH * 0.9 - 7); ctx.closePath(); ctx.fill();
+  }
+  // corner fence posts
+  ctx.fillStyle = color + "66";
+  for (const [dx, dy] of [[-HW, HH], [HW, HH], [0, 0], [0, TH]] as const) {
+    ctx.fillRect(x + dx - 0.5, y + dy - 5, 1, 5);
+  }
+  if (b.label && near) drawMinorSign(ctx, b.label, x, y - 6, color);
+  ctx.restore();
+}
+
+function drawTunnel(ctx: CanvasRenderingContext2D, b: Building, x: number, y: number, p: typeof PALETTES[PaletteKey], color: string, hovered: boolean) {
+  const wh = b.height * WU;
+  ctx.save();
+  drawBox(ctx, x, y, wh, p, 1);
+  // arch mouth (dark) on the right face
+  ctx.fillStyle = "#000000";
+  ctx.beginPath();
+  ctx.moveTo(x, y - wh * 0.2); ctx.lineTo(x + HW * 0.8, y + HH * 0.6 - wh * 0.2);
+  ctx.lineTo(x + HW * 0.8, y + HH * 0.6); ctx.lineTo(x, y);
+  ctx.closePath(); ctx.fill();
+  // warning stripes
+  ctx.strokeStyle = color + (hovered ? "cc" : "77"); ctx.lineWidth = 1.5;
+  ctx.shadowColor = color; ctx.shadowBlur = hovered ? 12 : 5;
+  ctx.beginPath(); ctx.moveTo(x, y - wh); ctx.lineTo(x + HW, y + HH - wh); ctx.stroke();
+  if (b.label) { ctx.shadowBlur = 0; drawMinorSign(ctx, b.label, x, y - wh - 8, color); }
+  ctx.restore();
+}
+
+function drawFeature(ctx: CanvasRenderingContext2D, f: Feature, ox: number, oy: number, tick: number, near: boolean) {
+  const { x, y } = isoXY(f.col, f.row, ox, oy);
+  const color = f.sign ? SIGNS[f.sign] : "#c084fc";
+  ctx.save();
+  if (f.kind === "bridge") {
+    // railing posts + rail along the tile to suggest an overpass
+    ctx.strokeStyle = color + "55"; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(x - HW * 0.7, y + HH * 0.2); ctx.lineTo(x + HW * 0.7, y + HH * 1.2); ctx.stroke();
+    for (let i = 0; i <= 4; i++) {
+      const t = i / 4;
+      const px = x - HW * 0.7 + (HW * 1.4) * t, py = y + HH * 0.2 + HH * t;
+      ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px, py - 5); ctx.stroke();
+    }
+    if (f.label && near) drawMinorSign(ctx, f.label, x, y - 4, color);
+    ctx.restore(); return;
+  }
+  // food truck / stall: small box + glow + tiny sign
+  const bw = f.kind === "truck" ? 11 : 9, bh = 9;
+  ctx.fillStyle = "#13111c";
+  ctx.fillRect(x - bw / 2, y + HH * 0.2 - bh, bw, bh);
+  ctx.fillStyle = color; ctx.globalAlpha = 0.85; ctx.shadowColor = color; ctx.shadowBlur = 6;
+  ctx.fillRect(x - bw / 2 + 1, y + HH * 0.2 - bh + 2, bw - 2, 2.4); // serving glow
+  ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+  if (f.kind === "stall") { // awning
+    ctx.strokeStyle = color + "88"; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(x - bw / 2 - 2, y + HH * 0.2 - bh); ctx.lineTo(x, y + HH * 0.2 - bh - 5); ctx.lineTo(x + bw / 2 + 2, y + HH * 0.2 - bh); ctx.stroke();
+  } else { // wheels
+    ctx.fillStyle = "#000";
+    ctx.beginPath(); ctx.arc(x - bw / 2 + 2, y + HH * 0.2, 1.6, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x + bw / 2 - 2, y + HH * 0.2, 1.6, 0, Math.PI * 2); ctx.fill();
+  }
+  if (f.label && near) drawMinorSign(ctx, f.label, x, y + HH * 0.2 - bh - 7, color);
+  ctx.restore();
 }
 
 function drawLamp(ctx: CanvasRenderingContext2D, col: number, row: number, ox: number, oy: number, tick: number) {
@@ -340,9 +760,7 @@ function drawLamp(ctx: CanvasRenderingContext2D, col: number, row: number, ox: n
   ctx.beginPath(); ctx.moveTo(x, y + HH * 0.4 - 22); ctx.lineTo(x + 6, y + HH * 0.4 - 22); ctx.stroke();
   ctx.fillStyle = "#c084fc"; ctx.shadowColor = "#a855f7"; ctx.shadowBlur = 12 * flick;
   ctx.beginPath(); ctx.arc(x + 6, y + HH * 0.4 - 21, 2.2, 0, Math.PI * 2); ctx.fill();
-  // pool of light on ground
-  ctx.globalAlpha = 0.06 * flick;
-  ctx.fillStyle = "#a855f7";
+  ctx.globalAlpha = 0.06 * flick; ctx.fillStyle = "#a855f7";
   ctx.beginPath(); ctx.ellipse(x + 4, y + HH * 0.4, 16, 7, 0, 0, Math.PI * 2); ctx.fill();
   ctx.restore();
 }
@@ -350,7 +768,6 @@ function drawLamp(ctx: CanvasRenderingContext2D, col: number, row: number, ox: n
 function drawPlayer(ctx: CanvasRenderingContext2D, col: number, row: number, ox: number, oy: number, tick: number, facing: number) {
   const { x, y } = isoXY(col, row, ox, oy);
   const bob = Math.sin(tick * 0.18) * 1.2;
-  // shadow
   ctx.save();
   ctx.globalAlpha = 0.55; ctx.fillStyle = "#000";
   ctx.beginPath(); ctx.ellipse(x, y + HH * 0.25, 9, 4, 0, 0, Math.PI * 2); ctx.fill();
@@ -360,19 +777,14 @@ function drawPlayer(ctx: CanvasRenderingContext2D, col: number, row: number, ox:
   const bh = 22;
   ctx.save();
   ctx.shadowColor = "#a855f7"; ctx.shadowBlur = 16;
-  // cloak body
   ctx.fillStyle = "#0b0712";
   ctx.beginPath();
-  ctx.moveTo(x, baseY - bh);
-  ctx.lineTo(x - 7, baseY);
-  ctx.lineTo(x + 7, baseY);
+  ctx.moveTo(x, baseY - bh); ctx.lineTo(x - 7, baseY); ctx.lineTo(x + 7, baseY);
   ctx.closePath(); ctx.fill();
   ctx.strokeStyle = "#7c3aed"; ctx.lineWidth = 1; ctx.stroke();
-  // hood / head
   ctx.fillStyle = "#15101f";
   ctx.beginPath(); ctx.arc(x, baseY - bh + 4, 5, 0, Math.PI * 2); ctx.fill();
   ctx.strokeStyle = "#c084fc"; ctx.lineWidth = 1; ctx.stroke();
-  // red eye glow (faces movement)
   ctx.fillStyle = "#ef4444"; ctx.shadowColor = "#ef4444"; ctx.shadowBlur = 7;
   ctx.beginPath(); ctx.arc(x + facing * 1.6, baseY - bh + 4, 1.1, 0, Math.PI * 2); ctx.fill();
   ctx.restore();
@@ -420,21 +832,23 @@ function drawScanlines(ctx: CanvasRenderingContext2D, w: number, h: number, tick
   ctx.restore();
 }
 
+interface HitEntry { id: string; label: string; sub: string; color: string; interactive: boolean; cx: number; cy: number; r2: number; }
+
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function World() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const tickRef = useRef(0);
   const animRef = useRef<number>(0);
   const lastRef = useRef<number>(0);
-  const playerRef = useRef({ col: 15, row: 8, facing: 1 });
+  const playerRef = useRef({ col: 24, row: 14, facing: 1 });
   const moveRef = useRef({ up: false, down: false, left: false, right: false });
   const hoveredRef = useRef<string | null>(null);
   const nearRef = useRef<string | null>(null);
-  const hitRef = useRef<{ id: string; cx: number; cy: number; r: number }[]>([]);
+  const hitRef = useRef<HitEntry[]>([]);
   const teleportRef = useRef<{ col: number; row: number } | null>(null);
 
   const [, navigate] = useLocation();
-  const [hovered, setHovered] = useState<string | null>(null);
+  const [hovered, setHovered] = useState<HitEntry | null>(null);
   const [near, setNear] = useState<string | null>(null);
   const [selected, setSelected] = useState<NodeDef | null>(null);
   const [showJumpMenu, setShowJumpMenu] = useState(false);
@@ -491,8 +905,6 @@ export default function World() {
     window.addEventListener("keyup", onKeyUp);
     window.addEventListener("blur", onBlur);
 
-    // Collision: sample the avatar footprint (center + cardinal offsets) so it
-    // keeps a small radius away from blocked tiles instead of penetrating them.
     const RAD = 0.3;
     function canStand(c: number, r: number) {
       return (
@@ -509,14 +921,13 @@ export default function World() {
       const nearNode = NODES.find((n) => n.id === nearRef.current);
       const region = regionAt(Math.round(p.col), Math.round(p.row));
 
-      // Top-left panel
       ctx.save();
-      ctx.fillStyle = "#ffffff05"; ctx.fillRect(20, 78, 244, 92);
-      ctx.strokeStyle = "#ffffff0c"; ctx.lineWidth = 0.5; ctx.strokeRect(20, 78, 244, 92);
+      ctx.fillStyle = "#ffffff05"; ctx.fillRect(20, 78, 252, 92);
+      ctx.strokeStyle = "#ffffff0c"; ctx.lineWidth = 0.5; ctx.strokeRect(20, 78, 252, 92);
       const lines = [
         { t: `VANTA CITY  ·  ${region}`, f: "bold 9px monospace", c: "#c084fc", g: "#c084fc" },
-        { t: `${NODES_ONLINE} NODES ONLINE  ·  ${BUILDINGS.length} STRUCTURES`, f: "8px monospace", c: "#2a2a42", g: "" },
-        { t: nearNode ? `> ${nearNode.name}` : "WALK TO A NODE TO ENTER", f: "8px monospace", c: nearNode ? PALETTES[nearNode.palette].neon : "#2a2a42", g: nearNode ? PALETTES[nearNode.palette].neon : "" },
+        { t: `${NODES_ONLINE} NODES  ·  ${BUILDINGS.length} STRUCTURES`, f: "8px monospace", c: "#2a2a42", g: "" },
+        { t: nearNode ? `> ${nearNode.name}` : "EXPLORE THE STREETS  ·  E TO ENTER", f: "8px monospace", c: nearNode ? PALETTES[nearNode.palette].neon : "#2a2a42", g: nearNode ? PALETTES[nearNode.palette].neon : "" },
         { t: nearNode ? nearNode.subtitle.toUpperCase() : "", f: "7px monospace", c: "#1e1e38", g: "" },
         { t: "WASD / ARROWS MOVE  ·  E ENTER", f: "7px monospace", c: "#1e1e38", g: "" },
       ];
@@ -530,7 +941,6 @@ export default function World() {
       ctx.fillText(`POS  ${p.col.toFixed(1)}, ${p.row.toFixed(1)}`, 28, 164);
       ctx.restore();
 
-      // Vanta Radio — bottom right
       const rw = 188, rh = 54, rx = w - rw - 20, ry = h - 30 - rh - 10;
       ctx.save();
       ctx.fillStyle = "#ffffff05"; ctx.fillRect(rx, ry, rw, rh);
@@ -546,7 +956,6 @@ export default function World() {
       ctx.fillText("Now Playing: Babyboi Loco", rx + 12, ry + 44);
       ctx.restore();
 
-      // Status bar
       ctx.save();
       ctx.fillStyle = "#ffffff04"; ctx.fillRect(0, h - 30, w, 30);
       ctx.strokeStyle = "#ffffff0a"; ctx.lineWidth = 0.5;
@@ -572,14 +981,12 @@ export default function World() {
       const p = playerRef.current;
       const m = moveRef.current;
 
-      // Teleport (fast travel)
       if (teleportRef.current) {
         p.col = teleportRef.current.col;
         p.row = teleportRef.current.row;
         teleportRef.current = null;
       }
 
-      // Movement: screen-space input → tile delta
       const ix = (m.right ? 1 : 0) - (m.left ? 1 : 0);
       const iy = (m.down ? 1 : 0) - (m.up ? 1 : 0);
       if (ix !== 0 || iy !== 0) {
@@ -595,11 +1002,9 @@ export default function World() {
         if (ix !== 0) p.facing = ix > 0 ? 1 : -1;
       }
 
-      // Camera origin → keep player anchored (near street-level)
       const ox = w / 2 - (p.col - p.row) * HW;
       const oy = h * CAM_ANCHOR_Y - (p.col + p.row) * HH;
 
-      // Nearest interactive entrance
       let bestId: string | null = null, bestD = ENTER_DIST;
       for (const n of NODES) {
         const d = Math.hypot(n.entranceCol - p.col, n.entranceRow - p.row);
@@ -610,7 +1015,6 @@ export default function World() {
       ctx.clearRect(0, 0, w, h);
       ctx.fillStyle = "#04040b"; ctx.fillRect(0, 0, w, h);
 
-      // Ground (culled)
       for (let c = 0; c < COLS; c++) {
         for (let r = 0; r < ROWS; r++) {
           const sx = (c - r) * HW + ox, sy = (c + r) * HH + oy;
@@ -624,7 +1028,6 @@ export default function World() {
         drawCheckpoint(ctx, cp.col, cp.row, ox, oy);
       }
 
-      // Buildings + lamps + player (painter-sorted, culled)
       hitRef.current = [];
       const pSort = p.col + p.row;
       let playerDrawn = false;
@@ -634,18 +1037,30 @@ export default function World() {
           playerDrawn = true;
         }
         const sx = (item.col - item.row) * HW + ox, sy = (item.col + item.row) * HH + oy;
-        // Generous bottom margin: tall foreground towers with bases below the
-        // viewport still extend upward into view, so don't cull them too early.
         if (sx < -HW - 60 || sx > w + HW + 60 || sy < -300 || sy > h + 320) continue;
         if (item.kind === "lamp") {
           drawLamp(ctx, item.col, item.row, ox, oy, tick);
+        } else if (item.kind === "feature" && item.feature) {
+          const isNear = Math.abs(item.col - p.col) + Math.abs(item.row - p.row) < SIGN_NEAR;
+          drawFeature(ctx, item.feature, ox, oy, tick, isNear);
         } else if (item.building) {
           const b = item.building;
-          const isHov = b.interactive && hoveredRef.current === b.node!.id;
-          const isNear = Math.abs(b.col - p.col) + Math.abs(b.row - p.row) < 9;
-          drawBuilding(ctx, b, ox, oy, isHov, isNear, tick);
-          if (b.interactive) {
-            hitRef.current.push({ id: b.node!.id, cx: sx, cy: sy - b.height * WU * 0.55, r: 34 });
+          const isHov = b.hoverable && hoveredRef.current === (b.node ? b.node.id : `b${b.col},${b.row}`);
+          const isNearWin = Math.abs(b.col - p.col) + Math.abs(b.row - p.row) < WIN_NEAR;
+          const isNearSign = Math.abs(b.col - p.col) + Math.abs(b.row - p.row) < SIGN_NEAR;
+          drawBuilding(ctx, b, ox, oy, isHov, b.interactive ? isNearWin : isNearSign, tick);
+          // register hover/click targets — only visible labeled buildings
+          if (b.hoverable) {
+            const scol = b.sign ? SIGNS[b.sign] : PALETTES[b.palette].neon;
+            const r = b.interactive ? 34 : 20;
+            hitRef.current.push({
+              id: b.node ? b.node.id : `b${b.col},${b.row}`,
+              label: b.label || "",
+              sub: b.interactive ? (b.node?.subtitle || "") : (b.category || ""),
+              color: b.interactive ? PALETTES[b.palette].neon : scol,
+              interactive: b.interactive,
+              cx: sx, cy: sy - b.height * WU * 0.55 - 6, r2: r * r,
+            });
           }
         }
       }
@@ -672,20 +1087,22 @@ export default function World() {
   function handleMouseMove(e: React.MouseEvent<HTMLCanvasElement>) {
     const rect = canvasRef.current!.getBoundingClientRect();
     const mx = e.clientX - rect.left, my = e.clientY - rect.top;
-    let found: string | null = null;
+    let found: HitEntry | null = null;
     for (const hh of hitRef.current) {
-      if (Math.hypot(mx - hh.cx, my - hh.cy) < hh.r) { found = hh.id; break; }
+      const dx = mx - hh.cx, dy = my - hh.cy;
+      if (dx * dx + dy * dy < hh.r2) { found = hh; break; }
     }
-    hoveredRef.current = found;
-    if (found !== hovered) setHovered(found);
-    canvasRef.current!.style.cursor = found ? "pointer" : "default";
+    hoveredRef.current = found ? found.id : null;
+    if ((found?.id ?? null) !== (hovered?.id ?? null)) setHovered(found);
+    canvasRef.current!.style.cursor = found?.interactive ? "pointer" : "default";
   }
 
   function handleClick(e: React.MouseEvent<HTMLCanvasElement>) {
     const rect = canvasRef.current!.getBoundingClientRect();
     const mx = e.clientX - rect.left, my = e.clientY - rect.top;
     for (const hh of hitRef.current) {
-      if (Math.hypot(mx - hh.cx, my - hh.cy) < hh.r) {
+      const dx = mx - hh.cx, dy = my - hh.cy;
+      if (dx * dx + dy * dy < hh.r2 && hh.interactive) {
         const n = NODES.find((x) => x.id === hh.id);
         if (n) setSelected(n);
         return;
@@ -718,7 +1135,7 @@ export default function World() {
           <Compass className="w-3 h-3" /> FAST TRAVEL
         </button>
         {showJumpMenu && (
-          <div className="absolute top-full right-0 mt-1 bg-black/92 border border-white/10 rounded-sm backdrop-blur-sm min-w-[180px] overflow-hidden">
+          <div className="absolute top-full right-0 mt-1 bg-black/92 border border-white/10 rounded-sm backdrop-blur-sm min-w-[180px] overflow-hidden max-h-[70vh] overflow-y-auto">
             {FAST_TRAVEL.map((n) => (
               <button
                 key={n.id}
@@ -771,19 +1188,15 @@ export default function World() {
         </div>
       )}
 
-      {/* Hover tooltip (desktop) */}
-      {hovered && !nearNode && !selected && (() => {
-        const b = NODES.find((n) => n.id === hovered);
-        if (!b) return null;
-        return (
-          <div className="fixed bottom-12 left-1/2 -translate-x-1/2 z-10 pointer-events-none" data-testid="tooltip-building">
-            <div className="bg-black/80 border border-white/10 backdrop-blur-sm px-6 py-3 rounded-sm text-center">
-              <p className="text-xs uppercase tracking-widest font-mono mb-0.5" style={{ color: PALETTES[b.palette].neon }}>{b.name}</p>
-              <p className="text-xs text-muted-foreground font-mono">{b.subtitle}</p>
-            </div>
+      {/* Hover tooltip — works for landmarks and normal city buildings */}
+      {hovered && !nearNode && !selected && (
+        <div className="fixed bottom-12 left-1/2 -translate-x-1/2 z-10 pointer-events-none" data-testid="tooltip-building">
+          <div className="bg-black/80 border border-white/10 backdrop-blur-sm px-6 py-3 rounded-sm text-center">
+            <p className="text-xs uppercase tracking-widest font-mono mb-0.5" style={{ color: hovered.color }}>{hovered.label}</p>
+            {hovered.sub && <p className="text-xs text-muted-foreground font-mono">{hovered.sub}</p>}
           </div>
-        );
-      })()}
+        </div>
+      )}
 
       {/* Node modal */}
       {selected && (
