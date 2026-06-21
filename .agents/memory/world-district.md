@@ -1,84 +1,81 @@
 ---
-name: World — walkable isometric city
-description: Durable design decisions/gotchas for /world (client/src/pages/world.tsx), a walkable street-level isometric city explorer
+name: World — 3D WebGL city explorer
+description: Durable design decisions/gotchas for /world (client/src/pages/world.tsx), a true 3D third-person WebGL city explorer, plus the headless-WebGL verification trap
 ---
 
-# /world — Walkable Isometric City
+# /world — 3D WebGL City Explorer
 
-The /world page is a canvas-rendered, street-level isometric city you WALK through
-(controllable avatar via WASD/arrows + mobile d-pad), not a map you pan/drag. Camera
-follows the player. ~580+ procedurally-placed structures across named neighborhoods;
-12 landmark NODES route to real pages. Single self-contained file, no deps, no WebGL.
+The /world page is a TRUE 3D, third-person, street-level city explorer built with
+`three` + `@react-three/fiber` + `@react-three/drei` (R3F `<Canvas>`). You drive a player
+avatar with WASD/arrows; a follow-camera sits behind the player at street level; drag
+rotates the camera yaw; collision + bounds clamp keep the player in the city; a proximity
+"Press E to enter" prompt opens a modal that routes to one of 12 landmark pages.
+Primitives only (boxes/instanced meshes/lights) — no models, NPCs, physics, or backend.
 
-## City generation = weighted hoods + SPECIALS override + flat FEATURES
-The grid (48x32) is partitioned into named neighborhoods (HOODS), each a rect with a
-WEIGHTED building-type table (TYPES catalogue: cat/drawKind/height/names/sign). Generation
-fills each non-road/non-plaza/non-node tile by sampling its hood's table, THEN a curated
-SPECIALS list overrides specific coords (hotels/transit/billboards/radio towers/garages/
-precincts/clubs/cinema/courts/skatepark/tunnel/compounds) so hand-placed landmarks read
-distinctly. Flat FEATURES (food trucks/stalls/bridge) draw at ground level, not as boxes.
-**Why:** weighted tables give believable district character cheaply; a SPECIALS override
-layer lets you place memorable one-offs without fighting the random fill.
-**How to apply:** to add variety, extend TYPES + a hood's weight table; to place a specific
-named thing at a coord, add to SPECIALS (it wins over the hood fill).
+**This replaced an earlier 2D isometric `<canvas>` version.** It also reverses an earlier
+project rule of "no WebGL / no new deps" — the user explicitly authorized three/R3F/drei.
 
-## Reachability guard — relocating a NODE can strand its entrance
-A BFS-from-player-start IIFE floods over `isWalkable` tiles and `console.warn`s if any
-node's entrance tile is unreachable. ALWAYS keep it green: every node entrance must sit on
-a street/alley/plaza/lot tile that connects to the start. Roads are formulaic
-(`isStreet`/`isAlley` by col/row modulo) so moving a node near a plaza/lot edge can quietly
-cut it off. **Why:** fast-travel + the Enter flow both depend on the entrance being a
-walkable, connected tile; an unreachable node is invisible to walking players.
+## R3F v8 is mandatory on React 18
+`@react-three/fiber` v9 requires React 19. This project is React 18, so pin
+**@react-three/fiber@^8** (with three ^0.169 + drei ^9). Confirm there is only ONE copy of
+`react` after install (`npm ls react` → all "deduped"); `@use-gesture/react` and
+`@types/react` are unrelated packages, not duplicate React.
+**Why:** a fiber/React major mismatch (or a duplicate React) throws "Invalid hook call"
+in a real browser, not just headless. **How to apply:** if you ever bump fiber to v9 you
+must also move the whole app to React 19.
 
-## Clutter + per-frame perf: gate signs/windows by proximity, hover by squared dist
-Minor neon signs (1-pass) and lit windows only draw within a Manhattan radius of the player
-(SIGN_NEAR / WIN_NEAR); landmark NODES always render their 4-pass glow. Hover hit-testing
-builds a per-frame `hitRef` of ONLY visible, labeled, hoverable buildings and picks the
-nearest by SQUARED screen distance (no sqrt). Click opens a modal only for `interactive`
-NODES; flavor buildings hover-only. **Why:** drawing every sign/window each frame both
-clutters desktop and burns CPU over ~600 items + 1536 ground tiles; proximity gating fixes
-both. **How to apply:** keep new decorative signage behind the proximity gate; reserve the
-always-on multi-pass glow for true landmarks.
+## THE BIG TRAP: headless tooling browsers have NO stable WebGL — you can't screenshot-verify the 3D
+The screenshot tool AND the Playwright testing harness both run a headless browser that
+cannot sustain a WebGL2 context. The `webglAvailable()` probe (which only creates a context
+briefly) often PASSES there, the `<Canvas>` mounts, then the renderer logs
+`THREE.WebGLRenderer: Context Lost.` and R3F throws a cascade during scene creation:
+`undefined is not an object (evaluating 'acc[key2]')` in `applyProps`/`createInstance`, plus
+a secondary "Invalid hook call". **These are NOT real bugs** — they do not occur in the
+user's real (GPU-backed) browser. Do not chase `acc[key2]` as a code defect: it only means a
+three object's props are being applied while its context is dying. (Sanity check it's not a
+genuine dashed-prop bug by grepping for `someprop-subprop={` in the file — there are none.)
+**How to verify the 3D path instead:** `tsc --noEmit` clean + an architect review +
+confirming the fallback directory renders/routes + the user testing in their real browser.
+You will not get a 3D screenshot from this environment; that is expected, not a failure.
 
-## Occlusion: unique col-row OR painter-sort with player inserted
-Isometric screen-x = (col - row) * HW. Two buildings sharing `col - row` land on the
-same screen column and fully occlude each other. With hand-placed buildings, keep
-`col - row` unique. With procedural generation (current), instead rely on a per-frame
-painter sort: sort all visible items by `col + row` ascending and INSERT the player
-into that order at its own `col + row` so it occludes / is occluded correctly.
-**Why:** depth in iso is `col + row`; x-collision is `col - row`.
+## Graceful degradation is three layered guards, all required
+Because of the trap above (and real-world GPU resets), the page degrades to a navigable
+`CityDirectory` (a grid of the 12 landmark cards using the SAME route map as the 3D modal,
+comingSoon item disabled). Three layers:
+1. `webglAvailable()` probe — tests `webgl2` then `webgl1` (matching what three requests),
+   and releases the probe context via `WEBGL_lose_context` so it doesn't count against the
+   browser's context limit. If false → render directory, never mount Canvas.
+2. `GLBoundary` (a class `componentDidCatch`/`getDerivedStateFromError` error boundary)
+   wraps `<Canvas>` — catches the SYNCHRONOUS render-time crash (the headless cascade) and
+   swaps in the directory. This is what makes the headless screenshot show a clean directory.
+3. `<Canvas onCreated>` adds a `webglcontextlost` listener that flips a `glLost` state →
+   directory. This covers POST-mount context loss (driver reset) that the boundary misses
+   because it isn't a React render error.
+**Why all three:** the probe can't predict sustained-renderer success; the boundary can't
+catch async context-loss events; the onCreated handler can't catch a synchronous create-time
+throw. Each layer covers a gap the others don't.
 
-## Collision must sample a footprint, not just the center tile
-`canStand` must check the rounded center PLUS cardinal offsets (±RAD on col and row,
-RAD≈0.3). Center-only rounding lets the avatar visually penetrate ~half a tile into
-blocked buildings. RAD<0.5 keeps 1-tile-wide alleys passable (offsets still round to
-the same walkable tile when centered). Movement is dt-based with axis-separated
-sliding (try full move, then x-only, then y-only) so you slide along walls.
+## Per-frame correctness (R3F)
+- All movement/camera state lives in refs; the `useFrame` loop mutates them and only calls
+  React `setState` when the near-landmark id actually CHANGES (avoids per-frame re-renders).
+- Reuse `THREE.Vector3`/temp objects across frames — don't allocate in `useFrame`.
+- Movement is dt-clamped and camera-relative; collision is axis-separated (try full move,
+  then x-only, then y-only) against an AABB list so the player slides along walls; a final
+  `BOUND` clamp prevents leaving the map.
+- Procedural city is deterministic (mulberry32 seed) so layout is stable across reloads;
+  buildings/signs/streetlights are InstancedMesh (`args={[undefined, undefined, count]}` +
+  per-instance matrix/color set in a layout effect, `frustumCulled={false}`).
+- Add a window `blur` listener that clears movement flags (keys stick "pressed" otherwise);
+  remove all key/pointer/blur listeners in cleanup.
 
-## Cull margin: tall towers draw UPWARD from their base
-Buildings render upward from their base tile, so a tower whose base is BELOW the
-viewport still extends up into view. The bottom cull margin must exceed max building
-height (use ~h + 320, not h + small). Too-tight a bottom margin pops foreground towers
-in/out near the bottom edge.
-
-## rAF / React correctness
-- Single `useEffect([])` rAF loop; all mutable state in refs (player pos, move flags,
-  near-node id) so frames never trigger React renders.
-- Only call setState when the near-node id actually changes (throttle), else constant
-  re-renders.
-- Cache the HUD clock string (update ~once/sec via tick%30), don't call `new Date()`
-  every frame.
-- Add a window `blur` listener that clears all movement flags, or keys stay "stuck"
-  pressed when focus leaves mid-walk. Remove it in cleanup alongside resize/key listeners.
-
-## Controls & misc
-- Mobile d-pad is `md:hidden` (desktop uses WASD/arrows). Proximity prompt ("Press E")
-  is shown for all and also tappable.
-- Fast-travel teleports the avatar to a node's entrance tile (entrance must be walkable).
-- Canvas is `fixed inset-0 z-0`; Header is `fixed z-50`; HUD + status bar painted onto
-  the canvas; modal/tooltip/d-pad/fast-travel are DOM overlays above the canvas.
-- Procedural gen is deterministic (mulberry32 seed) so layout is stable across reloads.
+## Landmark routes (12) — keep modal + directory in sync
+black-index→/search, transmissions-tower→/, music-hub→/releases, vault-gate→/vault,
+mission-handler→/enter, worlds-archive→/worlds, vanta-os-core→/enter, fract-terminal→/fract,
+wireline-terminal→/wireline, hidden-himalayas→/himalayas (portal/torus mesh),
+fractured-godhead→/fgh, vanta-box→comingSoon (disabled, no route).
+**How to apply:** the 3D enter-modal and the `CityDirectory` fallback both read the same
+LANDMARKS list — change routes in one place so both paths stay consistent.
 
 ## StartupScreen still applies
-Fresh-session screenshots show the boot splash first (sessionStorage-gated). Verify via
-tsc + console + e2e, not a single capture — see startup-boot-screen.md.
+Fresh-session captures show the ~2.8s VANTA COLD boot splash first (sessionStorage-gated
+`vc-boot`). Verify via tsc + console + e2e, not a single capture — see startup-boot-screen.md.
