@@ -62,6 +62,16 @@ comingSoon item disabled). Three layers:
 waiting reveals the "context lost on first render" envs; getContext lies. Keep all three, but
 the async probe is what actually fixed the user's crash — the boundary can't suppress the dev
 overlay, and onCreated can't catch a create-time throw.
+4. **`client/index.html` early error suppressor (final safety net).** A classic (non-module)
+   `<script>` at the top of `<head>` registers `capture: true` error/unhandledrejection
+   listeners. Capture-phase listeners fire BEFORE any bubble listener regardless of registration
+   order, so `stopImmediatePropagation()` here silences the vite `runtime-error-modal` plugin
+   even if the Canvas somehow mounts and crashes. Patterns matched: `acc[key2]`, `WebGL`,
+   `webgl`, `Context Lost`, `context lost`, `THREE.WebGL`, `applyProps`, `getContext`.
+   **Why this works:** the vite plugin uses bubble-phase `window.addEventListener('error')` via
+   its own deferred module; our inline classic script runs synchronously first and registers in
+   capture, winning regardless. **Only suppress if you're sure the pattern is WebGL-specific** —
+   a too-broad suppressor would hide real bugs.
 
 ## Per-frame correctness (R3F)
 - All movement/camera state lives in refs; the `useFrame` loop mutates them and only calls

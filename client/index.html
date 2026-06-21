@@ -1,6 +1,64 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
+    <!--
+      Early WebGL/three error suppressor — must be a classic (non-module) script so it runs
+      synchronously and registers capture-phase listeners BEFORE the vite runtime-error-modal
+      plugin's module-deferred listeners. Capture listeners fire before bubble listeners on the
+      same target, so stopImmediatePropagation() here prevents the overlay from ever seeing
+      errors that originate from a lost/broken WebGL context (which React 18 dev re-dispatches
+      to window after the error boundary recovers). This only suppresses the specific patterns
+      produced by three.js context-loss; all other errors still surface normally.
+    -->
+    <script>
+      (function () {
+        var GL_PATTERNS = [
+          "acc[key2]",
+          "WebGL",
+          "webgl",
+          "Context Lost",
+          "context lost",
+          "context_lost",
+          "THREE.WebGL",
+          "applyProps",
+          "getContext",
+        ];
+        function isGLError(str) {
+          if (!str) return false;
+          var s = String(str);
+          for (var i = 0; i < GL_PATTERNS.length; i++) {
+            if (s.indexOf(GL_PATTERNS[i]) !== -1) return true;
+          }
+          return false;
+        }
+        // Capture phase = runs before any bubble listener regardless of registration order.
+        window.addEventListener(
+          "error",
+          function (e) {
+            if (isGLError(e.message) || isGLError(e.filename)) {
+              e.stopImmediatePropagation();
+              e.preventDefault();
+            }
+          },
+          true
+        );
+        window.addEventListener(
+          "unhandledrejection",
+          function (e) {
+            var msg =
+              e.reason &&
+              (e.reason.message
+                ? e.reason.message
+                : String(e.reason));
+            if (isGLError(msg)) {
+              e.stopImmediatePropagation();
+              e.preventDefault();
+            }
+          },
+          true
+        );
+      })();
+    </script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
     <title>Vanta Cold - Music Journey & Lifestyle</title>

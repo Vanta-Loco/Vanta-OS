@@ -880,10 +880,14 @@ async function probeWebGL(): Promise<boolean> {
       inst.setMatrixAt(i, m);
     }
     scene.add(inst);
-    renderer.render(scene, cam);
-
-    // Give the browser a chance to fire an async webglcontextlost event.
-    await new Promise((r) => setTimeout(r, 80));
+    // Render several frames spread over 300 ms — a single-frame probe on a software GL
+    // stack can pass even though the context dies under load (which is what triggers the
+    // acc[key2] crash in R3F). Multiple ticks give the driver time to report the loss.
+    for (let f = 0; f < 4; f++) {
+      renderer.render(scene, cam);
+      await new Promise((r) => setTimeout(r, 75));
+      if (lost || renderer.getContext().isContextLost()) break;
+    }
 
     const glLost = lost || renderer.getContext().isContextLost();
     inst.geometry.dispose();
