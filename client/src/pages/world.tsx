@@ -664,7 +664,7 @@ function PlayerRig({
   const pos = useRef(new THREE.Vector3(PLAYER_START[0], 0, PLAYER_START[1]));
   const yaw = useRef(0); // camera azimuth
   const faceYaw = useRef(Math.PI);
-  const keys = useRef<Set<string>>(new Set());
+  const keysRef = useRef<Set<string>>(new Set());
   const nearId = useRef<string | null>(null);
   const dragging = useRef(false);
   const lastX = useRef(0);
@@ -681,34 +681,37 @@ function PlayerRig({
   useEffect(() => {
     const isTyping = () => {
       const el = document.activeElement;
-      if (!el) return false;
-      const tag = el.tagName.toLowerCase();
-      return tag === "input" || tag === "textarea" ||
-        (el as HTMLElement).isContentEditable;
+      return (
+        el instanceof HTMLInputElement ||
+        el instanceof HTMLTextAreaElement ||
+        el?.getAttribute("contenteditable") === "true"
+      );
     };
 
-    const down = (e: KeyboardEvent) => {
+    const onKeyDown = (event: KeyboardEvent) => {
       if (isTyping()) return;
-      const k = e.key.toLowerCase();
-      if (["arrowup", "arrowdown", "arrowleft", "arrowright", " "].includes(k))
-        e.preventDefault();
-      keys.current.add(k);
-      if (k === "e" && nearId.current && !pausedRef.current)
+      keysRef.current.add(event.key.toLowerCase());
+      if (
+        ["arrowup", "arrowdown", "arrowleft", "arrowright", " "].includes(
+          event.key.toLowerCase()
+        )
+      ) {
+        event.preventDefault();
+      }
+      if (event.key.toLowerCase() === "e" && nearId.current && !pausedRef.current)
         onEnter(nearId.current);
     };
-    const up = (e: KeyboardEvent) => {
-      keys.current.delete(e.key.toLowerCase());
+
+    const onKeyUp = (event: KeyboardEvent) => {
+      keysRef.current.delete(event.key.toLowerCase());
     };
-    const blur = () => {
-      keys.current.clear();
-    };
-    window.addEventListener("keydown", down);
-    window.addEventListener("keyup", up);
-    window.addEventListener("blur", blur);
+
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keyup", onKeyUp);
+
     return () => {
-      window.removeEventListener("keydown", down);
-      window.removeEventListener("keyup", up);
-      window.removeEventListener("blur", blur);
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("keyup", onKeyUp);
     };
   }, [onEnter]);
 
@@ -739,7 +742,7 @@ function PlayerRig({
 
   useFrame((_, dtRaw) => {
     const dt = Math.min(dtRaw, 0.05);
-    const k = keys.current;
+    const keys = keysRef.current;
     const p = pos.current;
     const th = yaw.current;
     const t = tmp.current;
@@ -750,10 +753,10 @@ function PlayerRig({
     let iz = 0;
     let ix = 0;
     if (!pausedRef.current) {
-      if (k.has("w") || k.has("arrowup"))    iz += 1;
-      if (k.has("s") || k.has("arrowdown"))  iz -= 1;
-      if (k.has("d") || k.has("arrowright")) ix += 1;
-      if (k.has("a") || k.has("arrowleft"))  ix -= 1;
+      if (keys.has("w") || keys.has("arrowup"))    iz += 1;
+      if (keys.has("s") || keys.has("arrowdown"))  iz -= 1;
+      if (keys.has("d") || keys.has("arrowright")) ix += 1;
+      if (keys.has("a") || keys.has("arrowleft"))  ix -= 1;
     }
 
     const move = t.move.set(0, 0, 0);
