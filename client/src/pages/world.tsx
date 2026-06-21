@@ -11,7 +11,7 @@ import {
 } from "react";
 import { useLocation } from "wouter";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Html, Grid } from "@react-three/drei";
+import { Grid } from "@react-three/drei";
 import * as THREE from "three";
 import { Header } from "@/components/header";
 import { Button } from "@/components/ui/button";
@@ -493,9 +493,6 @@ function LandmarkMesh({ lm }: { lm: Landmark }) {
           <ringGeometry args={[ringR + 1.5, ringR + 2.6, 48]} />
           <meshBasicMaterial color={lm.neon} toneMapped={false} transparent opacity={0.6} side={THREE.DoubleSide} />
         </mesh>
-        <Html position={[0, 19, 0]} center pointerEvents="none">
-          <LandmarkLabel name={lm.name} neon={lm.neon} />
-        </Html>
       </group>
     );
   }
@@ -541,35 +538,7 @@ function LandmarkMesh({ lm }: { lm: Landmark }) {
           <meshBasicMaterial color={lm.neon} toneMapped={false} />
         </mesh>
       )}
-      <Html position={[0, lm.h + 8.5, 0]} center pointerEvents="none">
-        <LandmarkLabel name={lm.name} neon={lm.neon} sealed={lm.comingSoon} />
-      </Html>
     </group>
-  );
-}
-
-function LandmarkLabel({
-  name,
-  neon,
-  sealed,
-}: {
-  name: string;
-  neon: string;
-  sealed?: boolean;
-}) {
-  return (
-    <div
-      className="select-none whitespace-nowrap rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.18em] backdrop-blur-sm"
-      style={{
-        color: neon,
-        borderColor: `${neon}66`,
-        background: "rgba(5,3,12,0.6)",
-        textShadow: `0 0 8px ${neon}`,
-        opacity: sealed ? 0.7 : 1,
-      }}
-    >
-      {name}
-    </div>
   );
 }
 
@@ -921,54 +890,14 @@ class GLBoundary extends Component<
   }
 }
 
-function CityDirectory({ navigate }: { navigate: (to: string) => void }) {
+function WebGLFallback() {
   return (
-    <div className="absolute inset-0 overflow-auto bg-[#05030c]">
-      <div className="mx-auto max-w-5xl px-4 pb-16 pt-24">
-        <div className="text-xs uppercase tracking-[0.3em] text-purple-400/70">
-          Vanta City · District Index
-        </div>
-        <h1 className="mt-1 text-3xl font-bold uppercase tracking-wide text-purple-200">
-          Enter a Landmark
-        </h1>
-        <p className="mt-2 max-w-xl text-sm text-zinc-500">
-          The live 3D street view requires WebGL. Choose a destination below to jump
-          straight into any district.
-        </p>
-        <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {LANDMARKS.map((lm) => (
-            <button
-              key={lm.id}
-              data-testid={`button-district-${lm.id}`}
-              disabled={lm.comingSoon}
-              onClick={() => lm.href && navigate(lm.href)}
-              className="group flex flex-col items-start gap-1 rounded-md border bg-black/40 p-4 text-left backdrop-blur-sm transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
-              style={{ borderColor: `${lm.neon}44` }}
-            >
-              <span
-                className="text-[10px] font-bold uppercase tracking-[0.2em]"
-                style={{ color: lm.neon }}
-              >
-                {lm.sub}
-              </span>
-              <span className="text-base font-semibold uppercase tracking-wide text-zinc-100">
-                {lm.name}
-              </span>
-              <span className="text-xs leading-relaxed text-zinc-500">{lm.desc}</span>
-              <span className="mt-1 flex items-center gap-1 text-xs font-semibold" style={{ color: lm.neon }}>
-                {lm.comingSoon ? (
-                  <>
-                    <Lock className="h-3.5 w-3.5" /> Coming Soon
-                  </>
-                ) : (
-                  <>
-                    Enter <ChevronRight className="h-3.5 w-3.5" />
-                  </>
-                )}
-              </span>
-            </button>
-          ))}
-        </div>
+    <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#05030c] gap-3">
+      <div className="text-xs uppercase tracking-[0.3em] text-purple-500/60">
+        Vanta City
+      </div>
+      <div className="text-sm text-zinc-600 max-w-xs text-center">
+        WebGL is not available in this environment. Open in a desktop browser to explore the city.
       </div>
     </div>
   );
@@ -1011,7 +940,7 @@ export default function World() {
         style={{ touchAction: "none", cursor: showCanvas ? "grab" : "default" }}
       >
         {showCanvas ? (
-          <GLBoundary fallback={<CityDirectory navigate={navigate} />}>
+          <GLBoundary fallback={<WebGLFallback />}>
             <Canvas
               dpr={[1, 1.6]}
               camera={{ fov: 62, near: 0.1, far: 460, position: [0, 9, 56] }}
@@ -1039,7 +968,7 @@ export default function World() {
             </div>
           </div>
         ) : (
-          <CityDirectory navigate={navigate} />
+          <WebGLFallback />
         )}
       </div>
 
