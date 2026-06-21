@@ -841,21 +841,66 @@ function MobileControls() {
 }
 
 // ─── WebGL guard + graceful fallback ──────────────────────────────────────────────
-function webglAvailable() {
+// A plain getContext() check is NOT enough: some environments (Replit's headless
+// preview/screenshot browser, certain remote/software GL stacks) hand back a context
+// that is immediately LOST the moment three actually renders to it. That throws
+// asynchronously deep inside R3F, which React 18 dev re-dispatches to window.onerror,
+// tripping the runtime-error overlay. So we do a real warmup: build an actual
+// THREE.WebGLRenderer, render one frame with an instanced mesh (like the real scene),
+// then wait a beat to see whether the context survives. Only mount the <Canvas> if it does.
+async function probeWebGL(): Promise<boolean> {
+  if (typeof window === "undefined") return false;
+  let renderer: THREE.WebGLRenderer | undefined;
+  let canvas: HTMLCanvasElement | undefined;
   try {
-    const c = document.createElement("canvas");
-    // three/R3F request a WebGL2 context first, then fall back to WebGL1.
-    const gl =
-      (c.getContext("webgl2") as WebGLRenderingContext | null) ||
-      (c.getContext("webgl") as WebGLRenderingContext | null) ||
-      (c.getContext("experimental-webgl") as WebGLRenderingContext | null);
-    if (!gl) return false;
-    // Release the probe context so it doesn't count against the browser's limit.
-    const lose = gl.getExtension("WEBGL_lose_context");
-    if (lose) lose.loseContext();
-    return true;
+    canvas = document.createElement("canvas");
+    canvas.width = 32;
+    canvas.height = 32;
+    let lost = false;
+    canvas.addEventListener("webglcontextlost", () => (lost = true), { once: true });
+
+    const ctx =
+      (canvas.getContext("webgl2") as WebGLRenderingContext | null) ||
+      (canvas.getContext("webgl") as WebGLRenderingContext | null);
+    if (!ctx) return false;
+
+    renderer = new THREE.WebGLRenderer({ canvas, antialias: false });
+    renderer.setSize(32, 32, false);
+    const scene = new THREE.Scene();
+    const cam = new THREE.PerspectiveCamera(50, 1, 0.1, 10);
+    cam.position.z = 3;
+    const inst = new THREE.InstancedMesh(
+      new THREE.BoxGeometry(),
+      new THREE.MeshBasicMaterial(),
+      8,
+    );
+    const m = new THREE.Matrix4();
+    for (let i = 0; i < 8; i++) {
+      m.setPosition((i % 4) - 1.5, 0, 0);
+      inst.setMatrixAt(i, m);
+    }
+    scene.add(inst);
+    renderer.render(scene, cam);
+
+    // Give the browser a chance to fire an async webglcontextlost event.
+    await new Promise((r) => setTimeout(r, 80));
+
+    const glLost = lost || renderer.getContext().isContextLost();
+    inst.geometry.dispose();
+    (inst.material as THREE.Material).dispose();
+    return !glLost;
   } catch {
     return false;
+  } finally {
+    try {
+      renderer?.dispose();
+      const lose = renderer
+        ?.getContext()
+        ?.getExtension("WEBGL_lose_context") as { loseContext?: () => void } | null;
+      lose?.loseContext?.();
+    } catch {
+      /* ignore */
+    }
   }
 }
 
@@ -928,13 +973,23 @@ function CityDirectory({ navigate }: { navigate: (to: string) => void }) {
 // ─── Page ───────────────────────────────────────────────────────────────────────
 export default function World() {
   const [, navigate] = useLocation();
-  const [webgl] = useState(() => webglAvailable());
+  const [phase, setPhase] = useState<"checking" | "3d" | "fallback">("checking");
   const [glLost, setGlLost] = useState(false);
   const city = useMemo(() => buildCity(), []);
   const [nearId, setNearId] = useState<string | null>(null);
   const [selected, setSelected] = useState<Landmark | null>(null);
 
-  const showCanvas = webgl && !glLost;
+  useEffect(() => {
+    let alive = true;
+    probeWebGL().then((ok) => {
+      if (alive) setPhase(ok ? "3d" : "fallback");
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const showCanvas = phase === "3d" && !glLost;
 
   const onNear = useCallback((id: string | null) => setNearId(id), []);
   const onEnter = useCallback((id: string) => {
@@ -973,6 +1028,12 @@ export default function World() {
               <Scene city={city} paused={!!selected} onNear={onNear} onEnter={onEnter} />
             </Canvas>
           </GLBoundary>
+        ) : phase === "checking" ? (
+          <div className="absolute inset-0 flex items-center justify-center bg-[#05030c]">
+            <div className="text-xs uppercase tracking-[0.3em] text-purple-400/60 animate-pulse">
+              Booting Vanta City…
+            </div>
+          </div>
         ) : (
           <CityDirectory navigate={navigate} />
         )}
@@ -981,7 +1042,7 @@ export default function World() {
       <Header />
 
       {/* HUD */}
-      {webgl && (
+      {showCanvas && (
       <div className="pointer-events-none absolute left-4 top-20 z-10 max-w-xs">
         <div className="rounded-md border border-purple-500/30 bg-black/50 px-3 py-2 backdrop-blur-sm">
           <div className="text-sm font-bold uppercase tracking-[0.25em] text-purple-300" data-testid="text-city-title">
@@ -1033,7 +1094,7 @@ export default function World() {
         </div>
       )}
 
-      {webgl && <MobileControls />}
+      {showCanvas && <MobileControls />}
 
       {/* Modal */}
       {selected && (

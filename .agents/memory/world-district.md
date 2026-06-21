@@ -24,36 +24,44 @@ project rule of "no WebGL / no new deps" — the user explicitly authorized thre
 in a real browser, not just headless. **How to apply:** if you ever bump fiber to v9 you
 must also move the whole app to React 19.
 
-## THE BIG TRAP: headless tooling browsers have NO stable WebGL — you can't screenshot-verify the 3D
-The screenshot tool AND the Playwright testing harness both run a headless browser that
-cannot sustain a WebGL2 context. The `webglAvailable()` probe (which only creates a context
-briefly) often PASSES there, the `<Canvas>` mounts, then the renderer logs
-`THREE.WebGLRenderer: Context Lost.` and R3F throws a cascade during scene creation:
-`undefined is not an object (evaluating 'acc[key2]')` in `applyProps`/`createInstance`, plus
-a secondary "Invalid hook call". **These are NOT real bugs** — they do not occur in the
-user's real (GPU-backed) browser. Do not chase `acc[key2]` as a code defect: it only means a
-three object's props are being applied while its context is dying. (Sanity check it's not a
-genuine dashed-prop bug by grepping for `someprop-subprop={` in the file — there are none.)
-**How to verify the 3D path instead:** `tsc --noEmit` clean + an architect review +
-confirming the fallback directory renders/routes + the user testing in their real browser.
-You will not get a 3D screenshot from this environment; that is expected, not a failure.
+## THE BIG TRAP: headless/preview browsers have NO stable WebGL — and a getContext() probe is NOT enough
+The screenshot tool, the Playwright harness, AND the user's own Replit preview browser can
+all hand back a WebGL context that is LOST the instant three actually renders. A synchronous
+`getContext()` probe PASSES there (the context creates fine), so the `<Canvas>` mounts, then
+the renderer logs `THREE.WebGLRenderer: Context Lost.` and R3F throws a cascade during scene
+creation: `undefined is not an object (evaluating 'acc[key2]')` in `applyProps`/`createInstance`,
+plus a secondary "Invalid hook call". **These are NOT real code bugs** — they don't occur in a
+GPU-backed browser. Do not chase `acc[key2]` as a defect: it only means a three object's props
+are applied while its context is dying. (Grep `someprop-subprop={` to confirm no real
+dashed-prop bug — there are none.)
+**Why the synchronous probe failed the user:** React 18 dev re-dispatches the caught R3F error
+to `window.onerror`, which trips `@replit/vite-plugin-runtime-error-modal` (the crash overlay).
+`GLBoundary` recovers the React tree but CANNOT stop that dev overlay — so the only reliable fix
+is to NEVER mount the Canvas in a broken env. A getContext check can't tell you that.
+**How to verify the 3D path:** `tsc --noEmit` clean + architect review + confirm the fallback
+directory renders/routes + user tests in their real browser. You will NOT get a 3D screenshot
+from this environment; that is expected, not a failure.
 
 ## Graceful degradation is three layered guards, all required
 Because of the trap above (and real-world GPU resets), the page degrades to a navigable
 `CityDirectory` (a grid of the 12 landmark cards using the SAME route map as the 3D modal,
 comingSoon item disabled). Three layers:
-1. `webglAvailable()` probe — tests `webgl2` then `webgl1` (matching what three requests),
-   and releases the probe context via `WEBGL_lose_context` so it doesn't count against the
-   browser's context limit. If false → render directory, never mount Canvas.
-2. `GLBoundary` (a class `componentDidCatch`/`getDerivedStateFromError` error boundary)
-   wraps `<Canvas>` — catches the SYNCHRONOUS render-time crash (the headless cascade) and
-   swaps in the directory. This is what makes the headless screenshot show a clean directory.
-3. `<Canvas onCreated>` adds a `webglcontextlost` listener that flips a `glLost` state →
-   directory. This covers POST-mount context loss (driver reset) that the boundary misses
-   because it isn't a React render error.
-**Why all three:** the probe can't predict sustained-renderer success; the boundary can't
-catch async context-loss events; the onCreated handler can't catch a synchronous create-time
-throw. Each layer covers a gap the others don't.
+1. **`probeWebGL()` — an ASYNC warmup, the primary guard.** It builds a REAL
+   `THREE.WebGLRenderer`, renders one frame with an `InstancedMesh` (same op class as the
+   scene), `await`s ~80ms for an async `webglcontextlost`, then checks the lost flag /
+   `getContext().isContextLost()`, disposes, and releases via `WEBGL_lose_context`. Returns
+   `false` in broken envs so the Canvas NEVER mounts → no throw → no dev overlay. Driven by a
+   3-phase state `"checking" | "3d" | "fallback"` set from a `useEffect`; `<Canvas>` renders
+   only when `phase==="3d" && !glLost`, "checking" shows a brief loader, else `CityDirectory`.
+   Compute the return value BEFORE the intentional context-loss in `finally` so it stays valid.
+2. `GLBoundary` (class error boundary) wraps `<Canvas>` — catches a synchronous render-time
+   crash if a browser passes the warmup but fails the full scene. Backup only.
+3. `<Canvas onCreated>` adds a `webglcontextlost` listener that flips `glLost` → directory.
+   Covers POST-mount context loss (driver reset). Backup only.
+**Why async warmup beats the old sync getContext probe:** only actually rendering a frame and
+waiting reveals the "context lost on first render" envs; getContext lies. Keep all three, but
+the async probe is what actually fixed the user's crash — the boundary can't suppress the dev
+overlay, and onCreated can't catch a create-time throw.
 
 ## Per-frame correctness (R3F)
 - All movement/camera state lives in refs; the `useFrame` loop mutates them and only calls
