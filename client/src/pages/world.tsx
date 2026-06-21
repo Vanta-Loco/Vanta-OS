@@ -28,18 +28,19 @@ import {
 } from "lucide-react";
 
 // ─── World constants ──────────────────────────────────────────────────────────
-const BOUND = 128; // player movement clamp (city half-extent)
-const PLAYER_SPEED = 22; // units / second
-const CAM_DIST = 15;
-const CAM_HEIGHT = 8.5;
-const ENTER_PAD = 7; // extra radius around a landmark footprint to allow entry
+const BOUND = 185;          // player movement clamp (city half-extent)
+const PLAYER_SPEED = 30;    // units / second
+const CAM_DIST = 9;         // camera distance behind player
+const CAM_HEIGHT = 4.5;     // camera height above ground
+const ENTER_PAD = 14;       // proximity radius to trigger "Press E"
 const PLAYER_RADIUS = 1.4;
 
-// City road / block grid
-const LINES = [-132, -88, -44, 0, 44, 88, 132];
-const MIDS = [-110, -66, -22, 22, 66, 110];
-const ROADW = 11;
-const BLOCK = 33;
+// City road / block grid — 9 major roads each axis
+const LINES = [-176, -132, -88, -44, 0, 44, 88, 132, 176];
+const MIDS  = [-154, -110, -66, -22, 22, 66, 110, 154];
+const ROADW = 10;           // road surface width
+const SW    = 3.0;          // sidewalk strip width
+const BLOCK = 33;           // block size
 
 // Dark building base colors (purple / deep-blue / crimson family)
 const DARK = [
@@ -81,18 +82,24 @@ type Landmark = {
 };
 
 const LANDMARKS: Landmark[] = [
-  { id: "vanta-os-core", name: "VANTA OS CORE", sub: "SYSTEM HEART", desc: "The pulsing core of the Vanta network. Jack in to boot the operating system.", href: "/enter", pos: [0, 0], color: "#1a0a2e", neon: "#e879f9", w: 16, d: 16, h: 50 },
-  { id: "transmissions-tower", name: "TRANSMISSIONS TOWER", sub: "BROADCAST SPIRE", desc: "Where every signal is written and sent — the editorial heart of Vanta Cold.", href: "/", pos: [0, -110], color: "#0b1330", neon: "#38bdf8", w: 12, d: 12, h: 62 },
-  { id: "music-hub", name: "MUSIC HUB", sub: "THE LABEL", desc: "Releases, drops and the full discography of the Vanta sound.", href: "/releases", pos: [88, -66], color: "#2a0a1e", neon: "#fb7185", w: 16, d: 14, h: 40 },
-  { id: "black-index", name: "BLACK INDEX", sub: "ARCHIVE SEARCH", desc: "Query the index. Surface every transmission ever logged.", href: "/search", pos: [110, 22], color: "#160a2b", neon: "#a855f7", w: 15, d: 15, h: 44 },
-  { id: "worlds-archive", name: "WORLDS ARCHIVE", sub: "THE UNIVERSE", desc: "The projects and worlds that make up the Vanta universe.", href: "/worlds", pos: [66, 88], color: "#06202a", neon: "#22d3ee", w: 18, d: 14, h: 36 },
-  { id: "vault-gate", name: "VAULT GATE", sub: "RESTRICTED", desc: "A sealed vault. Only those with the code pass through.", href: "/vault", pos: [0, 110], color: "#260808", neon: "#ef4444", w: 20, d: 16, h: 30 },
-  { id: "fractured-godhead", name: "FRACTURED GODHEAD", sub: "THE DISTRICT", desc: "The cult quarter — broken idols and neon scripture.", href: "/fgh", pos: [-88, 88], color: "#0a1c08", neon: "#a3e635", w: 16, d: 16, h: 46 },
-  { id: "mission-handler", name: "MISSION HANDLER", sub: "OPS COMMAND", desc: "Assignments dispatched from the militant ops floor.", href: "/enter", pos: [-110, 0], color: "#231603", neon: "#fbbf24", w: 16, d: 12, h: 34 },
-  { id: "wireline-terminal", name: "WIRELINE TERMINAL", sub: "DATA UPLINK", desc: "Hard-line access to the wire. Raw data in, raw data out.", href: "/wireline", pos: [-88, -66], color: "#0a1330", neon: "#60a5fa", w: 13, d: 13, h: 44 },
-  { id: "fract-terminal", name: "FRACT TERMINAL", sub: "THE EXCHANGE", desc: "The fractured exchange. Trade in signal and noise.", href: "/fract", pos: [-44, -110], color: "#1a0a2e", neon: "#e879f9", w: 15, d: 15, h: 40 },
-  { id: "hidden-himalayas", name: "HIDDEN HIMALAYAS", sub: "THE PORTAL", desc: "A gateway that should not exist. Step through.", href: "/himalayas", pos: [44, -110], color: "#06202a", neon: "#a5f3fc", w: 16, d: 16, h: 30, kind: "portal" },
-  { id: "vanta-box", name: "VANTA BOX", sub: "SEALED", desc: "Something is being built here. Not yet.", comingSoon: true, pos: [110, -110], color: "#10101e", neon: "#64748b", w: 14, d: 14, h: 26 },
+  // Central tower — spawn area
+  { id: "vanta-os-core",       name: "VANTA OS CORE",        sub: "SYSTEM HEART",    desc: "The pulsing core of the Vanta network. Jack in to boot the operating system.", href: "/enter",     pos: [0, 0],       color: "#1a0a2e", neon: "#e879f9", w: 18, d: 18, h: 55 },
+  // North / South outer ring
+  { id: "transmissions-tower", name: "TRANSMISSIONS TOWER",  sub: "BROADCAST SPIRE", desc: "Where every signal is written and sent — the editorial heart of Vanta Cold.",  href: "/",          pos: [0, -154],    color: "#0b1330", neon: "#38bdf8", w: 14, d: 14, h: 66 },
+  { id: "vault-gate",          name: "VAULT GATE",           sub: "RESTRICTED",      desc: "A sealed vault. Only those with the code pass through.",                       href: "/vault",      pos: [0, 154],     color: "#260808", neon: "#ef4444", w: 22, d: 18, h: 34 },
+  // East outer ring
+  { id: "black-index",         name: "BLACK INDEX",          sub: "ARCHIVE SEARCH",  desc: "Query the index. Surface every transmission ever logged.",                     href: "/search",     pos: [154, 44],    color: "#160a2b", neon: "#a855f7", w: 16, d: 16, h: 48 },
+  { id: "music-hub",           name: "MUSIC HUB",            sub: "THE LABEL",       desc: "Releases, drops and the full discography of the Vanta sound.",                 href: "/releases",   pos: [132, -88],   color: "#2a0a1e", neon: "#fb7185", w: 17, d: 15, h: 42 },
+  { id: "worlds-archive",      name: "WORLDS ARCHIVE",       sub: "THE UNIVERSE",    desc: "The projects and worlds that make up the Vanta universe.",                     href: "/worlds",     pos: [110, 132],   color: "#06202a", neon: "#22d3ee", w: 20, d: 16, h: 38 },
+  // West outer ring
+  { id: "mission-handler",     name: "MISSION HANDLER",      sub: "OPS COMMAND",     desc: "Assignments dispatched from the militant ops floor.",                          href: "/enter",      pos: [-154, 0],    color: "#231603", neon: "#fbbf24", w: 17, d: 14, h: 36 },
+  { id: "wireline-terminal",   name: "WIRELINE TERMINAL",    sub: "DATA UPLINK",     desc: "Hard-line access to the wire. Raw data in, raw data out.",                    href: "/wireline",   pos: [-132, -88],  color: "#0a1330", neon: "#60a5fa", w: 14, d: 14, h: 46 },
+  { id: "fractured-godhead",   name: "FRACTURED GODHEAD",    sub: "THE DISTRICT",    desc: "The cult quarter — broken idols and neon scripture.",                          href: "/fgh",        pos: [-132, 110],  color: "#0a1c08", neon: "#a3e635", w: 17, d: 17, h: 50 },
+  // South diagonal pair
+  { id: "fract-terminal",      name: "FRACT TERMINAL",       sub: "THE EXCHANGE",    desc: "The fractured exchange. Trade in signal and noise.",                           href: "/fract",      pos: [-66, -154],  color: "#1a0a2e", neon: "#e879f9", w: 16, d: 16, h: 42 },
+  { id: "hidden-himalayas",    name: "HIDDEN HIMALAYAS",     sub: "THE PORTAL",      desc: "A gateway that should not exist. Step through.",                              href: "/himalayas",  pos: [66, -154],   color: "#06202a", neon: "#a5f3fc", w: 17, d: 17, h: 32, kind: "portal" },
+  // Far corner
+  { id: "vanta-box",           name: "VANTA BOX",            sub: "SEALED",          desc: "Something is being built here. Not yet.",   comingSoon: true,                 pos: [154, -132],   color: "#10101e", neon: "#64748b", w: 15, d: 15, h: 28 },
 ];
 
 const LM_BY_ID: Record<string, Landmark> = Object.fromEntries(
@@ -115,6 +122,7 @@ type InstItem = {
 };
 type CityData = {
   buildings: InstItem[];
+  smallBuildings: InstItem[];
   signs: InstItem[];
   lights: { x: number; z: number }[];
   aabb: AABB[];
@@ -134,84 +142,106 @@ function mulberry32(seed: number) {
 function buildCity(): CityData {
   const r = mulberry32(7);
   const buildings: InstItem[] = [];
+  const smallBuildings: InstItem[] = [];
   const signs: InstItem[] = [];
   const lights: { x: number; z: number }[] = [];
   const aabb: AABB[] = [];
 
   const zones = LANDMARKS.map((l) => ({
-    x: l.pos[0],
-    z: l.pos[1],
-    rad: Math.max(l.w, l.d) * 0.5 + 12,
+    x: l.pos[0], z: l.pos[1],
+    rad: Math.max(l.w, l.d) * 0.5 + 14,
   }));
+  const isClear = (cx: number, cz: number) => {
+    for (const z of zones)
+      if (Math.hypot(cx - z.x, cz - z.z) < z.rad) return false;
+    if (Math.hypot(cx - PLAYER_START[0], cz - PLAYER_START[1]) < 14) return false;
+    return true;
+  };
+
+  const sideOff = (side: number, fw: number, fd: number) =>
+    side === 0 ? { x: 0,        z: fd/2+0.1  }
+    : side === 1 ? { x: fw/2+0.1, z: 0         }
+    : side === 2 ? { x: 0,        z: -fd/2-0.1 }
+    :              { x: -fw/2-0.1, z: 0         };
 
   for (const mx of MIDS)
     for (const mz of MIDS) {
-      const g = r() < 0.5 ? 2 : 3;
+      const dist = Math.hypot(mx, mz);
+      // Outer zones subdivide more → smaller lots (residential scale)
+      const g = dist > 120 ? (r() < 0.4 ? 3 : 4) : r() < 0.5 ? 2 : 3;
       const lot = BLOCK / g;
+
       for (let i = 0; i < g; i++)
         for (let j = 0; j < g; j++) {
-          if (r() < 0.18) continue; // empty lot / micro-park
-          const cx = mx - BLOCK / 2 + lot * (i + 0.5);
-          const cz = mz - BLOCK / 2 + lot * (j + 0.5);
+          const isEdgeLot = i === 0 || i === g-1 || j === 0 || j === g-1;
+          // Fewer empty lots on edges → continuous storefronts facing roads
+          if (r() < (isEdgeLot ? 0.1 : 0.22)) continue;
 
-          let skip = false;
-          for (const z of zones)
-            if (Math.hypot(cx - z.x, cz - z.z) < z.rad + 6) {
-              skip = true;
-              break;
-            }
-          if (skip) continue;
-          if (Math.hypot(cx - PLAYER_START[0], cz - PLAYER_START[1]) < 11)
-            continue;
+          const cx = mx - BLOCK/2 + lot * (i + 0.5);
+          const cz = mz - BLOCK/2 + lot * (j + 0.5);
+          if (!isClear(cx, cz)) continue;
 
-          const fw = lot * (0.55 + r() * 0.3);
-          const fd = lot * (0.55 + r() * 0.3);
-          const rad = Math.hypot(cx, cz);
-          let h: number;
-          if (rad < 55) h = 18 + r() * 26;
-          else if (rad < 100) h = 10 + r() * 18;
-          else h = 6 + r() * 12;
-
-          const color = DARK[Math.floor(r() * DARK.length)];
-          buildings.push({ x: cx, y: h / 2, z: cz, sx: fw, sy: h, sz: fd, color });
-          aabb.push({ x: cx, z: cz, hw: fw / 2, hd: fd / 2 });
-
-          if (r() < 0.55) {
+          if (isEdgeLot) {
+            // ── Storefront / corner store / restaurant (low-rise) ──
+            const fw = lot * (0.62 + r() * 0.28);
+            const fd = lot * (0.42 + r() * 0.25);
+            const h  = 3.0 + r() * 6.5; // 3–9.5 units
+            const color = DARK[Math.floor(r() * DARK.length)];
+            smallBuildings.push({ x: cx, y: h/2, z: cz, sx: fw, sy: h, sz: fd, color });
+            aabb.push({ x: cx, z: cz, hw: fw/2+0.1, hd: fd/2+0.1 });
+            // Storefronts always have a sign
             const side = Math.floor(r() * 4);
-            const ang = side * (Math.PI / 2);
-            const off =
-              side === 0
-                ? { x: 0, z: fd / 2 + 0.1 }
-                : side === 1
-                  ? { x: fw / 2 + 0.1, z: 0 }
-                  : side === 2
-                    ? { x: 0, z: -fd / 2 - 0.1 }
-                    : { x: -fw / 2 - 0.1, z: 0 };
-            const sw = 1.6 + r() * 3;
-            signs.push({
-              x: cx + off.x,
-              y: 3 + r() * Math.min(Math.max(h - 4, 2), 13),
-              z: cz + off.z,
-              sx: sw,
-              sy: sw * 0.7,
-              sz: 1,
-              rot: ang,
-              color: NEON[Math.floor(r() * NEON.length)],
-            });
+            const off  = sideOff(side, fw, fd);
+            const sw   = 1.1 + r() * 2.0;
+            signs.push({ x: cx+off.x, y: h*0.72 + r()*1.2, z: cz+off.z,
+              sx: sw, sy: sw*0.55, sz: 1, rot: side*(Math.PI/2),
+              color: NEON[Math.floor(r() * NEON.length)] });
+          } else {
+            // ── Tower / apartment / hotel (mid-to-tall) ──
+            const fw = lot * (0.52 + r() * 0.32);
+            const fd = lot * (0.52 + r() * 0.32);
+            let h: number;
+            if (dist < 45)       h = 24 + r() * 36; // downtown skyscrapers
+            else if (dist < 80)  h = 15 + r() * 24; // mixed-use towers
+            else if (dist < 130) h = 8  + r() * 18; // apartment blocks
+            else                 h = 4  + r() * 10; // outer residential
+            const color = DARK[Math.floor(r() * DARK.length)];
+            buildings.push({ x: cx, y: h/2, z: cz, sx: fw, sy: h, sz: fd, color });
+            aabb.push({ x: cx, z: cz, hw: fw/2+0.1, hd: fd/2+0.1 });
+            // 70 % of towers get 1–2 neon signs
+            if (r() < 0.70) {
+              const numSigns = r() < 0.28 ? 2 : 1;
+              for (let k = 0; k < numSigns; k++) {
+                const side = Math.floor(r() * 4);
+                const off  = sideOff(side, fw, fd);
+                const sw   = 1.5 + r() * 3.4;
+                signs.push({ x: cx+off.x, y: 3+r()*Math.min(h-5,18), z: cz+off.z,
+                  sx: sw, sy: sw*0.65, sz: 1, rot: side*(Math.PI/2),
+                  color: NEON[Math.floor(r() * NEON.length)] });
+              }
+            }
           }
         }
     }
 
   for (const l of LANDMARKS)
-    aabb.push({ x: l.pos[0], z: l.pos[1], hw: l.w / 2, hd: l.d / 2 });
+    aabb.push({ x: l.pos[0], z: l.pos[1], hw: l.w/2, hd: l.d/2 });
 
+  // Street lights — every road/road intersection + mid-block pole each segment
   for (let ii = 0; ii < LINES.length; ii++)
-    for (let jj = 0; jj < LINES.length; jj++) {
-      if ((ii + jj) % 2 !== 0) continue;
+    for (let jj = 0; jj < LINES.length; jj++)
       lights.push({ x: LINES[ii], z: LINES[jj] });
-    }
+  // Additional mid-block lights alongside roads
+  for (const lx of LINES)
+    for (const mz of MIDS)
+      if ((LINES.indexOf(lx) + MIDS.indexOf(mz)) % 2 === 0)
+        lights.push({ x: lx, z: mz });
+  for (const mx of MIDS)
+    for (const lz of LINES)
+      if ((MIDS.indexOf(mx) + LINES.indexOf(lz)) % 2 === 0)
+        lights.push({ x: mx, z: lz });
 
-  return { buildings, signs, lights, aabb };
+  return { buildings, smallBuildings, signs, lights, aabb };
 }
 
 function clamp(v: number, lo: number, hi: number) {
@@ -283,7 +313,7 @@ function Signs({ items }: { items: InstItem[] }) {
   return (
     <instancedMesh
       ref={ref as any}
-      args={[undefined as any, undefined as any, items.length]}
+      args={[undefined as any, undefined as any, Math.max(1, items.length)]}
       frustumCulled={false}
     >
       <planeGeometry />
@@ -295,6 +325,27 @@ function Signs({ items }: { items: InstItem[] }) {
         side={THREE.DoubleSide}
         blending={THREE.AdditiveBlending}
         depthWrite={false}
+      />
+    </instancedMesh>
+  );
+}
+
+function SmallBuildings({ items }: { items: InstItem[] }) {
+  const ref = useRef<THREE.InstancedMesh>(null);
+  useLayoutEffect(() => applyInstances(ref.current, items, true), [items]);
+  return (
+    <instancedMesh
+      ref={ref as any}
+      args={[undefined as any, undefined as any, Math.max(1, items.length)]}
+      frustumCulled={false}
+    >
+      <boxGeometry />
+      <meshStandardMaterial
+        color="#ffffff"
+        emissive="#0c0618"
+        emissiveIntensity={0.25}
+        roughness={0.92}
+        metalness={0.06}
       />
     </instancedMesh>
   );
@@ -338,30 +389,70 @@ function StreetLights({ items }: { items: { x: number; z: number }[] }) {
 }
 
 function Roads() {
-  const span = BOUND * 2.5;
+  const span = BOUND * 2.8;
+  const swOff = ROADW / 2 + SW / 2;   // sidewalk centre offset from road centre
+  const curbOff = ROADW / 2 + SW + 0.15;
   return (
     <group>
+      {/* ── Horizontal roads ── */}
       {LINES.map((v, i) => (
-        <group key={`h${i}`}>
-          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.03, v]}>
+        <group key={`hr${i}`}>
+          {/* road tarmac */}
+          <mesh rotation={[-Math.PI/2, 0, 0]} position={[0, 0.03, v]}>
             <planeGeometry args={[span, ROADW]} />
-            <meshStandardMaterial color="#0a0612" roughness={0.9} metalness={0.1} />
+            <meshStandardMaterial color="#090610" roughness={0.96} metalness={0.04} />
           </mesh>
-          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.05, v]}>
-            <planeGeometry args={[span, 0.4]} />
-            <meshBasicMaterial color="#7c3aed" toneMapped={false} transparent opacity={0.5} />
+          {/* centre glow stripe */}
+          <mesh rotation={[-Math.PI/2, 0, 0]} position={[0, 0.058, v]}>
+            <planeGeometry args={[span, 0.28]} />
+            <meshBasicMaterial color="#7c3aed" toneMapped={false} transparent opacity={0.38} />
+          </mesh>
+          {/* sidewalks — raised concrete strips */}
+          <mesh rotation={[-Math.PI/2, 0, 0]} position={[0, 0.13, v - swOff]}>
+            <planeGeometry args={[span, SW]} />
+            <meshStandardMaterial color="#0e0c1b" roughness={1} metalness={0} />
+          </mesh>
+          <mesh rotation={[-Math.PI/2, 0, 0]} position={[0, 0.13, v + swOff]}>
+            <planeGeometry args={[span, SW]} />
+            <meshStandardMaterial color="#0e0c1b" roughness={1} metalness={0} />
+          </mesh>
+          {/* curb lips */}
+          <mesh position={[0, 0.095, v - curbOff]}>
+            <boxGeometry args={[span, 0.19, 0.3]} />
+            <meshStandardMaterial color="#1a1530" roughness={0.9} />
+          </mesh>
+          <mesh position={[0, 0.095, v + curbOff]}>
+            <boxGeometry args={[span, 0.19, 0.3]} />
+            <meshStandardMaterial color="#1a1530" roughness={0.9} />
           </mesh>
         </group>
       ))}
+      {/* ── Vertical roads ── */}
       {LINES.map((v, i) => (
-        <group key={`v${i}`}>
-          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[v, 0.03, 0]}>
+        <group key={`vr${i}`}>
+          <mesh rotation={[-Math.PI/2, 0, 0]} position={[v, 0.03, 0]}>
             <planeGeometry args={[ROADW, span]} />
-            <meshStandardMaterial color="#0a0612" roughness={0.9} metalness={0.1} />
+            <meshStandardMaterial color="#090610" roughness={0.96} metalness={0.04} />
           </mesh>
-          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[v, 0.05, 0]}>
-            <planeGeometry args={[0.4, span]} />
-            <meshBasicMaterial color="#7c3aed" toneMapped={false} transparent opacity={0.5} />
+          <mesh rotation={[-Math.PI/2, 0, 0]} position={[v, 0.058, 0]}>
+            <planeGeometry args={[0.28, span]} />
+            <meshBasicMaterial color="#7c3aed" toneMapped={false} transparent opacity={0.38} />
+          </mesh>
+          <mesh rotation={[-Math.PI/2, 0, 0]} position={[v - swOff, 0.13, 0]}>
+            <planeGeometry args={[SW, span]} />
+            <meshStandardMaterial color="#0e0c1b" roughness={1} metalness={0} />
+          </mesh>
+          <mesh rotation={[-Math.PI/2, 0, 0]} position={[v + swOff, 0.13, 0]}>
+            <planeGeometry args={[SW, span]} />
+            <meshStandardMaterial color="#0e0c1b" roughness={1} metalness={0} />
+          </mesh>
+          <mesh position={[v - curbOff, 0.095, 0]}>
+            <boxGeometry args={[0.3, 0.19, span]} />
+            <meshStandardMaterial color="#1a1530" roughness={0.9} />
+          </mesh>
+          <mesh position={[v + curbOff, 0.095, 0]}>
+            <boxGeometry args={[0.3, 0.19, span]} />
+            <meshStandardMaterial color="#1a1530" roughness={0.9} />
           </mesh>
         </group>
       ))}
@@ -394,11 +485,25 @@ function Ground() {
 }
 
 const BILLBOARDS: { x: number; z: number; rot: number; c: string }[] = [
-  { x: 20, z: 20, rot: Math.PI * 0.75, c: "#e879f9" },
-  { x: -30, z: -12, rot: 0.4, c: "#f87171" },
-  { x: 58, z: 12, rot: -0.6, c: "#22d3ee" },
-  { x: -18, z: 56, rot: Math.PI, c: "#fbbf24" },
-  { x: 32, z: -42, rot: 2.2, c: "#c084fc" },
+  // Downtown core
+  { x: 20,   z: 20,   rot: Math.PI * 0.75, c: "#e879f9" },
+  { x: -30,  z: -12,  rot: 0.4,            c: "#f87171" },
+  { x: 58,   z: 12,   rot: -0.6,           c: "#22d3ee" },
+  { x: -18,  z: 56,   rot: Math.PI,        c: "#fbbf24" },
+  { x: 32,   z: -42,  rot: 2.2,            c: "#c084fc" },
+  // Mid-city
+  { x: 95,   z: -30,  rot: 1.1,            c: "#fb7185" },
+  { x: -95,  z: 30,   rot: -0.8,           c: "#fbbf24" },
+  { x: 30,   z: 95,   rot: 0.3,            c: "#a5f3fc" },
+  { x: -55,  z: -90,  rot: Math.PI * 0.5,  c: "#a3e635" },
+  { x: 80,   z: 80,   rot: -1.4,           c: "#38bdf8" },
+  { x: -80,  z: -50,  rot: 2.8,            c: "#e879f9" },
+  // Outer ring
+  { x: 130,  z: 0,    rot: Math.PI * 0.5,  c: "#a855f7" },
+  { x: -130, z: -20,  rot: 0.9,            c: "#60a5fa" },
+  { x: 0,    z: -130, rot: 0,              c: "#38bdf8" },
+  { x: -110, z: 110,  rot: 1.7,            c: "#a3e635" },
+  { x: 110,  z: -110, rot: -0.5,           c: "#fb7185" },
 ];
 
 function Billboards() {
@@ -665,9 +770,9 @@ function PlayerRig({
       CAM_HEIGHT,
       p.z + Math.cos(th) * CAM_DIST,
     );
-    const lerp = 1 - Math.pow(0.0015, dt);
+    const lerp = 1 - Math.pow(0.001, dt);
     camera.position.lerp(cam, lerp);
-    camera.lookAt(p.x, 2.4, p.z);
+    camera.lookAt(p.x, 1.8, p.z);
 
     let best: string | null = null;
     let bestD = Infinity;
@@ -726,14 +831,15 @@ function Scene({
   return (
     <>
       <color attach="background" args={["#05030c"]} />
-      <fog attach="fog" args={["#05030c", 38, 178]} />
-      <ambientLight intensity={0.6} color="#b7a6e6" />
-      <hemisphereLight args={["#3a1d6e", "#05030a", 0.5]} />
-      <directionalLight position={[40, 80, 20]} intensity={1.3} color="#9d7bff" />
+      <fog attach="fog" args={["#05030c", 18, 240]} />
+      <ambientLight intensity={0.55} color="#b7a6e6" />
+      <hemisphereLight args={["#3a1d6e", "#05030a", 0.45]} />
+      <directionalLight position={[40, 80, 20]} intensity={1.2} color="#9d7bff" />
       <Suspense fallback={null}>
         <Ground />
         <Roads />
         <Buildings items={city.buildings} />
+        <SmallBuildings items={city.smallBuildings} />
         <Signs items={city.signs} />
         <StreetLights items={city.lights} />
         <Billboards />
@@ -885,7 +991,7 @@ export default function World() {
           >
             <Canvas
               dpr={[1, 1.6]}
-              camera={{ fov: 62, near: 0.1, far: 460, position: [0, 9, 56] }}
+              camera={{ fov: 72, near: 0.1, far: 600, position: [0, 6, 32] }}
               gl={{ antialias: true, powerPreference: "high-performance" }}
               onCreated={({ gl }) => {
                 console.log("[Vanta City] WebGL renderer created:", gl.getContext().constructor.name);
