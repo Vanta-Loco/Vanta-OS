@@ -15,6 +15,8 @@ export const posts = pgTable("posts", {
   readTime: text("read_time").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   featured: text("featured").notNull().default('false'),
+  published: text("published").notNull().default('true'),
+  musicUrl: text("music_url").notNull().default(""),
 });
 
 export const insertPostSchema = createInsertSchema(posts).omit({
@@ -30,6 +32,8 @@ export const insertPostSchema = createInsertSchema(posts).omit({
   category: z.string().min(1, "Category is required"),
   readTime: z.string().default("5 min read"),
   featured: z.string().default('false'),
+  published: z.string().default('true'),
+  musicUrl: z.string().default(""),
 });
 
 export type InsertPost = z.infer<typeof insertPostSchema>;

@@ -62,6 +62,7 @@ export default function CreatePost() {
       category: "",
       readTime: "5 min read",
       featured: "false",
+      musicUrl: "",
     },
   });
 
@@ -226,6 +227,21 @@ export default function CreatePost() {
                       data-testid="input-readtime"
                     />
                   </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="musicUrl" className="text-base font-medium mb-2">
+                    Music URL <span className="text-muted-foreground font-normal">(optional)</span>
+                  </Label>
+                  <Input
+                    id="musicUrl"
+                    placeholder="Spotify, YouTube, or SoundCloud link"
+                    {...form.register("musicUrl")}
+                    data-testid="input-music-url"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Paste a Spotify track/album, YouTube video, or SoundCloud URL to embed a player.
+                  </p>
                 </div>
 
                 <div className="flex items-center justify-between p-4 rounded-lg border border-border">

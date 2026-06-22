@@ -81,6 +81,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ url: `/uploads/${req.file.filename}` });
   });
 
+  // ── Admin Posts (all including drafts) ─────────────────────────
+  app.get("/api/admin/posts", requireAdmin, async (_req, res) => {
+    try {
+      const posts = await storage.getAllPosts();
+      res.json(posts);
+    } catch (error) {
+      console.error("Error fetching all posts:", error);
+      res.status(500).json({ error: "Failed to fetch posts" });
+    }
+  });
+
   // ── Posts ──────────────────────────────────────────────────────
   app.get("/api/posts/search", async (req, res) => {
     try {

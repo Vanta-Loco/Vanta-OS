@@ -69,6 +69,7 @@ export default function EditPost() {
       category: "",
       readTime: "5 min read",
       featured: "false",
+      musicUrl: "",
     },
   });
 
@@ -84,6 +85,7 @@ export default function EditPost() {
         category: post.category,
         readTime: post.readTime,
         featured: post.featured,
+        musicUrl: post.musicUrl ?? "",
       });
       setCoverImagePreview(post.coverImage);
       setGalleryPreviews(post.images);
@@ -291,6 +293,22 @@ export default function EditPost() {
                       data-testid="input-read-time"
                     />
                   </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="musicUrl" data-testid="label-music-url">
+                    Music URL <span className="text-muted-foreground font-normal text-sm">(optional)</span>
+                  </Label>
+                  <Input
+                    id="musicUrl"
+                    {...form.register("musicUrl")}
+                    placeholder="Spotify, YouTube, or SoundCloud link"
+                    className="mt-2"
+                    data-testid="input-music-url"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Paste a Spotify track/album, YouTube video, or SoundCloud URL to embed a player.
+                  </p>
                 </div>
 
                 <div className="flex items-center justify-between p-4 bg-muted rounded-md">

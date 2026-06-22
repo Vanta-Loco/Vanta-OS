@@ -1,2 +1,2 @@
-- [World 3D explorer](world-district.md) — /world is a TRUE 3D WebGL third-person city (three+R3F v8+drei, React 18); headless browsers (screenshot+Playwright) lack stable WebGL so you CAN'T screenshot-verify 3D — use 3-layer fallback (probe+GLBoundary+contextlost) to a navigable directory.
-- [Startup boot screen](startup-boot-screen.md) — fresh-session screenshots show the 2.8s VANTA COLD splash (gated by sessionStorage vc-boot), not the page; verify via tsc + console, not one capture.
+- [Post schema evolution](post-schema.md) — posts table has published + musicUrl as text fields; use db:push --force for data-loss migrations; seed.ts must match all InsertPost fields.
+- [Admin auth pattern](admin-auth.md) — useAdmin() hook returns isAuthenticated; admin-only UI gates (edit/delete buttons) use this; backend routes use requireAdmin middleware.

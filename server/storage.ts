@@ -4,6 +4,7 @@ import { eq, desc, or, ilike, and } from "drizzle-orm";
 
 export interface IStorage {
   getPosts(): Promise<Post[]>;
+  getAllPosts(): Promise<Post[]>;
   getPost(id: string): Promise<Post | undefined>;
   createPost(post: InsertPost): Promise<Post>;
   updatePost(id: string, post: Partial<InsertPost>): Promise<Post | undefined>;
@@ -27,6 +28,10 @@ export interface IStorage {
 
 export class DatabaseStorage implements IStorage {
   async getPosts(): Promise<Post[]> {
+    return await db.select().from(posts).where(eq(posts.published, 'true')).orderBy(desc(posts.createdAt));
+  }
+
+  async getAllPosts(): Promise<Post[]> {
     return await db.select().from(posts).orderBy(desc(posts.createdAt));
   }
 

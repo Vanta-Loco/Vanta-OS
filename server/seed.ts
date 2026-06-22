@@ -21,6 +21,8 @@ Let's create something unforgettable together.`,
     category: "Music Production",
     readTime: "3 min read",
     featured: "true",
+    published: "true",
+    musicUrl: "",
   },
   {
     title: "Late Night Sessions",
@@ -40,6 +42,8 @@ These are the moments that define Vanta Cold.`,
     category: "Behind the Scenes",
     readTime: "4 min read",
     featured: "false",
+    published: "true",
+    musicUrl: "",
   },
   {
     title: "Building a Vision",
@@ -59,11 +63,13 @@ Looking ahead, there's so much more to build. More music to create, more stories
     category: "Creative Process",
     readTime: "5 min read",
     featured: "false",
+    published: "true",
+    musicUrl: "",
   }
 ];
 
 export async function seedDatabase() {
-  const existingPosts = await storage.getPosts();
+  const existingPosts = await storage.getAllPosts();
   
   if (existingPosts.length > 0) {
     console.log(`Database already has ${existingPosts.length} posts, skipping seed`);

@@ -12,7 +12,7 @@ import type { Post, Release, SiteContent } from "@shared/schema";
 import { ABOUT_DEFAULTS } from "@shared/schema";
 import {
   LogOut, Plus, Pencil, Trash2, Star, StarOff, Loader2, Save,
-  Upload, ImageIcon, X,
+  Upload, ImageIcon, X, Eye, EyeOff, FileText, Disc3, TrendingUp,
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -440,7 +440,7 @@ export default function Admin() {
   }, [isAuthenticated, authLoading, navigate]);
 
   const { data: posts, isLoading: postsLoading } = useQuery<Post[]>({
-    queryKey: ["/api/posts"],
+    queryKey: ["/api/admin/posts"],
     enabled: isAuthenticated,
   });
 
@@ -462,6 +462,17 @@ export default function Admin() {
     mutationFn: ({ id, featured }: { id: string; featured: string }) =>
       apiRequest("PATCH", `/api/posts/${id}`, { featured }),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/posts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
+    },
+    onError: () => toast({ title: "Update failed.", variant: "destructive" }),
+  });
+
+  const togglePostPublished = useMutation({
+    mutationFn: ({ id, published }: { id: string; published: string }) =>
+      apiRequest("PATCH", `/api/posts/${id}`, { published }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/posts"] });
       queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
     },
     onError: () => toast({ title: "Update failed.", variant: "destructive" }),
@@ -509,6 +520,55 @@ export default function Admin() {
       />
 
       <main className="flex-1 max-w-7xl mx-auto px-6 lg:px-8 py-12 w-full space-y-12">
+
+        {/* ── Stats bar ── */}
+        <section data-testid="section-admin-stats">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[
+              {
+                icon: FileText,
+                label: "Total Posts",
+                value: posts?.length ?? 0,
+                sub: `${posts?.filter(p => p.published === 'true').length ?? 0} published`,
+                testId: "stat-total-posts",
+              },
+              {
+                icon: EyeOff,
+                label: "Drafts",
+                value: posts?.filter(p => p.published !== 'true').length ?? 0,
+                sub: "unpublished",
+                testId: "stat-drafts",
+              },
+              {
+                icon: TrendingUp,
+                label: "Featured",
+                value: posts?.filter(p => p.featured === 'true').length ?? 0,
+                sub: "highlighted",
+                testId: "stat-featured",
+              },
+              {
+                icon: Disc3,
+                label: "Releases",
+                value: releases?.length ?? 0,
+                sub: `${releases?.filter(r => r.featured === 'true').length ?? 0} featured`,
+                testId: "stat-releases",
+              },
+            ].map(({ icon: Icon, label, value, sub, testId }) => (
+              <div
+                key={label}
+                className="border border-border rounded-md p-5 flex flex-col gap-1"
+                data-testid={testId}
+              >
+                <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                  <Icon className="w-4 h-4" />
+                  <span className="text-xs uppercase tracking-widest font-medium">{label}</span>
+                </div>
+                <p className="text-3xl font-display font-bold">{postsLoading || releasesLoading ? "—" : value}</p>
+                <p className="text-xs text-muted-foreground/60 font-mono">{sub}</p>
+              </div>
+            ))}
+          </div>
+        </section>
 
         {/* ── Transmissions ── */}
         <section data-testid="section-admin-posts">
@@ -562,11 +622,35 @@ export default function Admin() {
                   </div>
 
                   <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                    {post.published !== "true" && (
+                      <Badge variant="outline" className="text-xs uppercase tracking-wide border-amber-500/30 text-amber-400 bg-amber-500/10" data-testid={`badge-draft-post-${post.id}`}>
+                        Draft
+                      </Badge>
+                    )}
                     {post.featured === "true" && (
                       <Badge variant="secondary" className="text-xs uppercase tracking-wide" data-testid={`badge-featured-post-${post.id}`}>
                         Featured
                       </Badge>
                     )}
+
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      title={post.published === "true" ? "Unpublish (save as draft)" : "Publish"}
+                      onClick={() =>
+                        togglePostPublished.mutate({
+                          id: post.id,
+                          published: post.published === "true" ? "false" : "true",
+                        })
+                      }
+                      data-testid={`button-toggle-published-post-${post.id}`}
+                    >
+                      {post.published === "true" ? (
+                        <Eye className="w-4 h-4 text-muted-foreground" />
+                      ) : (
+                        <EyeOff className="w-4 h-4 text-amber-400/70" />
+                      )}
+                    </Button>
 
                     <Button
                       variant="ghost"
