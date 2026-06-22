@@ -24,23 +24,44 @@ project rule of "no WebGL / no new deps" — the user explicitly authorized thre
 in a real browser, not just headless. **How to apply:** if you ever bump fiber to v9 you
 must also move the whole app to React 19.
 
+## CRITICAL: R3F v8 JSX primitives crash with three@0.169.0 — use imperative THREE.js instead
+`<mesh>`, `<meshNormalMaterial>`, `<meshBasicMaterial>`, `<boxGeometry>` — ALL R3F JSX
+primitives crash in the real browser (confirmed June 2026) with the error:
+  `undefined is not an object (evaluating 'acc[key2]')` in `applyProps$1 @ chunk-YUXK5LOO.js:16714`
+This fires on `createInstance` for every primitive type — it is NOT material-specific. Root
+cause: version incompatibility between @react-three/fiber@8.18.0 and three@0.169.0 in R3F's
+`applyProps` property-path reduce.
+**Fix that works:** create ALL Three.js objects imperatively inside `useEffect` + `scene.add()`.
+Use `useThree()` to get `scene` and `camera`. Use `useFrame` for animation. Return `null` from
+the component. `GridHelper`, `Mesh`, `BoxGeometry`, `MeshBasicMaterial`, etc. all work fine
+when created with `new THREE.X()` and added via `scene.add()` — the crash ONLY occurs inside
+R3F's reconciler/applyProps path. The Canvas itself (`<Canvas>`) is safe and `onCreated` fires.
+**Pattern to follow for all new scene objects:**
+```tsx
+function MySceneComponent() {
+  const { scene } = useThree();
+  useEffect(() => {
+    const geo = new THREE.BoxGeometry(1,1,1);
+    const mat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+    const mesh = new THREE.Mesh(geo, mat);
+    scene.add(mesh);
+    return () => { scene.remove(mesh); geo.dispose(); mat.dispose(); };
+  }, [scene]);
+  useFrame((_, dt) => { /* mutate mesh refs here */ });
+  return null;
+}
+```
+**Why NOT upgrade:** fiber v9 requires React 19; downgrading three breaks other things; this
+imperative pattern works perfectly and is the established foundation for this project.
+
 ## THE BIG TRAP: headless/preview browsers have NO stable WebGL — and a getContext() probe is NOT enough
 The screenshot tool, the Playwright harness, AND the user's own Replit preview browser can
 all hand back a WebGL context that is LOST the instant three actually renders. A synchronous
 `getContext()` probe PASSES there (the context creates fine), so the `<Canvas>` mounts, then
 the renderer logs `THREE.WebGLRenderer: Context Lost.` and R3F throws a cascade during scene
-creation: `undefined is not an object (evaluating 'acc[key2]')` in `applyProps`/`createInstance`,
-plus a secondary "Invalid hook call". **These are NOT real code bugs** — they don't occur in a
-GPU-backed browser. Do not chase `acc[key2]` as a defect: it only means a three object's props
-are applied while its context is dying. (Grep `someprop-subprop={` to confirm no real
-dashed-prop bug — there are none.)
-**Why the synchronous probe failed the user:** React 18 dev re-dispatches the caught R3F error
-to `window.onerror`, which trips `@replit/vite-plugin-runtime-error-modal` (the crash overlay).
-`GLBoundary` recovers the React tree but CANNOT stop that dev overlay — so the only reliable fix
-is to NEVER mount the Canvas in a broken env. A getContext check can't tell you that.
-**How to verify the 3D path:** `tsc --noEmit` clean + architect review + confirm the fallback
-directory renders/routes + user tests in their real browser. You will NOT get a 3D screenshot
-from this environment; that is expected, not a failure.
+creation.
+**How to verify the 3D path:** `tsc --noEmit` clean + architect review + user tests in their
+real browser. You will NOT get a 3D screenshot from this environment; that is expected, not a failure.
 
 ## Graceful degradation — two layers, NO pre-flight probe
 Pre-flight probes (`probeWebGL()`) are DANGEROUS: they create a competing WebGL context that
