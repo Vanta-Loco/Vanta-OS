@@ -1,29 +1,14 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useVault } from "@/hooks/use-vault";
 import { useQuery } from "@tanstack/react-query";
 import type { VaultItem } from "@shared/schema";
 
-// ── Style constants matching world.tsx HUD aesthetic ────────────────────────
-const BG      = "rgba(5,3,12,0.93)";
-const BORDER  = "rgba(168,85,247,0.45)";
-const PURPLE  = "#a855f7";
-const MUTED   = "#4b5563";
-const TEXT    = "#c4b5fd";
-const DIM     = "#6b7280";
-const MONO    = "'Courier New', monospace";
-
-function fmt(s: number) {
-  if (!isFinite(s) || isNaN(s) || s < 0) return "0:00";
-  const m = Math.floor(s / 60);
-  const sec = Math.floor(s % 60);
-  return `${m}:${sec.toString().padStart(2, "0")}`;
-}
-
-const btn: React.CSSProperties = {
-  background: "none", border: "none", color: TEXT,
-  cursor: "pointer", fontFamily: MONO, lineHeight: 1,
-  padding: "2px 6px", fontSize: 14,
-};
+const BG     = "rgba(5,3,12,0.93)";
+const BORDER = "rgba(168,85,247,0.45)";
+const PURPLE = "#a855f7";
+const MUTED  = "#4b5563";
+const TEXT   = "#c4b5fd";
+const MONO   = "'Courier New', monospace";
 
 export function VaultRadio() {
   const { isAuthorized, isLoading: authLoading } = useVault();
@@ -37,80 +22,71 @@ export function VaultRadio() {
     (item) => item.type === "audio" && !!(item.compressedUrl || item.fileUrl)
   );
 
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [isPlaying, setIsPlaying]       = useState(false);
-  const [currentTime, setCurrentTime]   = useState(0);
-  const [duration, setDuration]         = useState(0);
-  const [showList, setShowList]         = useState(false);
+  const [on, setOn]         = useState(false);
+  const [volume, setVolume] = useState(0.7);
+  const [title, setTitle]   = useState<string>("");
 
-  const audioRef       = useRef<HTMLAudioElement>(null);
-  const isPlayingRef   = useRef(false);       // shadow for use in callbacks
-  const continueRef    = useRef(false);       // should autoplay after track change
+  const audioRef    = useRef<HTMLAudioElement | null>(null);
+  const indexRef    = useRef(0);
+  const tracksRef   = useRef<VaultItem[]>([]);
 
-  // Keep shadow in sync
-  useEffect(() => { isPlayingRef.current = isPlaying; }, [isPlaying]);
+  // Keep tracksRef in sync
+  useEffect(() => { tracksRef.current = tracks; }, [tracks]);
 
-  // Clamp index when tracks list shrinks
+  // Sync volume to audio element whenever it changes
   useEffect(() => {
-    if (tracks.length > 0 && currentIndex >= tracks.length) setCurrentIndex(0);
-  }, [tracks.length, currentIndex]);
+    if (audioRef.current) audioRef.current.volume = volume;
+  }, [volume]);
 
-  // Load new track when index changes
-  const track    = tracks[currentIndex];
-  const audioUrl = track ? (track.compressedUrl || track.fileUrl) : "";
+  function playAt(idx: number) {
+    const list = tracksRef.current;
+    if (!list.length) return;
+    const t = list[idx];
+    const url = t.compressedUrl || t.fileUrl;
+    if (!url) return;
 
+    if (!audioRef.current) {
+      audioRef.current = new Audio();
+      audioRef.current.volume = volume;
+      audioRef.current.onended = () => {
+        const next = (indexRef.current + 1) % tracksRef.current.length;
+        indexRef.current = next;
+        playAt(next);
+      };
+    }
+
+    indexRef.current = idx;
+    setTitle(t.title);
+    audioRef.current.src = url;
+    audioRef.current.load();
+    audioRef.current.play().catch(() => {});
+  }
+
+  function turnOn() {
+    if (!tracks.length) return;
+    setOn(true);
+    playAt(indexRef.current % Math.max(tracks.length, 1));
+  }
+
+  function turnOff() {
+    setOn(false);
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.src = "";
+    }
+    setTitle("");
+  }
+
+  // Clean up on unmount
   useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    if (!audioUrl) { audio.src = ""; return; }
-
-    audio.src = audioUrl;
-    audio.load();
-    setCurrentTime(0);
-    setDuration(0);
-
-    if (continueRef.current) {
-      audio.play().catch(() => {});
-      // isPlaying stays true — already set
-    }
-    continueRef.current = false;
-  }, [currentIndex, audioUrl]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const togglePlay = useCallback(() => {
-    const audio = audioRef.current;
-    if (!audio || !audioUrl) return;
-    if (isPlayingRef.current) {
-      audio.pause();
-      setIsPlaying(false);
-    } else {
-      audio.play().then(() => setIsPlaying(true)).catch(() => {});
-    }
-  }, [audioUrl]);
-
-  const goTo = useCallback((idx: number) => {
-    continueRef.current = isPlayingRef.current;
-    setCurrentIndex(idx);
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
   }, []);
 
-  const prev = useCallback(() => {
-    if (tracks.length === 0) return;
-    goTo((currentIndex - 1 + tracks.length) % tracks.length);
-  }, [tracks.length, currentIndex, goTo]);
-
-  const next = useCallback(() => {
-    if (tracks.length === 0) return;
-    goTo((currentIndex + 1) % tracks.length);
-  }, [tracks.length, currentIndex, goTo]);
-
-  const seek = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    const t = parseFloat(e.target.value);
-    audio.currentTime = t;
-    setCurrentTime(t);
-  }, []);
-
-  // Prevent mouse events from leaking into the world's camera-drag handler
   const stopMouse = (e: React.MouseEvent) => e.stopPropagation();
 
   if (authLoading) return null;
@@ -123,33 +99,32 @@ export function VaultRadio() {
       onMouseUp={stopMouse}
       style={{
         position: "fixed", bottom: 16, right: 16, zIndex: 1000,
-        width: 252, background: BG,
+        width: 220, background: BG,
         border: `1px solid ${BORDER}`, borderRadius: 4,
         fontFamily: MONO, fontSize: 10, color: TEXT,
         letterSpacing: "0.07em", pointerEvents: "auto",
         userSelect: "none",
       }}
     >
-      {/* ── Header ────────────────────────────────────────────────────────── */}
+      {/* Header */}
       <div style={{
-        background: "rgba(168,85,247,0.1)", borderBottom: `1px solid ${BORDER}`,
-        padding: "5px 10px", display: "flex", alignItems: "center", justifyContent: "space-between",
+        background: "rgba(168,85,247,0.1)",
+        borderBottom: `1px solid ${BORDER}`,
+        padding: "5px 10px",
+        display: "flex", alignItems: "center", justifyContent: "space-between",
       }}>
         <span style={{ color: PURPLE, fontWeight: 700, fontSize: 10, letterSpacing: "0.12em" }}>
           ◈ VANTA RADIO
         </span>
-        {isAuthorized && tracks.length > 0 && (
-          <button
-            style={{ ...btn, fontSize: 9, color: DIM, padding: "0 2px" }}
-            onClick={() => setShowList(v => !v)}
-            data-testid="button-vault-radio-toggle-list"
-          >
-            {showList ? "▲ LIST" : "▼ LIST"}
-          </button>
-        )}
+        <span style={{
+          fontSize: 8, letterSpacing: "0.14em",
+          color: on ? "#4ade80" : MUTED,
+        }}>
+          {on ? "● LIVE" : "○ OFF AIR"}
+        </span>
       </div>
 
-      {/* ── Body ──────────────────────────────────────────────────────────── */}
+      {/* Body */}
       {!isAuthorized ? (
         <div style={{ padding: "14px 10px", textAlign: "center" }}>
           <div style={{ color: MUTED, fontSize: 9, letterSpacing: "0.12em", marginBottom: 10 }}>
@@ -168,102 +143,58 @@ export function VaultRadio() {
           NO AUDIO IN VAULT
         </div>
       ) : (
-        <>
-          {/* Hidden audio element */}
-          <audio
-            ref={audioRef}
-            onTimeUpdate={() => setCurrentTime(audioRef.current?.currentTime ?? 0)}
-            onLoadedMetadata={() => setDuration(audioRef.current?.duration ?? 0)}
-            onEnded={() => {
-              if (tracks.length > 1) {
-                continueRef.current = true;
-                setCurrentIndex(i => (i + 1) % tracks.length);
-              } else {
-                setIsPlaying(false);
-              }
-            }}
-            onPlay={() => setIsPlaying(true)}
-            onPause={() => setIsPlaying(false)}
-          />
-
-          {/* Track title */}
+        <div style={{ padding: "10px 10px 12px" }}>
+          {/* Track title (only when on) */}
           <div
-            title={track?.title}
-            style={{
-              padding: "7px 10px 2px", color: TEXT, fontSize: 10,
-              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-            }}
+            title={title}
             data-testid="text-vault-radio-title"
+            style={{
+              fontSize: 9, color: on ? TEXT : MUTED,
+              overflow: "hidden", textOverflow: "ellipsis",
+              whiteSpace: "nowrap", marginBottom: 10,
+              minHeight: 12, letterSpacing: "0.08em",
+              fontStyle: on ? "normal" : "italic",
+            }}
           >
-            {track?.title ?? "—"}
+            {on && title ? title : "—"}
           </div>
 
-          {/* Seek bar */}
-          <div style={{ padding: "2px 10px 0" }}>
+          {/* ON / OFF button */}
+          <button
+            onClick={on ? turnOff : turnOn}
+            data-testid="button-vault-radio-toggle"
+            style={{
+              width: "100%",
+              background: on ? "rgba(168,85,247,0.18)" : "rgba(255,255,255,0.04)",
+              border: `1px solid ${on ? PURPLE : BORDER}`,
+              color: on ? PURPLE : MUTED,
+              fontFamily: MONO, fontSize: 10,
+              letterSpacing: "0.14em", fontWeight: 700,
+              padding: "6px 0", borderRadius: 3,
+              cursor: "pointer", marginBottom: 10,
+              transition: "all 0.15s ease",
+            }}
+          >
+            {on ? "RADIO OFF" : "RADIO ON"}
+          </button>
+
+          {/* Volume slider */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ color: MUTED, fontSize: 8, letterSpacing: "0.1em", whiteSpace: "nowrap" }}>
+              VOL
+            </span>
             <input
               type="range"
               min={0}
-              max={duration || 1}
-              step={0.1}
-              value={currentTime}
-              onChange={seek}
-              data-testid="input-vault-radio-seek"
-              style={{ width: "100%", cursor: "pointer", accentColor: PURPLE, display: "block" }}
+              max={1}
+              step={0.01}
+              value={volume}
+              onChange={(e) => setVolume(parseFloat(e.target.value))}
+              data-testid="input-vault-radio-volume"
+              style={{ flex: 1, accentColor: PURPLE, cursor: "pointer" }}
             />
           </div>
-
-          {/* Time row */}
-          <div style={{
-            padding: "0 10px 4px", display: "flex", justifyContent: "space-between",
-            color: MUTED, fontSize: 9,
-          }}>
-            <span data-testid="text-vault-radio-current">{fmt(currentTime)}</span>
-            <span data-testid="text-vault-radio-duration">{fmt(duration)}</span>
-          </div>
-
-          {/* Controls */}
-          <div style={{
-            padding: "3px 10px 8px", display: "flex",
-            alignItems: "center", justifyContent: "center", gap: 4,
-          }}>
-            <button onClick={prev} style={btn} title="Previous" data-testid="button-vault-radio-prev">⏮</button>
-            <button
-              onClick={togglePlay}
-              style={{ ...btn, color: PURPLE, fontSize: 18, padding: "2px 10px" }}
-              title={isPlaying ? "Pause" : "Play"}
-              data-testid="button-vault-radio-play"
-            >
-              {isPlaying ? "⏸" : "▶"}
-            </button>
-            <button onClick={next} style={btn} title="Next" data-testid="button-vault-radio-next">⏭</button>
-          </div>
-
-          {/* Playlist */}
-          {showList && (
-            <div style={{
-              borderTop: `1px solid ${BORDER}`,
-              maxHeight: 108, overflowY: "auto",
-              padding: "4px 0",
-            }}>
-              {tracks.map((t, i) => (
-                <div
-                  key={t.id}
-                  onClick={() => goTo(i)}
-                  data-testid={`item-vault-radio-track-${t.id}`}
-                  title={t.title}
-                  style={{
-                    padding: "4px 10px", cursor: "pointer", fontSize: 9,
-                    color: i === currentIndex ? PURPLE : DIM,
-                    background: i === currentIndex ? "rgba(168,85,247,0.08)" : "transparent",
-                    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                  }}
-                >
-                  {i === currentIndex ? (isPlaying ? "▶ " : "— ") : `${i + 1}. `}{t.title}
-                </div>
-              ))}
-            </div>
-          )}
-        </>
+        </div>
       )}
     </div>
   );
