@@ -37,7 +37,9 @@ const CAM_DRAG_S  = 0.004; // mouse/touch drag sensitivity (rad/px)
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 interface Disposable   { geo: THREE.BufferGeometry; mat: THREE.Material }
-interface ChunkData    { key: string; cx: number; cz: number; objects: THREE.Object3D[]; disposables: Disposable[] }
+// Phase 2: flicker window entry tracked per-chunk for useFrame animation
+type FlickerEntry = { mesh: THREE.Mesh; phase: number; speed: number };
+interface ChunkData    { key: string; cx: number; cz: number; objects: THREE.Object3D[]; disposables: Disposable[]; flickerMeshes: FlickerEntry[] }
 interface LandmarkDef  { id: string; name: string; x: number; z: number; h: number; color: number; cap: number; route: string | null; msg: string | null }
 interface BuildingType { color: number; roofColor: number; minH: number; maxH: number; minW: number; maxW: number; minD: number; maxD: number }
 interface NearState    { lm: LandmarkDef | null; canEnter: boolean }
@@ -116,12 +118,236 @@ function chunkSeed(cx: number, cz: number): number {
   return (((cx + 10000) * 73856093) ^ ((cz + 10000) * 19349663)) >>> 0;
 }
 
+// ─── Phase 2 helper: window grids on building faces ───────────────────────────
+// Adds lit/unlit window panels to front & back faces of a building.
+// Uses unique geo+mat per window so chunk disposal is clean.
+function createWindowGrid(
+  objs: THREE.Object3D[], disp: Disposable[],
+  bx: number, bz: number, bw: number, bh: number, bd: number,
+  rng: () => number, flicker: FlickerEntry[],
+) {
+  const rowH    = 1.75;
+  const startY  = 1.4;
+  const nCols   = Math.max(1, Math.floor((bw - 0.6) / 1.35));
+  const nRows   = Math.max(1, Math.floor((bh - startY - 0.5) / rowH));
+  if (nCols < 1 || nRows < 1 || bw < 3) return;
+
+  const colStep = bw / nCols;
+  // Front face (z=bz, face toward -Z) and back face (z=bz+bd, toward +Z)
+  for (let fi = 0; fi < 2; fi++) {
+    const faceZ = fi === 0 ? bz - 0.03 : bz + bd + 0.03;
+    const rotY  = fi === 0 ? Math.PI : 0;
+    for (let row = 0; row < nRows; row++) {
+      for (let col = 0; col < nCols; col++) {
+        const isLit     = rng() < 0.30;
+        const doFlicker = isLit && rng() < 0.08;
+        const winX      = bx + (col + 0.5) * colStep;
+        const winY      = startY + row * rowH;
+        const wGeo      = new THREE.PlaneGeometry(colStep * 0.55, rowH * 0.55);
+        let   wMat: THREE.MeshBasicMaterial;
+        if (doFlicker) {
+          const c = rng() < 0.5 ? 0xffd36b : 0xb8d6ff;
+          wMat = new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: 1 });
+          disp.push({ geo: wGeo, mat: wMat });
+          const w = new THREE.Mesh(wGeo, wMat);
+          w.position.set(winX, winY, faceZ);
+          w.rotation.y = rotY;
+          objs.push(w);
+          flicker.push({ mesh: w, phase: rng() * Math.PI * 2, speed: 1.5 + rng() * 5 });
+        } else {
+          const litC = rng() < 0.55 ? 0xffe880 : 0xc8deff;
+          wMat = new THREE.MeshBasicMaterial({ color: isLit ? litC : 0x10140f });
+          disp.push({ geo: wGeo, mat: wMat });
+          const w = new THREE.Mesh(wGeo, wMat);
+          w.position.set(winX, winY, faceZ);
+          w.rotation.y = rotY;
+          objs.push(w);
+        }
+      }
+    }
+  }
+}
+
+// ─── Phase 2 helper: road markings ────────────────────────────────────────────
+// Dashed center lines, crosswalk stripes near the chunk intersection corner.
+function createRoadMarkings(
+  objs: THREE.Object3D[], disp: Disposable[],
+  wx: number, wz: number, rng: () => number,
+) {
+  function mkFlat(geo: THREE.BufferGeometry, color: number): THREE.Mesh {
+    const mat = new THREE.MeshBasicMaterial({ color });
+    disp.push({ geo, mat });
+    const m = new THREE.Mesh(geo, mat);
+    objs.push(m);
+    return m;
+  }
+  const MY = RY + 0.014; // just above road surface
+
+  // Dashed center line — north road (runs east-west at z = wz+CS)
+  const dashW = 2.8, dashGap = 3.0;
+  for (let lx = wx + 8; lx < wx + CS - 8; lx += dashW + dashGap) {
+    const m = mkFlat(new THREE.BoxGeometry(dashW, 0.01, 0.20), 0xd7c77a);
+    m.position.set(lx + dashW / 2, MY, wz + CS);
+  }
+  // Dashed center line — east road (runs north-south at x = wx+CS)
+  for (let lz = wz + 8; lz < wz + CS - 8; lz += dashW + dashGap) {
+    const m = mkFlat(new THREE.BoxGeometry(0.20, 0.01, dashW), 0xd7c77a);
+    m.position.set(wx + CS, MY, lz + dashW / 2);
+  }
+
+  // Crosswalk at intersection corner (probabilistic)
+  if (rng() > 0.40) {
+    const sw = 0.55, ns = 5;
+    for (let s = 0; s < ns; s++) {
+      const m1 = mkFlat(new THREE.BoxGeometry(sw, 0.01, RW * 0.65), 0xd8d8c8);
+      m1.position.set(wx + CS - RW / 2 - SW - 1.2 - s * (sw + 0.35), MY, wz + CS);
+      const m2 = mkFlat(new THREE.BoxGeometry(RW * 0.65, 0.01, sw), 0xd8d8c8);
+      m2.position.set(wx + CS, MY, wz + CS - RW / 2 - SW - 1.2 - s * (sw + 0.35));
+    }
+  }
+}
+
+// ─── Phase 2 helper: street props ─────────────────────────────────────────────
+// Low-poly dumpsters, benches, traffic lights, and electrical boxes.
+function createStreetProps(
+  objs: THREE.Object3D[], disp: Disposable[],
+  wx: number, wz: number, rng: () => number, distIdx: number,
+) {
+  function mkP(geo: THREE.BufferGeometry, color: number): THREE.Mesh {
+    const mat = new THREE.MeshToonMaterial({ gradientMap: TOON_MAP, color });
+    disp.push({ geo, mat });
+    const m = new THREE.Mesh(geo, mat);
+    objs.push(m);
+    return m;
+  }
+  const sideZ = wz + CS - RW / 2 - SW - 0.6; // north sidewalk inner edge
+  const count = 1 + Math.floor(rng() * 3);
+
+  for (let i = 0; i < count; i++) {
+    const px  = wx + 10 + rng() * (CS - 20);
+    const roll = rng();
+
+    if (roll < 0.22) {
+      // Dumpster
+      const b = mkP(new THREE.BoxGeometry(1.4, 0.9, 0.65), 0x25351f);
+      b.position.set(px, 0.45, sideZ);
+      const lid = mkP(new THREE.BoxGeometry(1.44, 0.08, 0.68), 0x1e2c18);
+      lid.position.set(px, 0.94, sideZ);
+    } else if (roll < 0.44) {
+      // Bench — seat + two blocky legs
+      const seat = mkP(new THREE.BoxGeometry(1.15, 0.08, 0.38), 0x2e241a);
+      seat.position.set(px, 0.48, sideZ);
+      const lL = mkP(new THREE.BoxGeometry(0.09, 0.48, 0.38), 0x241c14);
+      lL.position.set(px - 0.50, 0.24, sideZ);
+      const lR = mkP(new THREE.BoxGeometry(0.09, 0.48, 0.38), 0x241c14);
+      lR.position.set(px + 0.50, 0.24, sideZ);
+    } else if (roll < 0.62) {
+      // Traffic light — pole + signal box
+      const pole = mkP(new THREE.BoxGeometry(0.10, 4.2, 0.10), 0x1a1a1a);
+      pole.position.set(px, 2.1, sideZ);
+      const box = mkP(new THREE.BoxGeometry(0.30, 0.80, 0.30), 0x111111);
+      box.position.set(px, 4.4, sideZ);
+      // Red signal light (emissive dot)
+      const rGeo = new THREE.BoxGeometry(0.14, 0.14, 0.05);
+      const rMat = new THREE.MeshBasicMaterial({ color: 0xff3333 });
+      disp.push({ geo: rGeo, mat: rMat });
+      const red = new THREE.Mesh(rGeo, rMat);
+      red.position.set(px, 4.62, sideZ - 0.18);
+      objs.push(red);
+    } else if (roll < 0.78) {
+      // Electrical box
+      const box = mkP(new THREE.BoxGeometry(0.55, 1.05, 0.32), 0x26302a);
+      box.position.set(px, 0.52, sideZ);
+    }
+    // roll ≥ 0.78 → empty spot (natural variation)
+  }
+
+  // Phone booth in commercial/residential districts
+  if ((distIdx === 1 || distIdx === 3) && rng() > 0.60) {
+    const bx2 = wx + 18 + rng() * (CS - 36);
+    const booth = mkP(new THREE.BoxGeometry(0.85, 2.3, 0.85), 0x381818);
+    booth.position.set(bx2, 1.15, sideZ + 0.15);
+  }
+}
+
+// ─── Phase 2 helper: canvas-texture billboard ─────────────────────────────────
+// Flat plane with a canvas-drawn text label; post rises from ground.
+const BILLBOARD_LABELS = ["VANTA", "WIRELINE", "VAULT", "PAIN.0", "BLACK INDEX", "FRACT"];
+
+function createBillboard(
+  objs: THREE.Object3D[], disp: Disposable[],
+  x: number, y: number, z: number, rotY: number, label: string,
+) {
+  const canvas = document.createElement("canvas");
+  canvas.width = 256; canvas.height = 96;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+  ctx.fillStyle = "#050e08";
+  ctx.fillRect(0, 0, 256, 96);
+  ctx.strokeStyle = "#3a5c30"; ctx.lineWidth = 3;
+  ctx.strokeRect(3, 3, 250, 90);
+  ctx.font = "bold 28px 'Courier New',monospace";
+  ctx.fillStyle = "#9cff66";
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillText(label, 128, 48);
+  const tex  = new THREE.CanvasTexture(canvas);
+  const bGeo = new THREE.PlaneGeometry(3.8, 1.4);
+  const bMat = new THREE.MeshBasicMaterial({ map: tex, side: THREE.FrontSide });
+  disp.push({ geo: bGeo, mat: bMat });
+  const board = new THREE.Mesh(bGeo, bMat);
+  board.position.set(x, y, z); board.rotation.y = rotY;
+  objs.push(board);
+  // Vertical post
+  const pGeo = new THREE.BoxGeometry(0.12, y, 0.12);
+  const pMat = new THREE.MeshToonMaterial({ gradientMap: TOON_MAP, color: 0x2a2a2a });
+  disp.push({ geo: pGeo, mat: pMat });
+  const post = new THREE.Mesh(pGeo, pMat);
+  post.position.set(x, y / 2, z);
+  objs.push(post);
+}
+
+// ─── Phase 2 helper: humanoid player from block primitives ────────────────────
+// Returns a THREE.Group (pivot at feet, y=0). Movement/rotation same as cube.
+function createHumanoidPlayer(disp: Disposable[]): THREE.Group {
+  const g = new THREE.Group();
+  function part(geo: THREE.BufferGeometry, color: number): THREE.Mesh {
+    const mat = new THREE.MeshToonMaterial({ gradientMap: TOON_MAP, color });
+    disp.push({ geo, mat });
+    return new THREE.Mesh(geo, mat);
+  }
+  // Legs  (y 0.00 → 0.78)
+  const legL = part(new THREE.BoxGeometry(0.24, 0.78, 0.24), 0x111111);
+  legL.position.set(-0.17, 0.39, 0);
+  const legR = part(new THREE.BoxGeometry(0.24, 0.78, 0.24), 0x111111);
+  legR.position.set( 0.17, 0.39, 0);
+  // Torso (y 0.78 → 1.62)
+  const torso = part(new THREE.BoxGeometry(0.60, 0.84, 0.34), 0x20251b);
+  torso.position.set(0, 1.20, 0);
+  // Arms  (y 0.86 → 1.50)
+  const armL = part(new THREE.BoxGeometry(0.20, 0.64, 0.20), 0x111111);
+  armL.position.set(-0.40, 1.20, 0);
+  const armR = part(new THREE.BoxGeometry(0.20, 0.64, 0.20), 0x111111);
+  armR.position.set( 0.40, 1.20, 0);
+  // Head  (y 1.62 → 2.10)
+  const head = part(new THREE.BoxGeometry(0.44, 0.48, 0.42), 0x8a735c);
+  head.position.set(0, 1.86, 0);
+  // Direction indicator — purple dot on front face
+  const nGeo = new THREE.BoxGeometry(0.12, 0.12, 0.10);
+  const nMat = new THREE.MeshToonMaterial({ gradientMap: TOON_MAP, color: 0xa855f7 });
+  disp.push({ geo: nGeo, mat: nMat });
+  const nose = new THREE.Mesh(nGeo, nMat);
+  nose.position.set(0, 1.80, -0.27);
+  g.add(legL, legR, torso, armL, armR, head, nose);
+  return g;
+}
+
 // ─── Chunk builder ─────────────────────────────────────────────────────────────
 // Returns objects NOT yet added to scene — caller adds them.
 function buildChunk(cx: number, cz: number): ChunkData {
-  const rng  = seededRng(chunkSeed(cx, cz));
+  const rng           = seededRng(chunkSeed(cx, cz));
   const objs: THREE.Object3D[] = [];
   const disp: Disposable[]     = [];
+  const flickerMeshes: FlickerEntry[] = []; // Phase 2: animated window flicker
 
   const wx = cx * CS;
   const wz = cz * CS;
@@ -205,6 +431,9 @@ function buildChunk(cx: number, cz: number): ChunkData {
   const curbE = mk(new THREE.BoxGeometry(0.35, 0.14, CS), new THREE.MeshToonMaterial({ gradientMap: TOON_MAP, color: curbC }));
   curbE.position.set(wx + CS - RW / 2 - SW, 0.07, wz + CS / 2);
 
+  // ── Phase 2: road markings (lane dashes + crosswalk) ─────────────────────
+  createRoadMarkings(objs, disp, wx, wz, rng);
+
   // District selection based on quadrant
   const distIdx = cx >= 0 ? (cz < 0 ? 0 : 3) : (cz < 0 ? 2 : 1);
   const dTypes  = DISTRICT_TYPES[distIdx];
@@ -241,11 +470,26 @@ function buildChunk(cx: number, cz: number): ChunkData {
           const top = mk(new THREE.BoxGeometry(tw, th, td), new THREE.MeshToonMaterial({ gradientMap: TOON_MAP, color: type.roofColor }));
           top.position.set(bx + bw / 2, bh + th / 2, bz + bd / 2);
         }
+
+        // ── Phase 2: window grid on building faces ──────────────────────────
+        createWindowGrid(objs, disp, bx, bz, bw, bh, bd, rng, flickerMeshes);
+
+        // ── Phase 2: occasional billboard on taller buildings ───────────────
+        if (bh > 10 && rng() > 0.78) {
+          const label  = BILLBOARD_LABELS[Math.floor(rng() * BILLBOARD_LABELS.length)];
+          const bbY    = bh - 0.8;
+          const bbFace = rng() < 0.5 ? bz - 0.15 : bz + bd + 0.15;
+          const bbRot  = rng() < 0.5 ? 0 : Math.PI;
+          createBillboard(objs, disp, bx + bw / 2, bbY, bbFace, bbRot, label);
+        }
       }
     }
   }
 
-  return { key: `${cx},${cz}`, cx, cz, objects: objs, disposables: disp };
+  // ── Phase 2: street props along north sidewalk ──────────────────────────
+  createStreetProps(objs, disp, wx, wz, rng, distIdx);
+
+  return { key: `${cx},${cz}`, cx, cz, objects: objs, disposables: disp, flickerMeshes };
 }
 
 // ─── Landmark builder ──────────────────────────────────────────────────────────
@@ -335,7 +579,7 @@ function CityScene({ onNear, onEnter, playerPosRef, worldSaveRef }: CityScenePro
   const { scene } = useThree();
 
   // Player / movement
-  const playerRef      = useRef<THREE.Mesh | null>(null);
+  const playerRef      = useRef<THREE.Object3D | null>(null);
   const keysRef        = useRef<Set<string>>(new Set());
   const angleRef       = useRef(0);          // player facing angle (Y-axis rad)
 
@@ -370,30 +614,19 @@ function CityScene({ onNear, onEnter, playerPosRef, worldSaveRef }: CityScenePro
     const allObjs: THREE.Object3D[] = [];
     const allDisp: Disposable[]     = [];
 
-    // Player body — restore saved position/angle on return from a building
-    const pGeo = new THREE.BoxGeometry(1, 2, 1);
-    const pMat = new THREE.MeshToonMaterial({ gradientMap: TOON_MAP, color: 0xa855f7 });
-    const player = new THREE.Mesh(pGeo, pMat);
-    const initSave        = worldSaveRef.current;
-    player.position.set(initSave.playerX, 1, initSave.playerZ);
-    angleRef.current      = initSave.angle;
-    camYawRef.current     = initSave.camYaw;
-    camPitchRef.current   = initSave.camPitch;
-    camDistRef.current    = initSave.camDist;
+    // ── Phase 2: humanoid player (pivot at feet, y=0) ─────────────────────────
+    const initSave = worldSaveRef.current;
+    const player   = createHumanoidPlayer(allDisp);
+    player.position.set(initSave.playerX, 0, initSave.playerZ);
+    angleRef.current       = initSave.angle;
+    camYawRef.current      = initSave.camYaw;
+    camPitchRef.current    = initSave.camPitch;
+    camDistRef.current     = initSave.camDist;
     // Force chunk reload at restored position
     playerChunkRef.current = { cx: 9999, cz: 9999 };
-    allDisp.push({ geo: pGeo, mat: pMat });
     allObjs.push(player);
     scene.add(player);
     playerRef.current = player;
-
-    // Forward-facing nose (direction indicator)
-    const nGeo = new THREE.BoxGeometry(0.3, 0.3, 0.3);
-    const nMat = new THREE.MeshToonMaterial({ gradientMap: TOON_MAP, color: 0xffffff });
-    allDisp.push({ geo: nGeo, mat: nMat });
-    const nose = new THREE.Mesh(nGeo, nMat);
-    nose.position.set(0, 0.4, -0.65);
-    player.add(nose);
 
     // Scene atmosphere — visible dark blue-green sky, light fog
     scene.background = new THREE.Color(0x101a18);
@@ -649,6 +882,14 @@ function CityScene({ onNear, onEnter, playerPosRef, worldSaveRef }: CityScenePro
       beacon.scale.setScalar(pulse);
       (beacon.material as THREE.Material).opacity =
         0.25 + 0.75 * Math.abs(Math.sin(t * 1.4 + i * 0.85));
+    });
+
+    // ── Phase 2: flickering window animation ─────────────────────────────────
+    chunksRef.current.forEach(chunk => {
+      for (const { mesh, phase, speed } of chunk.flickerMeshes) {
+        (mesh.material as THREE.MeshBasicMaterial).opacity =
+          0.15 + 0.85 * Math.abs(Math.sin(t * speed + phase));
+      }
     });
 
     // ── Proximity detection ───────────────────────────────────────────────────

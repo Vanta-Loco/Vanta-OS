@@ -1,0 +1,135 @@
+PHASE 2: VANTA VERGE ART DIRECTION UPGRADE
+
+Do NOT rebuild the game.
+Keep the current:
+- procedural chunk streaming
+- player movement
+- camera controls
+- minimap
+- vault radio
+- landmark portals
+- current readable lighting/fog/postFX settings
+
+Goal:
+Transform the current block city into a readable PS2/PS3-style Vanta Verge city: dark green night atmosphere, emo/shoegaze mood, early-2000s city nostalgia, street glow, grungy buildings, and more environmental detail.
+
+TASK 1 — Building windows
+Add procedural window grids to building faces.
+- Use small PlaneGeometry or thin BoxGeometry panels on front/back/side faces.
+- Randomly choose lit and unlit windows using the existing seeded RNG.
+- Lit windows should use emissive yellow-green or pale blue.
+- Unlit windows should be dark gray-green.
+- Keep windows low-poly and performance friendly.
+- Do not add windows to every single face if it hurts performance.
+
+Colors:
+litWarm: #ffd36b
+litCold: #b8d6ff
+litGreen: #9cff66
+unlit: #10140f
+
+TASK 2 — Road markings
+Add simple road details:
+- center lane lines
+- dashed road dividers
+- crosswalks near chunk intersections
+- parking lines in some commercial/residential chunks
+
+Use flat thin BoxGeometry or PlaneGeometry slightly above road height to prevent z-fighting.
+
+Colors:
+laneLine: #d7c77a
+crosswalk: #d8d8c8
+fadedPaint: #8a8660
+
+TASK 3 — Street props
+Add low-poly city props to chunks:
+- dumpsters
+- benches
+- bus stops
+- phone booths
+- traffic lights
+- electrical boxes
+- fences
+- rooftop AC units
+- water tanks
+
+Make these from simple BoxGeometry/CylinderGeometry only.
+Use seeded RNG so props are deterministic per chunk.
+
+Palette:
+dumpster: #25351f
+bench: #2e241a
+phoneBooth: #381818
+trafficLightBody: #111111
+electricBox: #26302a
+metal: #44483d
+
+TASK 4 — Billboards and posters
+Add billboard/poster planes to some buildings and street corners.
+For now, use colored placeholder materials instead of image textures.
+Make them look like:
+- old music posters
+- Vanta ads
+- missing person posters
+- club flyers
+- hacked terminal boards
+
+Use text labels if possible with canvas textures:
+- VANTA
+- WIRELINE
+- VAULT
+- PAIN.0
+- BLACK INDEX
+- FRACT
+
+TASK 5 — Player visual upgrade
+Replace the purple cube player with a simple low-poly humanoid made from primitives:
+- torso
+- head
+- arms
+- legs
+- small direction marker/nose
+- dark clothing
+- slight purple/green accent
+
+Keep the same movement/camera system.
+Do not add animations yet unless simple walking sway is easy.
+
+Palette:
+clothes: #111111
+shirt: #20251b
+skin/face placeholder: #8a735c
+accent: #a855f7
+
+TASK 6 — City mood layer
+Add subtle ambience elements:
+- occasional flickering windows
+- slight streetlight flicker
+- distant glow around landmarks
+- optional rain streaks only if performance remains stable
+
+Important:
+Normal city mode must stay readable.
+Do not increase darkness.
+Do not add heavy vignette, film grain, or chromatic aberration back into default mode.
+Save heavy surreal effects for Phase 3 Verge Mode.
+
+TASK 7 — Performance
+Keep the game smooth.
+If draw calls get high:
+- use InstancedMesh for repeated windows/props
+- reduce window density on distant chunks
+- only add props to nearby active chunks
+- dispose geometry/materials when chunks unload
+
+Deliverables:
+1. Update the existing world.tsx without breaking current gameplay.
+2. Keep all new systems modular with helper functions:
+   - createWindowGrid()
+   - createRoadMarkings()
+   - createStreetProps()
+   - createBillboard()
+   - createHumanoidPlayer()
+3. Add comments explaining each new Phase 2 system.
+4. Make sure the game still runs after changes.
