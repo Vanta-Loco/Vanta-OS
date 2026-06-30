@@ -3,6 +3,7 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { useLocation } from "wouter";
 import * as THREE from "three";
 import { VaultRadio } from "@/components/vault-radio";
+import { WorldMinimap } from "@/components/world-minimap";
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 const CS          = 80;    // chunk size (world units)
@@ -37,25 +38,25 @@ const LANDMARKS: LandmarkDef[] = [
 // ─── Building types by district ────────────────────────────────────────────────
 // Districts: 0=tech (x≥0,z<0 NE), 1=residential (x<0,z≥0 SW), 2=industrial (x<0,z<0 NW), 3=commercial (x≥0,z≥0 SE)
 const DISTRICT_TYPES: BuildingType[][] = [
-  [ // tech
-    { color: 0x0d1433, roofColor: 0x1a2255, minH: 14, maxH: 35, minW: 7,  maxW: 15, minD: 7,  maxD: 15 },
-    { color: 0x070918, roofColor: 0x0f1430, minH: 20, maxH: 44, minW: 8,  maxW: 18, minD: 8,  maxD: 18 },
-    { color: 0x0a0820, roofColor: 0x14103a, minH: 8,  maxH: 18, minW: 5,  maxW: 12, minD: 5,  maxD: 12 },
+  [ // tech (NE) — blue-purple towers
+    { color: 0x1c2f6a, roofColor: 0x2c4490, minH: 14, maxH: 35, minW: 7,  maxW: 15, minD: 7,  maxD: 15 },
+    { color: 0x111a40, roofColor: 0x1c2c68, minH: 20, maxH: 44, minW: 8,  maxW: 18, minD: 8,  maxD: 18 },
+    { color: 0x18144a, roofColor: 0x241e74, minH: 8,  maxH: 18, minW: 5,  maxW: 12, minD: 5,  maxD: 12 },
   ],
-  [ // residential
-    { color: 0x1a1226, roofColor: 0x281a38, minH: 6,  maxH: 14, minW: 8,  maxW: 14, minD: 8,  maxD: 14 },
-    { color: 0x120e1a, roofColor: 0x1c1628, minH: 4,  maxH: 8,  minW: 6,  maxW: 10, minD: 6,  maxD: 10 },
-    { color: 0x0e1a14, roofColor: 0x162a1e, minH: 3,  maxH: 7,  minW: 5,  maxW: 9,  minD: 5,  maxD: 9  },
+  [ // residential (SW) — violet-purple
+    { color: 0x2e1a48, roofColor: 0x44265e, minH: 6,  maxH: 14, minW: 8,  maxW: 14, minD: 8,  maxD: 14 },
+    { color: 0x201530, roofColor: 0x302044, minH: 4,  maxH: 8,  minW: 6,  maxW: 10, minD: 6,  maxD: 10 },
+    { color: 0x183020, roofColor: 0x224830, minH: 3,  maxH: 7,  minW: 5,  maxW: 9,  minD: 5,  maxD: 9  },
   ],
-  [ // industrial
-    { color: 0x1a1008, roofColor: 0x2a1810, minH: 4,  maxH: 8,  minW: 14, maxW: 24, minD: 10, maxD: 18 },
-    { color: 0x100c0a, roofColor: 0x1c1410, minH: 5,  maxH: 10, minW: 8,  maxW: 18, minD: 8,  maxD: 14 },
-    { color: 0x14100e, roofColor: 0x201a14, minH: 6,  maxH: 12, minW: 6,  maxW: 11, minD: 6,  maxD: 11 },
+  [ // industrial (NW) — warm amber-brown
+    { color: 0x2c1c10, roofColor: 0x442a18, minH: 4,  maxH: 8,  minW: 14, maxW: 24, minD: 10, maxD: 18 },
+    { color: 0x201810, roofColor: 0x302418, minH: 5,  maxH: 10, minW: 8,  maxW: 18, minD: 8,  maxD: 14 },
+    { color: 0x241e18, roofColor: 0x342c24, minH: 6,  maxH: 12, minW: 6,  maxW: 11, minD: 6,  maxD: 11 },
   ],
-  [ // commercial
-    { color: 0x1a0e1a, roofColor: 0x2a1828, minH: 8,  maxH: 20, minW: 7,  maxW: 14, minD: 7,  maxD: 14 },
-    { color: 0x100814, roofColor: 0x1c1020, minH: 5,  maxH: 10, minW: 5,  maxW: 10, minD: 5,  maxD: 10 },
-    { color: 0x0e0814, roofColor: 0x1a1020, minH: 3,  maxH: 6,  minW: 4,  maxW: 8,  minD: 4,  maxD: 8  },
+  [ // commercial (SE) — magenta-pink
+    { color: 0x2e1430, roofColor: 0x441e48, minH: 8,  maxH: 20, minW: 7,  maxW: 14, minD: 7,  maxD: 14 },
+    { color: 0x1e1028, roofColor: 0x2c183c, minH: 5,  maxH: 10, minW: 5,  maxW: 10, minD: 5,  maxD: 10 },
+    { color: 0x1c1028, roofColor: 0x281838, minH: 3,  maxH: 6,  minW: 4,  maxW: 8,  minD: 4,  maxD: 8  },
   ],
 ];
 
@@ -88,56 +89,56 @@ function buildChunk(cx: number, cz: number): ChunkData {
     return m;
   }
 
-  // Ground fill
-  const grd = mk(new THREE.PlaneGeometry(CS, CS), new THREE.MeshBasicMaterial({ color: 0x080810 }));
+  // Ground fill — darkest layer
+  const grd = mk(new THREE.PlaneGeometry(CS, CS), new THREE.MeshBasicMaterial({ color: 0x07070e }));
   grd.rotation.x = -Math.PI / 2;
   grd.position.set(wx + CS / 2, 0, wz + CS / 2);
 
-  // Road along NORTH edge (z = wz + CS)
-  const nr = mk(new THREE.PlaneGeometry(CS + RW, RW), new THREE.MeshBasicMaterial({ color: 0x101018 }));
+  // Road along NORTH edge (z = wz + CS) — clearly lighter than ground
+  const nr = mk(new THREE.PlaneGeometry(CS + RW, RW), new THREE.MeshBasicMaterial({ color: 0x16161e }));
   nr.rotation.x = -Math.PI / 2;
   nr.position.set(wx + CS / 2, RY, wz + CS);
 
   // Road along EAST edge (x = wx + CS) — slightly higher Y to prevent z-fight at intersections
-  const er = mk(new THREE.PlaneGeometry(RW, CS + RW), new THREE.MeshBasicMaterial({ color: 0x101018 }));
+  const er = mk(new THREE.PlaneGeometry(RW, CS + RW), new THREE.MeshBasicMaterial({ color: 0x16161e }));
   er.rotation.x = -Math.PI / 2;
   er.position.set(wx + CS, RY + 0.005, wz + CS / 2);
 
-  // Sidewalk inside north road
-  const nsw = mk(new THREE.PlaneGeometry(CS, SW), new THREE.MeshBasicMaterial({ color: 0x13131e }));
+  // Sidewalk inside north road — noticeably lighter than road
+  const nsw = mk(new THREE.PlaneGeometry(CS, SW), new THREE.MeshBasicMaterial({ color: 0x1e1e30 }));
   nsw.rotation.x = -Math.PI / 2;
   nsw.position.set(wx + CS / 2, SWY, wz + CS - RW / 2 - SW / 2);
 
   // Sidewalk inside east road
-  const esw = mk(new THREE.PlaneGeometry(SW, CS), new THREE.MeshBasicMaterial({ color: 0x13131e }));
+  const esw = mk(new THREE.PlaneGeometry(SW, CS), new THREE.MeshBasicMaterial({ color: 0x1e1e30 }));
   esw.rotation.x = -Math.PI / 2;
   esw.position.set(wx + CS - RW / 2 - SW / 2, SWY, wz + CS / 2);
 
-  // Streetlights along north road
-  const pC = 0x2a2a5a, hC = 0x5555aa;
+  // Streetlights along north road — brighter heads, more frequent
+  const pC = 0x3c3c7a, hC = 0xb0b0ff;
   const poleZ = wz + CS - RW / 2 - SW - 1.2;
-  for (let lx = wx + 18; lx < wx + CS - 8; lx += 22) {
-    const p = mk(new THREE.BoxGeometry(0.2, 5, 0.2), new THREE.MeshBasicMaterial({ color: pC }));
-    p.position.set(lx, 2.5, poleZ);
-    const h = mk(new THREE.BoxGeometry(0.4, 0.4, 2), new THREE.MeshBasicMaterial({ color: hC }));
-    h.position.set(lx, 5.3, poleZ - 0.8);
+  for (let lx = wx + 14; lx < wx + CS - 6; lx += 16) {
+    const p = mk(new THREE.BoxGeometry(0.22, 5.5, 0.22), new THREE.MeshBasicMaterial({ color: pC }));
+    p.position.set(lx, 2.75, poleZ);
+    const h = mk(new THREE.BoxGeometry(0.5, 0.5, 2.2), new THREE.MeshBasicMaterial({ color: hC }));
+    h.position.set(lx, 5.6, poleZ - 0.9);
   }
 
   // Streetlights along east road
   const poleX = wx + CS - RW / 2 - SW - 1.2;
-  for (let lz = wz + 18; lz < wz + CS - 8; lz += 22) {
-    const p = mk(new THREE.BoxGeometry(0.2, 5, 0.2), new THREE.MeshBasicMaterial({ color: pC }));
-    p.position.set(poleX, 2.5, lz);
-    const h = mk(new THREE.BoxGeometry(2, 0.4, 0.4), new THREE.MeshBasicMaterial({ color: hC }));
-    h.position.set(poleX - 0.8, 5.3, lz);
+  for (let lz = wz + 14; lz < wz + CS - 6; lz += 16) {
+    const p = mk(new THREE.BoxGeometry(0.22, 5.5, 0.22), new THREE.MeshBasicMaterial({ color: pC }));
+    p.position.set(poleX, 2.75, lz);
+    const h = mk(new THREE.BoxGeometry(2.2, 0.5, 0.5), new THREE.MeshBasicMaterial({ color: hC }));
+    h.position.set(poleX - 0.9, 5.6, lz);
   }
 
-  // Curb strips (thin raised edges alongside sidewalks)
-  const curbC = 0x1a1a2e;
-  const curbN = mk(new THREE.BoxGeometry(CS, 0.12, 0.3), new THREE.MeshBasicMaterial({ color: curbC }));
-  curbN.position.set(wx + CS / 2, 0.06, wz + CS - RW / 2 - SW);
-  const curbE = mk(new THREE.BoxGeometry(0.3, 0.12, CS), new THREE.MeshBasicMaterial({ color: curbC }));
-  curbE.position.set(wx + CS - RW / 2 - SW, 0.06, wz + CS / 2);
+  // Curb strips — visible contrast against sidewalk
+  const curbC = 0x2e2e4a;
+  const curbN = mk(new THREE.BoxGeometry(CS, 0.14, 0.35), new THREE.MeshBasicMaterial({ color: curbC }));
+  curbN.position.set(wx + CS / 2, 0.07, wz + CS - RW / 2 - SW);
+  const curbE = mk(new THREE.BoxGeometry(0.35, 0.14, CS), new THREE.MeshBasicMaterial({ color: curbC }));
+  curbE.position.set(wx + CS - RW / 2 - SW, 0.07, wz + CS / 2);
 
   // District selection based on quadrant
   const distIdx = cx >= 0 ? (cz < 0 ? 0 : 3) : (cz < 0 ? 2 : 1);
@@ -259,11 +260,12 @@ class CanvasBoundary extends Component<{ children: ReactNode }, { error: string 
 // All THREE.js objects are created imperatively (useEffect + scene.add) to avoid
 // the R3F v8 / three@0.169.0 applyProps crash.
 interface CitySceneProps {
-  onNear:  (s: NearState) => void;
-  onEnter: (route: string) => void;
+  onNear:       (s: NearState) => void;
+  onEnter:      (route: string) => void;
+  playerPosRef: React.MutableRefObject<{ x: number; z: number; angle: number }>;
 }
 
-function CityScene({ onNear, onEnter }: CitySceneProps) {
+function CityScene({ onNear, onEnter, playerPosRef }: CitySceneProps) {
   const { scene } = useThree();
 
   // Player / movement
@@ -272,7 +274,9 @@ function CityScene({ onNear, onEnter }: CitySceneProps) {
   const angleRef       = useRef(0);          // player facing angle (Y-axis rad)
 
   // Camera
-  const camYawRef      = useRef(0);          // extra yaw offset around player
+  const camYawRef      = useRef(0);           // extra yaw offset around player
+  const camPitchRef    = useRef(0.32);        // vertical pitch (rad); 0.32 ≈ 18° above horizon
+  const camDistRef     = useRef(10);          // follow distance (world units)
   const camTargetRef   = useRef(new THREE.Vector3(0, 6, 10));
 
   // Chunks
@@ -287,6 +291,7 @@ function CityScene({ onNear, onEnter }: CitySceneProps) {
   // Pointer drag
   const isDraggingRef  = useRef(false);
   const lastPtrXRef    = useRef(0);
+  const lastPtrYRef    = useRef(0);
 
   // Stable callback refs (prevent stale closures in event handlers)
   const onNearRef  = useRef(onNear);
@@ -317,10 +322,21 @@ function CityScene({ onNear, onEnter }: CitySceneProps) {
     nose.position.set(0, 0.4, -0.65);
     player.add(nose);
 
-    // Ambient light
-    const light = new THREE.AmbientLight(0xffffff, 1.2);
+    // Ambient fill — brighter base illumination
+    const light = new THREE.AmbientLight(0xffffff, 2.2);
     allObjs.push(light);
     scene.add(light);
+
+    // Hemisphere light — cool purple sky, warm ground bounce
+    const hemi = new THREE.HemisphereLight(0x220044, 0x100820, 1.8);
+    allObjs.push(hemi);
+    scene.add(hemi);
+
+    // Directional moonlight — subtle side-lighting for depth
+    const moon = new THREE.DirectionalLight(0x4040aa, 0.6);
+    moon.position.set(-1, 2, 0.5);
+    allObjs.push(moon);
+    scene.add(moon);
 
     // Fixed landmarks
     const lmData = buildLandmarks();
@@ -356,32 +372,59 @@ function CityScene({ onNear, onEnter }: CitySceneProps) {
     window.addEventListener("keyup",   onKeyUp);
     window.addEventListener("blur",    onBlur);
 
-    // ── Mouse drag (camera yaw) ───────────────────────────────────────────────
+    // ── Mouse drag (camera yaw + pitch) ──────────────────────────────────────
+    const PITCH_MIN = -Math.PI / 180 * 25;  // -25°
+    const PITCH_MAX =  Math.PI / 180 * 55;  // +55°
+    const DIST_MIN  = 4, DIST_MAX = 22;
+
     const onMouseDown  = (e: MouseEvent) => {
-      // Don't start camera drag when clicking inside the Vault Radio HUD
       if ((e.target as HTMLElement)?.closest?.("[data-vault-radio]")) return;
       isDraggingRef.current = true;
       lastPtrXRef.current = e.clientX;
+      lastPtrYRef.current = e.clientY;
     };
     const onMouseMove  = (e: MouseEvent) => {
       if (!isDraggingRef.current) return;
-      camYawRef.current += (e.clientX - lastPtrXRef.current) * CAM_DRAG_S;
-      lastPtrXRef.current = e.clientX;
+      const dx = e.clientX - lastPtrXRef.current;
+      const dy = e.clientY - lastPtrYRef.current;
+      camYawRef.current   += dx * CAM_DRAG_S;
+      camPitchRef.current -= dy * CAM_DRAG_S;
+      camPitchRef.current  = Math.max(PITCH_MIN, Math.min(PITCH_MAX, camPitchRef.current));
+      lastPtrXRef.current  = e.clientX;
+      lastPtrYRef.current  = e.clientY;
     };
     const onMouseUp = () => { isDraggingRef.current = false; };
 
-    // ── Touch drag (camera yaw) ───────────────────────────────────────────────
-    const onTouchStart = (e: TouchEvent) => { isDraggingRef.current = true;  lastPtrXRef.current = e.touches[0].clientX; };
+    // ── Scroll wheel zoom ─────────────────────────────────────────────────────
+    const onWheel = (e: WheelEvent) => {
+      if ((e.target as HTMLElement)?.closest?.("[data-vault-radio]")) return;
+      camDistRef.current = Math.max(DIST_MIN, Math.min(DIST_MAX,
+        camDistRef.current + e.deltaY * 0.02,
+      ));
+    };
+
+    // ── Touch drag (camera yaw + pitch) ──────────────────────────────────────
+    const onTouchStart = (e: TouchEvent) => {
+      isDraggingRef.current = true;
+      lastPtrXRef.current = e.touches[0].clientX;
+      lastPtrYRef.current = e.touches[0].clientY;
+    };
     const onTouchMove  = (e: TouchEvent) => {
       if (!isDraggingRef.current) return;
-      camYawRef.current += (e.touches[0].clientX - lastPtrXRef.current) * CAM_DRAG_S;
-      lastPtrXRef.current = e.touches[0].clientX;
+      const dx = e.touches[0].clientX - lastPtrXRef.current;
+      const dy = e.touches[0].clientY - lastPtrYRef.current;
+      camYawRef.current   += dx * CAM_DRAG_S;
+      camPitchRef.current -= dy * CAM_DRAG_S;
+      camPitchRef.current  = Math.max(PITCH_MIN, Math.min(PITCH_MAX, camPitchRef.current));
+      lastPtrXRef.current  = e.touches[0].clientX;
+      lastPtrYRef.current  = e.touches[0].clientY;
     };
     const onTouchEnd = () => { isDraggingRef.current = false; };
 
     window.addEventListener("mousedown",  onMouseDown);
     window.addEventListener("mousemove",  onMouseMove);
     window.addEventListener("mouseup",    onMouseUp);
+    window.addEventListener("wheel",      onWheel, { passive: true });
     window.addEventListener("touchstart", onTouchStart, { passive: true });
     window.addEventListener("touchmove",  onTouchMove,  { passive: true });
     window.addEventListener("touchend",   onTouchEnd);
@@ -407,6 +450,7 @@ function CityScene({ onNear, onEnter }: CitySceneProps) {
       window.removeEventListener("mousedown",  onMouseDown);
       window.removeEventListener("mousemove",  onMouseMove);
       window.removeEventListener("mouseup",    onMouseUp);
+      window.removeEventListener("wheel",      onWheel);
       window.removeEventListener("touchstart", onTouchStart);
       window.removeEventListener("touchmove",  onTouchMove);
       window.removeEventListener("touchend",   onTouchEnd);
@@ -447,15 +491,22 @@ function CityScene({ onNear, onEnter }: CitySceneProps) {
     }
     player.rotation.y = angle;
 
-    // Camera: stay behind player + yaw offset (sin/cos of totalYaw gives the BEHIND vector)
+    // Camera: spherical follow — yaw + pitch + variable distance
     const totalYaw = angle + camYawRef.current;
+    const pitch    = camPitchRef.current;
+    const dist     = camDistRef.current;
+    const hDist    = dist * Math.cos(pitch);  // horizontal reach
+    const vOff     = dist * Math.sin(pitch) + 1.5; // vertical offset above player
     camTargetRef.current.set(
-      player.position.x + Math.sin(totalYaw) * 8,
-      player.position.y + 5,
-      player.position.z + Math.cos(totalYaw) * 8,
+      player.position.x + Math.sin(totalYaw) * hDist,
+      player.position.y + vOff,
+      player.position.z + Math.cos(totalYaw) * hDist,
     );
     state.camera.position.lerp(camTargetRef.current, 0.1);
     state.camera.lookAt(player.position.x, player.position.y + 1, player.position.z);
+
+    // ── Expose player position to minimap ────────────────────────────────────
+    playerPosRef.current = { x: player.position.x, z: player.position.z, angle };
 
     // ── Chunk streaming ───────────────────────────────────────────────────────
     const cx = Math.floor(player.position.x / CS);
@@ -531,6 +582,9 @@ export default function World() {
   const handleNear  = useCallback((s: NearState) => setNear(s), []);
   const handleEnter = useCallback((route: string) => navigate(route), [navigate]);
 
+  // Shared player position for the minimap (updated every frame by CityScene)
+  const playerPosRef = useRef<{ x: number; z: number; angle: number }>({ x: 0, z: 0, angle: 0 });
+
   const { lm, canEnter } = near;
 
   return (
@@ -546,7 +600,8 @@ export default function World() {
         </div>
         <div style={{ color: "#4b5563", background: "rgba(0,0,0,0.6)", padding: "6px 14px", borderRadius: 4, marginTop: 6, fontSize: 9, lineHeight: "1.9" }}>
           WASD / ARROWS — move<br />
-          DRAG — orbit camera<br />
+          DRAG — orbit + pitch camera<br />
+          SCROLL — zoom in / out<br />
           , . — orbit left / right<br />
           E — enter landmark
         </div>
@@ -577,6 +632,9 @@ export default function World() {
         </div>
       )}
 
+      {/* ── Mini-map HUD ─────────────────────────────────────────────────── */}
+      <WorldMinimap playerPosRef={playerPosRef} />
+
       {/* ── Vault Radio HUD ────────────────────────────────────────────── */}
       <VaultRadio />
 
@@ -589,7 +647,7 @@ export default function World() {
             console.log("[Vanta City] Canvas ✓", gl.domElement.width, "×", gl.domElement.height)
           }
         >
-          <CityScene onNear={handleNear} onEnter={handleEnter} />
+          <CityScene onNear={handleNear} onEnter={handleEnter} playerPosRef={playerPosRef} />
         </Canvas>
       </CanvasBoundary>
     </div>

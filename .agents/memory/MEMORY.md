@@ -1,2 +1,4 @@
 - [Post schema evolution](post-schema.md) — posts table has published + musicUrl as text fields; use db:push --force for data-loss migrations; seed.ts must match all InsertPost fields.
 - [Admin auth pattern](admin-auth.md) — useAdmin() hook returns isAuthenticated; admin-only UI gates (edit/delete buttons) use this; backend routes use requireAdmin middleware.
+- [Vault radio track filter](vault-radio-filter.md) — items with type "demo" but audio file URLs must be included; use byType OR byExt pattern with /\.(mp3|wav|m4a|aac|ogg|flac)/i test.
+- [World minimap player position](world-minimap-pattern.md) — player position shared from CityScene (Three.js Canvas) to WorldMinimap via a playerPosRef created in the World shell and passed to both; ctx narrowing inside RAF closures requires rebinding to a typed const.

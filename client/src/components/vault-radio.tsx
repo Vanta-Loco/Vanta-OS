@@ -10,6 +10,33 @@ const MUTED  = "#4b5563";
 const TEXT   = "#c4b5fd";
 const MONO   = "'Courier New', monospace";
 
+const AUDIO_EXT = /\.(mp3|wav|m4a|aac|ogg|flac)(\?.*)?$/i;
+
+function isPlayable(item: VaultItem) {
+  const url = item.compressedUrl || item.fileUrl;
+  if (!url) return false;
+  return item.type?.toLowerCase() === "audio" || AUDIO_EXT.test(url);
+}
+
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// Build a shuffled queue, optionally avoiding the same first track as avoidId
+function buildQueue(tracks: VaultItem[], avoidId?: string): VaultItem[] {
+  let q = shuffle(tracks);
+  if (avoidId && q.length > 1 && q[0].id === avoidId) {
+    const swapIdx = 1 + Math.floor(Math.random() * (q.length - 1));
+    [q[0], q[swapIdx]] = [q[swapIdx], q[0]];
+  }
+  return q;
+}
+
 export function VaultRadio() {
   const { isAuthorized, isLoading: authLoading } = useVault();
 
@@ -18,78 +45,89 @@ export function VaultRadio() {
     enabled: isAuthorized,
   });
 
-  const AUDIO_EXT = /\.(mp3|wav|m4a|aac|ogg|flac)(\?.*)?$/i;
-
-  function isPlayable(item: VaultItem) {
-    const url = item.compressedUrl || item.fileUrl;
-    if (!url) return false;
-    const byType = item.type?.toLowerCase() === "audio";
-    const byExt  = AUDIO_EXT.test(url);
-    return byType || byExt;
-  }
-
   const tracks = items.filter(isPlayable);
-  console.log("[Vanta Radio] playable tracks:", tracks.map(t => ({ title: t.title, type: t.type, url: t.compressedUrl || t.fileUrl })));
 
   const [on, setOn]         = useState(false);
   const [volume, setVolume] = useState(0.7);
   const [title, setTitle]   = useState<string>("");
 
   const audioRef    = useRef<HTMLAudioElement | null>(null);
-  const indexRef    = useRef(0);
   const tracksRef   = useRef<VaultItem[]>([]);
+  const queueRef    = useRef<VaultItem[]>([]);
+  const qPosRef     = useRef(0);
 
   // Keep tracksRef in sync
-  useEffect(() => { tracksRef.current = tracks; }, [tracks]);
+  useEffect(() => {
+    tracksRef.current = tracks;
+    console.log("[Vanta Radio] playable tracks:", tracks.map(t => ({
+      title: t.title, type: t.type, url: t.compressedUrl || t.fileUrl,
+    })));
+  }, [tracks]);
 
-  // Sync volume to audio element whenever it changes
+  // Sync volume
   useEffect(() => {
     if (audioRef.current) audioRef.current.volume = volume;
   }, [volume]);
 
-  function playAt(idx: number) {
-    const list = tracksRef.current;
-    if (!list.length) return;
-    const t = list[idx];
+  function playAt(qIdx: number) {
+    const q = queueRef.current;
+    if (!q.length) return;
+    const t = q[qIdx];
+    if (!t) return;
     const url = t.compressedUrl || t.fileUrl;
-    if (!url) return;
+    if (!url) { advanceQueue(); return; }
 
     if (!audioRef.current) {
       audioRef.current = new Audio();
       audioRef.current.volume = volume;
-      audioRef.current.onended = () => {
-        const next = (indexRef.current + 1) % tracksRef.current.length;
-        indexRef.current = next;
-        playAt(next);
-      };
     }
 
-    indexRef.current = idx;
+    const audio = audioRef.current;
+    qPosRef.current = qIdx;
     setTitle(t.title);
-    audioRef.current.src = url;
-    audioRef.current.load();
-    audioRef.current.play().catch(() => {});
+    audio.src = url;
+    audio.load();
+    audio.play().catch(() => {});
+
+    audio.onended = () => advanceQueue();
+  }
+
+  function advanceQueue() {
+    const nextPos = qPosRef.current + 1;
+    if (nextPos >= queueRef.current.length) {
+      // Queue exhausted — reshuffle avoiding repeat of last track
+      const lastId = queueRef.current[qPosRef.current]?.id;
+      queueRef.current = buildQueue(tracksRef.current, lastId);
+      qPosRef.current = 0;
+    } else {
+      qPosRef.current = nextPos;
+    }
+    playAt(qPosRef.current);
   }
 
   function turnOn() {
     if (!tracks.length) return;
+    queueRef.current = buildQueue(tracks);
+    qPosRef.current = 0;
     setOn(true);
-    playAt(indexRef.current % Math.max(tracks.length, 1));
+    playAt(0);
   }
 
   function turnOff() {
     setOn(false);
+    setTitle("");
     if (audioRef.current) {
+      audioRef.current.onended = null;
       audioRef.current.pause();
       audioRef.current.src = "";
     }
-    setTitle("");
   }
 
-  // Clean up on unmount
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (audioRef.current) {
+        audioRef.current.onended = null;
         audioRef.current.pause();
         audioRef.current = null;
       }
@@ -125,10 +163,7 @@ export function VaultRadio() {
         <span style={{ color: PURPLE, fontWeight: 700, fontSize: 10, letterSpacing: "0.12em" }}>
           ◈ VANTA RADIO
         </span>
-        <span style={{
-          fontSize: 8, letterSpacing: "0.14em",
-          color: on ? "#4ade80" : MUTED,
-        }}>
+        <span style={{ fontSize: 8, letterSpacing: "0.14em", color: on ? "#4ade80" : MUTED }}>
           {on ? "● LIVE" : "○ OFF AIR"}
         </span>
       </div>
@@ -153,7 +188,7 @@ export function VaultRadio() {
         </div>
       ) : (
         <div style={{ padding: "10px 10px 12px" }}>
-          {/* Track title (only when on) */}
+          {/* Track title */}
           <div
             title={title}
             data-testid="text-vault-radio-title"
@@ -189,15 +224,9 @@ export function VaultRadio() {
 
           {/* Volume slider */}
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ color: MUTED, fontSize: 8, letterSpacing: "0.1em", whiteSpace: "nowrap" }}>
-              VOL
-            </span>
+            <span style={{ color: MUTED, fontSize: 8, letterSpacing: "0.1em", whiteSpace: "nowrap" }}>VOL</span>
             <input
-              type="range"
-              min={0}
-              max={1}
-              step={0.01}
-              value={volume}
+              type="range" min={0} max={1} step={0.01} value={volume}
               onChange={(e) => setVolume(parseFloat(e.target.value))}
               data-testid="input-vault-radio-volume"
               style={{ flex: 1, accentColor: PURPLE, cursor: "pointer" }}

@@ -1,0 +1,68 @@
+Upgrade /world controls and Vanta Radio.
+
+1. Vanta Radio shuffle
+
+Make the radio play Vault audio in random shuffled order.
+
+Rules:
+- RADIO ON / RADIO OFF only
+- volume slider only
+- no skip, no back, no seek
+- when radio turns ON, create a shuffled queue from all playable Vault audio
+- play first random track
+- when track ends, auto-play next random track from queue
+- when queue finishes, reshuffle all tracks and continue
+- avoid repeating the same track twice in a row if possible
+- keep showing current track title and LIVE/OFF AIR status
+
+2. Camera upgrade
+
+Current camera only partially works. I can orbit/rear view, but I need vertical camera range too.
+
+Add camera pitch control:
+- allow camera to look up and down
+- mouse drag or right-stick style drag should adjust yaw and pitch
+- clamp pitch so camera cannot flip upside down
+- suggested pitch range: -25 degrees to +55 degrees
+- keep third-person follow behind player
+- add optional scroll wheel zoom in/out if possible
+- clamp zoom distance so it does not clip inside the player or go too far away
+
+3. Visibility improvement
+
+The city is hard to see.
+
+Improve visibility:
+- increase ambient/hemisphere light slightly
+- add more street lights
+- increase contrast between roads, buildings, and sidewalks
+- make landmark buildings brighter or outlined
+- add labels only when nearby, so the screen is not cluttered
+- reduce fog if it blocks visibility too much
+
+4. Mini-map
+
+Add a mini-map HUD at bottom-left.
+
+Requirements:
+- fixed bottom-left panel
+- shows simplified top-down city map
+- player marker in center or accurate position marker
+- landmarks as dots/icons
+- label major nodes if space allows
+- current facing direction shown with a small arrow/cone
+- mini-map should not block movement controls
+- on mobile, keep it compact
+- style it like Vanta OS: black/purple, scanline border, neon dots
+
+Major landmarks to show:
+- Black Index
+- Music Hub
+- Vault Gate
+- Vanta OS Core
+- FRACT Terminal
+- Wireline Terminal
+- Hidden Himalayas Portal
+- Fractured Godhead District
+
+Keep everything compiling cleanly.
