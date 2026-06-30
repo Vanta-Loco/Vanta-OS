@@ -18,9 +18,18 @@ export function VaultRadio() {
     enabled: isAuthorized,
   });
 
-  const tracks = items.filter(
-    (item) => item.type === "audio" && !!(item.compressedUrl || item.fileUrl)
-  );
+  const AUDIO_EXT = /\.(mp3|wav|m4a|aac|ogg|flac)(\?.*)?$/i;
+
+  function isPlayable(item: VaultItem) {
+    const url = item.compressedUrl || item.fileUrl;
+    if (!url) return false;
+    const byType = item.type?.toLowerCase() === "audio";
+    const byExt  = AUDIO_EXT.test(url);
+    return byType || byExt;
+  }
+
+  const tracks = items.filter(isPlayable);
+  console.log("[Vanta Radio] playable tracks:", tracks.map(t => ({ title: t.title, type: t.type, url: t.compressedUrl || t.fileUrl })));
 
   const [on, setOn]         = useState(false);
   const [volume, setVolume] = useState(0.7);
