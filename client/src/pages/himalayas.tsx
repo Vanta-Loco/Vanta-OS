@@ -2,6 +2,7 @@ import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { Badge } from "@/components/ui/badge";
 import { Eye, Mountain, Snowflake, Lock, ShieldAlert } from "lucide-react";
+import { ReturnToCity } from "@/components/return-to-city";
 
 interface LoreFragment {
   code: string;
@@ -19,6 +20,7 @@ const FRAGMENTS: LoreFragment[] = [
 export default function Himalayas() {
   return (
     <div className="min-h-screen flex flex-col">
+      <ReturnToCity />
       <Header />
 
       <main className="flex-1 pt-20" style={{ background: "radial-gradient(ellipse at 50% 0%, #0a1428 0%, hsl(var(--background)) 55%)" }}>

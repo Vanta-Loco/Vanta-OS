@@ -3,6 +3,7 @@ import { useSearch, useLocation, Link } from "wouter";
 import { useState, useEffect, useMemo } from "react";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
+import { ReturnToCity } from "@/components/return-to-city";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -140,6 +141,7 @@ export default function SearchPage() {
 
   return (
     <div className="min-h-screen flex flex-col">
+      <ReturnToCity />
       <Header />
 
       <main className="flex-1 bg-background pt-20">

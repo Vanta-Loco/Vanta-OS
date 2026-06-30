@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
+import { ReturnToCity } from "@/components/return-to-city";
 import { useVault } from "@/hooks/use-vault";
 import { useAdmin } from "@/hooks/use-admin";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -941,6 +942,7 @@ function VaultUnlocked() {
 
   return (
     <div className="min-h-screen bg-background" data-testid="vault-unlocked-screen">
+      <ReturnToCity />
 
       {/* Vault header */}
       <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur-md">

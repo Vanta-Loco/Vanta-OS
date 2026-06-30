@@ -7,6 +7,7 @@ import {
   LockKeyhole, LockKeyholeOpen, Disc3, Globe,
   ShieldAlert, ArrowRight, ArrowLeft,
 } from "lucide-react";
+import { ReturnToCity } from "@/components/return-to-city";
 
 export default function Enter() {
   const { isAuthorized, isLoading, verify, logout } = useVault();
@@ -30,6 +31,7 @@ export default function Enter() {
       className="min-h-screen bg-background flex flex-col items-center justify-center px-6 relative overflow-hidden"
       data-testid="enter-page"
     >
+      <ReturnToCity />
       <style>{`
         @keyframes enter-scan {
           0%   { transform: translateY(-12px); opacity: 0; }

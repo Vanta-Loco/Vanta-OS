@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
+import { ReturnToCity } from "@/components/return-to-city";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -238,6 +239,7 @@ export default function Releases() {
 
   return (
     <div className="min-h-screen flex flex-col">
+      <ReturnToCity />
       <Header />
 
       <main className="flex-1 bg-background pt-20">

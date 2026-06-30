@@ -2,6 +2,7 @@ import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { Badge } from "@/components/ui/badge";
 import { Coins, BookOpen, Target, BadgeCheck, Lock, Activity } from "lucide-react";
+import { ReturnToCity } from "@/components/return-to-city";
 
 interface EarnMethod {
   amount: string;
@@ -19,6 +20,7 @@ const EARN: EarnMethod[] = [
 export default function Fract() {
   return (
     <div className="min-h-screen flex flex-col">
+      <ReturnToCity />
       <Header />
 
       <main className="flex-1 bg-background pt-20">

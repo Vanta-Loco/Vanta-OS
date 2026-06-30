@@ -4,6 +4,10 @@ import { useLocation } from "wouter";
 import * as THREE from "three";
 import { VaultRadio } from "@/components/vault-radio";
 import { WorldMinimap } from "@/components/world-minimap";
+import {
+  saveWorldState, loadWorldState, DEFAULT_WORLD_SAVE,
+  type WorldSave,
+} from "@/lib/world-state";
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 const CS          = 80;    // chunk size (world units)
@@ -263,9 +267,10 @@ interface CitySceneProps {
   onNear:       (s: NearState) => void;
   onEnter:      (route: string) => void;
   playerPosRef: React.MutableRefObject<{ x: number; z: number; angle: number }>;
+  worldSaveRef: React.MutableRefObject<WorldSave>;
 }
 
-function CityScene({ onNear, onEnter, playerPosRef }: CitySceneProps) {
+function CityScene({ onNear, onEnter, playerPosRef, worldSaveRef }: CitySceneProps) {
   const { scene } = useThree();
 
   // Player / movement
@@ -304,11 +309,18 @@ function CityScene({ onNear, onEnter, playerPosRef }: CitySceneProps) {
     const allObjs: THREE.Object3D[] = [];
     const allDisp: Disposable[]     = [];
 
-    // Player body
+    // Player body — restore saved position/angle on return from a building
     const pGeo = new THREE.BoxGeometry(1, 2, 1);
     const pMat = new THREE.MeshBasicMaterial({ color: 0xa855f7 });
     const player = new THREE.Mesh(pGeo, pMat);
-    player.position.set(0, 1, 0);
+    const initSave        = worldSaveRef.current;
+    player.position.set(initSave.playerX, 1, initSave.playerZ);
+    angleRef.current      = initSave.angle;
+    camYawRef.current     = initSave.camYaw;
+    camPitchRef.current   = initSave.camPitch;
+    camDistRef.current    = initSave.camDist;
+    // Force chunk reload at restored position
+    playerChunkRef.current = { cx: 9999, cz: 9999 };
     allDisp.push({ geo: pGeo, mat: pMat });
     allObjs.push(player);
     scene.add(player);
@@ -508,6 +520,14 @@ function CityScene({ onNear, onEnter, playerPosRef }: CitySceneProps) {
     // ── Expose player position to minimap ────────────────────────────────────
     playerPosRef.current = { x: player.position.x, z: player.position.z, angle };
 
+    // ── Keep worldSaveRef current so handleEnter can snapshot before routing ─
+    worldSaveRef.current.playerX  = player.position.x;
+    worldSaveRef.current.playerZ  = player.position.z;
+    worldSaveRef.current.angle    = angle;
+    worldSaveRef.current.camYaw   = camYawRef.current;
+    worldSaveRef.current.camPitch = camPitchRef.current;
+    worldSaveRef.current.camDist  = camDistRef.current;
+
     // ── Chunk streaming ───────────────────────────────────────────────────────
     const cx = Math.floor(player.position.x / CS);
     const cz = Math.floor(player.position.z / CS);
@@ -579,8 +599,20 @@ export default function World() {
   const [, navigate]  = useLocation();
   const [near, setNear] = useState<NearState>({ lm: null, canEnter: false });
 
-  const handleNear  = useCallback((s: NearState) => setNear(s), []);
-  const handleEnter = useCallback((route: string) => navigate(route), [navigate]);
+  // Populated from sessionStorage so returning from a building restores exactly where the user left
+  const worldSaveRef = useRef<WorldSave>(loadWorldState() ?? { ...DEFAULT_WORLD_SAVE });
+
+  const handleNear = useCallback((s: NearState) => {
+    setNear(s);
+    // Keep nearId in sync so it's included when we save on enter
+    worldSaveRef.current.nearId = s.lm?.id ?? null;
+  }, []);
+
+  const handleEnter = useCallback((route: string) => {
+    // Snapshot full world state to sessionStorage before routing away
+    saveWorldState({ ...worldSaveRef.current });
+    navigate(route);
+  }, [navigate]);
 
   // Shared player position for the minimap (updated every frame by CityScene)
   const playerPosRef = useRef<{ x: number; z: number; angle: number }>({ x: 0, z: 0, angle: 0 });
@@ -647,7 +679,12 @@ export default function World() {
             console.log("[Vanta City] Canvas ✓", gl.domElement.width, "×", gl.domElement.height)
           }
         >
-          <CityScene onNear={handleNear} onEnter={handleEnter} playerPosRef={playerPosRef} />
+          <CityScene
+            onNear={handleNear}
+            onEnter={handleEnter}
+            playerPosRef={playerPosRef}
+            worldSaveRef={worldSaveRef}
+          />
         </Canvas>
       </CanvasBoundary>
     </div>

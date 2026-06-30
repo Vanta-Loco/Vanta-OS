@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
+import { ReturnToCity } from "@/components/return-to-city";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Lock, Hash, Radio, Megaphone, Crosshair, Antenna, SendHorizonal } from "lucide-react";
@@ -60,6 +61,7 @@ export default function Wireline() {
 
   return (
     <div className="min-h-screen flex flex-col">
+      <ReturnToCity />
       <Header />
 
       <main className="flex-1 bg-background pt-20">

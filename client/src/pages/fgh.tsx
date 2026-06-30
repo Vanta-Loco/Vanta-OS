@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
+import { ReturnToCity } from "@/components/return-to-city";
 import { Badge } from "@/components/ui/badge";
 import { Users, Swords, MapPin, Clock, Gem, Zap, Skull } from "lucide-react";
 
@@ -95,6 +96,7 @@ export default function FracturedGodhead() {
 
   return (
     <div className="min-h-screen flex flex-col">
+      <ReturnToCity />
       <Header />
 
       <main className="flex-1 bg-background pt-20">

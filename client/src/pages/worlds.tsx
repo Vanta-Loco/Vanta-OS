@@ -1,5 +1,6 @@
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
+import { ReturnToCity } from "@/components/return-to-city";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowRight, MapPin } from "lucide-react";
@@ -11,6 +12,7 @@ import cityImage from "@assets/generated_images/Urban_night_cityscape_mood_2c3c2
 export default function Worlds() {
   return (
     <div className="min-h-screen flex flex-col">
+      <ReturnToCity />
       <Header />
 
       <main className="flex-1 bg-background pt-20">

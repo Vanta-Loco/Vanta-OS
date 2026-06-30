@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useVault } from "@/hooks/use-vault";
 import { useQuery } from "@tanstack/react-query";
 import type { VaultItem } from "@shared/schema";
+import { saveRadioVol, loadRadioVol } from "@/lib/world-state";
 
 const BG     = "rgba(5,3,12,0.93)";
 const BORDER = "rgba(168,85,247,0.45)";
@@ -48,7 +49,7 @@ export function VaultRadio() {
   const tracks = items.filter(isPlayable);
 
   const [on, setOn]         = useState(false);
-  const [volume, setVolume] = useState(0.7);
+  const [volume, setVolume] = useState(() => loadRadioVol() ?? 0.7);
   const [title, setTitle]   = useState<string>("");
 
   const audioRef    = useRef<HTMLAudioElement | null>(null);
@@ -64,9 +65,10 @@ export function VaultRadio() {
     })));
   }, [tracks]);
 
-  // Sync volume
+  // Sync volume + persist to sessionStorage for world-state restore
   useEffect(() => {
     if (audioRef.current) audioRef.current.volume = volume;
+    saveRadioVol(volume);
   }, [volume]);
 
   function playAt(qIdx: number) {
