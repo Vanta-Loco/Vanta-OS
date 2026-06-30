@@ -372,28 +372,28 @@ function CityScene({ onNear, onEnter, playerPosRef, worldSaveRef }: CityScenePro
     nose.position.set(0, 0.4, -0.65);
     player.add(nose);
 
-    // Scene atmosphere — fog + background match for seamless depth
-    scene.background = new THREE.Color(0x060412);
-    scene.fog = new THREE.FogExp2(0x060412, 0.006);
+    // Scene atmosphere — dark green/black night sky + light fog
+    scene.background = new THREE.Color(0x070905);
+    scene.fog = new THREE.FogExp2(0x101806, 0.0018);
 
-    // Low ambient — just enough to keep deep-shadow faces from pure black
-    const light = new THREE.AmbientLight(0x110022, 0.45);
+    // Ambient — readable base fill, no longer crushed to near-black
+    const light = new THREE.AmbientLight(0x182010, 0.8);
     allObjs.push(light);
     scene.add(light);
 
-    // Hemisphere — indigo sky dome + near-black ground bounce
-    const hemi = new THREE.HemisphereLight(0x1e0a44, 0x050008, 1.6);
+    // Hemisphere — dark green sky dome + deep ground bounce
+    const hemi = new THREE.HemisphereLight(0x1a2a10, 0x080c04, 0.9);
     allObjs.push(hemi);
     scene.add(hemi);
 
-    // Main moonlight — cold blue-steel, strong enough to drive toon steps
-    const moon = new THREE.DirectionalLight(0x8899cc, 2.8);
+    // Main moonlight — cooler white, drives toon steps without washing out
+    const moon = new THREE.DirectionalLight(0xc8d8b0, 1.4);
     moon.position.set(-2, 5, 1);
     allObjs.push(moon);
     scene.add(moon);
 
-    // Sickly green rim light — dirty fill from the opposite side
-    const rim = new THREE.DirectionalLight(0x1a3a10, 0.9);
+    // Subtle green rim — dirty fill, kept very low so it doesn't overwhelm
+    const rim = new THREE.DirectionalLight(0x203810, 0.35);
     rim.position.set(3, 0.5, -2);
     allObjs.push(rim);
     scene.add(rim);
@@ -656,23 +656,14 @@ function PostFX() {
 
     composer.addPass(new RenderPass(scene, camera));
 
+    // Subtle bloom — glow on streetlight heads and landmark beacon caps only
     const bloom = new UnrealBloomPass(
       new THREE.Vector2(size.width, size.height),
-      0.75,  // strength
-      0.5,   // radius
-      0.15,  // threshold — picks up streetlight heads + landmark beacons
+      0.28,  // strength  (was 0.75 — reduced 63%)
+      0.6,   // radius
+      0.3,   // threshold — only the brightest surfaces catch it
     );
     composer.addPass(bloom);
-
-    composer.addPass(new ShaderPass(ChromaShader));
-
-    // FilmPass(intensity, grayscale) — animated grain every frame
-    composer.addPass(new FilmPass(0.28, false));
-
-    const vig = new ShaderPass(VignetteShader);
-    vig.uniforms["offset"].value   = 0.8;
-    vig.uniforms["darkness"].value = 1.55;
-    composer.addPass(vig);
 
     // OutputPass handles sRGB color-space conversion for final display
     composer.addPass(new OutputPass());
@@ -771,7 +762,7 @@ export default function World() {
       <CanvasBoundary>
         <Canvas
           style={{ width: "100%", height: "100%" }}
-          camera={{ position: [0, 6, 10], fov: 60, near: 0.1, far: 1000 }}
+          camera={{ position: [0, 6, 10], fov: 60, near: 0.1, far: 2000 }}
           gl={{ antialias: true }}
           onCreated={({ gl }) =>
             console.log("[Vanta City] Canvas ✓", gl.domElement.width, "×", gl.domElement.height)
