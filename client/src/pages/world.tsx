@@ -80,7 +80,9 @@ const DISTRICT_TYPES: BuildingType[][] = [
 
 // ─── Toon gradient map (3-step: shadow / mid / highlight) ─────────────────────
 function makeToonMap(): THREE.DataTexture {
-  const data = new Uint8Array([48, 128, 240]);
+  // Steps: dark-shadow floor (#151a12 ≈ 21), mid-tone, highlight
+  // Floor at 80 keeps shadows from collapsing to pure black
+  const data = new Uint8Array([80, 160, 240]);
   const tex  = new THREE.DataTexture(data, 3, 1, THREE.RedFormat);
   tex.needsUpdate = true;
   return tex;
@@ -131,28 +133,28 @@ function buildChunk(cx: number, cz: number): ChunkData {
     return m;
   }
 
-  // Ground fill — dark greenish-black base
-  const grd = mk(new THREE.PlaneGeometry(CS, CS), new THREE.MeshToonMaterial({ gradientMap: TOON_MAP, color: 0x0c0f0a }));
+  // Ground fill — visible dark green, lighter than before
+  const grd = mk(new THREE.PlaneGeometry(CS, CS), new THREE.MeshToonMaterial({ gradientMap: TOON_MAP, color: 0x182015 }));
   grd.rotation.x = -Math.PI / 2;
   grd.position.set(wx + CS / 2, 0, wz + CS / 2);
 
-  // Road along NORTH edge — charcoal with faint green tint, clearly visible
-  const nr = mk(new THREE.PlaneGeometry(CS + RW, RW), new THREE.MeshToonMaterial({ gradientMap: TOON_MAP, color: 0x20221c }));
+  // Road along NORTH edge — charcoal green, clearly distinct from ground
+  const nr = mk(new THREE.PlaneGeometry(CS + RW, RW), new THREE.MeshToonMaterial({ gradientMap: TOON_MAP, color: 0x2c3028 }));
   nr.rotation.x = -Math.PI / 2;
   nr.position.set(wx + CS / 2, RY, wz + CS);
 
   // Road along EAST edge — slightly higher Y to prevent z-fight at intersections
-  const er = mk(new THREE.PlaneGeometry(RW, CS + RW), new THREE.MeshToonMaterial({ gradientMap: TOON_MAP, color: 0x20221c }));
+  const er = mk(new THREE.PlaneGeometry(RW, CS + RW), new THREE.MeshToonMaterial({ gradientMap: TOON_MAP, color: 0x2c3028 }));
   er.rotation.x = -Math.PI / 2;
   er.position.set(wx + CS, RY + 0.005, wz + CS / 2);
 
-  // Sidewalk inside north road — noticeably lighter than road
-  const nsw = mk(new THREE.PlaneGeometry(CS, SW), new THREE.MeshToonMaterial({ gradientMap: TOON_MAP, color: 0x2a2d24 }));
+  // Sidewalk inside north road — lighter than road
+  const nsw = mk(new THREE.PlaneGeometry(CS, SW), new THREE.MeshToonMaterial({ gradientMap: TOON_MAP, color: 0x34382f }));
   nsw.rotation.x = -Math.PI / 2;
   nsw.position.set(wx + CS / 2, SWY, wz + CS - RW / 2 - SW / 2);
 
   // Sidewalk inside east road
-  const esw = mk(new THREE.PlaneGeometry(SW, CS), new THREE.MeshToonMaterial({ gradientMap: TOON_MAP, color: 0x2a2d24 }));
+  const esw = mk(new THREE.PlaneGeometry(SW, CS), new THREE.MeshToonMaterial({ gradientMap: TOON_MAP, color: 0x34382f }));
   esw.rotation.x = -Math.PI / 2;
   esw.position.set(wx + CS - RW / 2 - SW / 2, SWY, wz + CS / 2);
 
@@ -196,8 +198,8 @@ function buildChunk(cx: number, cz: number): ChunkData {
     eLampIdx++;
   }
 
-  // Curb strips — clearly lighter than road, matches palette
-  const curbC = 0x3a3d30;
+  // Curb strips — warm stone green, clearly distinct from road + sidewalk
+  const curbC = 0x4a4e42;
   const curbN = mk(new THREE.BoxGeometry(CS, 0.14, 0.35), new THREE.MeshToonMaterial({ gradientMap: TOON_MAP, color: curbC }));
   curbN.position.set(wx + CS / 2, 0.07, wz + CS - RW / 2 - SW);
   const curbE = mk(new THREE.BoxGeometry(0.35, 0.14, CS), new THREE.MeshToonMaterial({ gradientMap: TOON_MAP, color: curbC }));
@@ -393,17 +395,25 @@ function CityScene({ onNear, onEnter, playerPosRef, worldSaveRef }: CityScenePro
     nose.position.set(0, 0.4, -0.65);
     player.add(nose);
 
-    // Scene atmosphere — dark blue-green night sky, matching the palette
-    scene.background = new THREE.Color(0x08110f);
-    scene.fog = new THREE.FogExp2(0x101806, 0.0017);
+    // Scene atmosphere — visible dark blue-green sky, light fog
+    scene.background = new THREE.Color(0x101a18);
+    scene.fog = new THREE.FogExp2(0x182015, 0.0012);
 
-    // Ambient — readable base fill, no longer crushed to near-black
-    const light = new THREE.AmbientLight(0x182010, 0.8);
+    // Sky dome — large inverted sphere so the horizon never bleeds to black
+    const skyGeo = new THREE.SphereGeometry(900, 16, 8);
+    const skyMat = new THREE.MeshBasicMaterial({ color: 0x101a18, side: THREE.BackSide });
+    const skyDome = new THREE.Mesh(skyGeo, skyMat);
+    allDisp.push({ geo: skyGeo, mat: skyMat });
+    allObjs.push(skyDome);
+    scene.add(skyDome);
+
+    // Strong ambient floor — ground never collapses to pure black
+    const light = new THREE.AmbientLight(0x263020, 1.25);
     allObjs.push(light);
     scene.add(light);
 
-    // Hemisphere — dark green sky dome + deep ground bounce
-    const hemi = new THREE.HemisphereLight(0x1a2a10, 0x080c04, 0.9);
+    // Hemisphere — soft green sky fill + green ground bounce
+    const hemi = new THREE.HemisphereLight(0x283828, 0x182015, 1.3);
     allObjs.push(hemi);
     scene.add(hemi);
 
@@ -413,7 +423,7 @@ function CityScene({ onNear, onEnter, playerPosRef, worldSaveRef }: CityScenePro
     allObjs.push(moon);
     scene.add(moon);
 
-    // Subtle green rim — dirty fill, kept very low so it doesn't overwhelm
+    // Subtle green rim — dirty fill from opposite side
     const rim = new THREE.DirectionalLight(0x203810, 0.35);
     rim.position.set(3, 0.5, -2);
     allObjs.push(rim);
