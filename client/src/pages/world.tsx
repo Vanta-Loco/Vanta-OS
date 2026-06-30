@@ -131,52 +131,73 @@ function buildChunk(cx: number, cz: number): ChunkData {
     return m;
   }
 
-  // Ground fill — darkest layer
-  const grd = mk(new THREE.PlaneGeometry(CS, CS), new THREE.MeshToonMaterial({ gradientMap: TOON_MAP, color: 0x07070e }));
+  // Ground fill — dark greenish-black base
+  const grd = mk(new THREE.PlaneGeometry(CS, CS), new THREE.MeshToonMaterial({ gradientMap: TOON_MAP, color: 0x0c0f0a }));
   grd.rotation.x = -Math.PI / 2;
   grd.position.set(wx + CS / 2, 0, wz + CS / 2);
 
-  // Road along NORTH edge (z = wz + CS) — clearly lighter than ground
-  const nr = mk(new THREE.PlaneGeometry(CS + RW, RW), new THREE.MeshToonMaterial({ gradientMap: TOON_MAP, color: 0x16161e }));
+  // Road along NORTH edge — charcoal with faint green tint, clearly visible
+  const nr = mk(new THREE.PlaneGeometry(CS + RW, RW), new THREE.MeshToonMaterial({ gradientMap: TOON_MAP, color: 0x20221c }));
   nr.rotation.x = -Math.PI / 2;
   nr.position.set(wx + CS / 2, RY, wz + CS);
 
-  // Road along EAST edge (x = wx + CS) — slightly higher Y to prevent z-fight at intersections
-  const er = mk(new THREE.PlaneGeometry(RW, CS + RW), new THREE.MeshToonMaterial({ gradientMap: TOON_MAP, color: 0x16161e }));
+  // Road along EAST edge — slightly higher Y to prevent z-fight at intersections
+  const er = mk(new THREE.PlaneGeometry(RW, CS + RW), new THREE.MeshToonMaterial({ gradientMap: TOON_MAP, color: 0x20221c }));
   er.rotation.x = -Math.PI / 2;
   er.position.set(wx + CS, RY + 0.005, wz + CS / 2);
 
   // Sidewalk inside north road — noticeably lighter than road
-  const nsw = mk(new THREE.PlaneGeometry(CS, SW), new THREE.MeshToonMaterial({ gradientMap: TOON_MAP, color: 0x1e1e30 }));
+  const nsw = mk(new THREE.PlaneGeometry(CS, SW), new THREE.MeshToonMaterial({ gradientMap: TOON_MAP, color: 0x2a2d24 }));
   nsw.rotation.x = -Math.PI / 2;
   nsw.position.set(wx + CS / 2, SWY, wz + CS - RW / 2 - SW / 2);
 
   // Sidewalk inside east road
-  const esw = mk(new THREE.PlaneGeometry(SW, CS), new THREE.MeshToonMaterial({ gradientMap: TOON_MAP, color: 0x1e1e30 }));
+  const esw = mk(new THREE.PlaneGeometry(SW, CS), new THREE.MeshToonMaterial({ gradientMap: TOON_MAP, color: 0x2a2d24 }));
   esw.rotation.x = -Math.PI / 2;
   esw.position.set(wx + CS - RW / 2 - SW / 2, SWY, wz + CS / 2);
 
-  // Streetlights along north road — brighter heads, more frequent
-  const pC = 0x3c3c7a, hC = 0xb0b0ff;
+  // Streetlights — dark poles, cool-white emissive heads that trigger bloom
+  const pC = 0x282c20;
+  const hC = 0xd8e8ff;
   const poleZ = wz + CS - RW / 2 - SW - 1.2;
+  let nLampIdx = 0;
   for (let lx = wx + 14; lx < wx + CS - 6; lx += 16) {
     const p = mk(new THREE.BoxGeometry(0.22, 5.5, 0.22), new THREE.MeshToonMaterial({ gradientMap: TOON_MAP, color: pC }));
     p.position.set(lx, 2.75, poleZ);
-    const h = mk(new THREE.BoxGeometry(0.5, 0.5, 2.2), new THREE.MeshToonMaterial({ gradientMap: TOON_MAP, color: hC }));
+    const h = mk(new THREE.BoxGeometry(0.5, 0.5, 2.2), new THREE.MeshToonMaterial({
+      gradientMap: TOON_MAP, color: hC,
+      emissive: new THREE.Color(hC), emissiveIntensity: 1.4,
+    }));
     h.position.set(lx, 5.6, poleZ - 0.9);
+    if (nLampIdx % 3 === 0) {
+      const pl = new THREE.PointLight(0xb8d6ff, 1.2, 18, 2);
+      pl.position.set(lx, 5.0, poleZ - 0.9);
+      objs.push(pl);
+    }
+    nLampIdx++;
   }
 
   // Streetlights along east road
   const poleX = wx + CS - RW / 2 - SW - 1.2;
+  let eLampIdx = 0;
   for (let lz = wz + 14; lz < wz + CS - 6; lz += 16) {
     const p = mk(new THREE.BoxGeometry(0.22, 5.5, 0.22), new THREE.MeshToonMaterial({ gradientMap: TOON_MAP, color: pC }));
     p.position.set(poleX, 2.75, lz);
-    const h = mk(new THREE.BoxGeometry(2.2, 0.5, 0.5), new THREE.MeshToonMaterial({ gradientMap: TOON_MAP, color: hC }));
+    const h = mk(new THREE.BoxGeometry(2.2, 0.5, 0.5), new THREE.MeshToonMaterial({
+      gradientMap: TOON_MAP, color: hC,
+      emissive: new THREE.Color(hC), emissiveIntensity: 1.4,
+    }));
     h.position.set(poleX - 0.9, 5.6, lz);
+    if (eLampIdx % 3 === 0) {
+      const pl = new THREE.PointLight(0xb8d6ff, 1.2, 18, 2);
+      pl.position.set(poleX - 0.9, 5.0, lz);
+      objs.push(pl);
+    }
+    eLampIdx++;
   }
 
-  // Curb strips — visible contrast against sidewalk
-  const curbC = 0x2e2e4a;
+  // Curb strips — clearly lighter than road, matches palette
+  const curbC = 0x3a3d30;
   const curbN = mk(new THREE.BoxGeometry(CS, 0.14, 0.35), new THREE.MeshToonMaterial({ gradientMap: TOON_MAP, color: curbC }));
   curbN.position.set(wx + CS / 2, 0.07, wz + CS - RW / 2 - SW);
   const curbE = mk(new THREE.BoxGeometry(0.35, 0.14, CS), new THREE.MeshToonMaterial({ gradientMap: TOON_MAP, color: curbC }));
@@ -372,9 +393,9 @@ function CityScene({ onNear, onEnter, playerPosRef, worldSaveRef }: CityScenePro
     nose.position.set(0, 0.4, -0.65);
     player.add(nose);
 
-    // Scene atmosphere — dark green/black night sky + light fog
-    scene.background = new THREE.Color(0x070905);
-    scene.fog = new THREE.FogExp2(0x101806, 0.0018);
+    // Scene atmosphere — dark blue-green night sky, matching the palette
+    scene.background = new THREE.Color(0x08110f);
+    scene.fog = new THREE.FogExp2(0x101806, 0.0017);
 
     // Ambient — readable base fill, no longer crushed to near-black
     const light = new THREE.AmbientLight(0x182010, 0.8);
@@ -659,9 +680,9 @@ function PostFX() {
     // Subtle bloom — glow on streetlight heads and landmark beacon caps only
     const bloom = new UnrealBloomPass(
       new THREE.Vector2(size.width, size.height),
-      0.28,  // strength  (was 0.75 — reduced 63%)
+      0.28,  // strength — subtle glow only
       0.6,   // radius
-      0.3,   // threshold — only the brightest surfaces catch it
+      0.25,  // threshold — catches emissive lamp heads + beacon caps
     );
     composer.addPass(bloom);
 
