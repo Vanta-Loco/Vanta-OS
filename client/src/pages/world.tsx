@@ -2,6 +2,7 @@ import { Component, useCallback, useEffect, useRef, useState, type ReactNode } f
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { useLocation } from "wouter";
 import * as THREE from "three";
+import { VaultRadio } from "@/components/vault-radio";
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 const CS          = 80;    // chunk size (world units)
@@ -339,6 +340,8 @@ function CityScene({ onNear, onEnter }: CitySceneProps) {
 
     // ── Keyboard ─────────────────────────────────────────────────────────────
     const onKeyDown = (e: KeyboardEvent) => {
+      // Don't capture keys when the user is interacting with the Vault Radio HUD
+      if ((e.target as HTMLElement)?.closest?.("[data-vault-radio]")) return;
       keysRef.current.add(e.code);
       if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.code)) e.preventDefault();
       // E = enter landmark (never used for camera rotation)
@@ -354,7 +357,12 @@ function CityScene({ onNear, onEnter }: CitySceneProps) {
     window.addEventListener("blur",    onBlur);
 
     // ── Mouse drag (camera yaw) ───────────────────────────────────────────────
-    const onMouseDown  = (e: MouseEvent) => { isDraggingRef.current = true;  lastPtrXRef.current = e.clientX; };
+    const onMouseDown  = (e: MouseEvent) => {
+      // Don't start camera drag when clicking inside the Vault Radio HUD
+      if ((e.target as HTMLElement)?.closest?.("[data-vault-radio]")) return;
+      isDraggingRef.current = true;
+      lastPtrXRef.current = e.clientX;
+    };
     const onMouseMove  = (e: MouseEvent) => {
       if (!isDraggingRef.current) return;
       camYawRef.current += (e.clientX - lastPtrXRef.current) * CAM_DRAG_S;
@@ -568,6 +576,9 @@ export default function World() {
           {lm.msg ? `! ${lm.msg}` : `[E]  Enter ${lm.name}`}
         </div>
       )}
+
+      {/* ── Vault Radio HUD ────────────────────────────────────────────── */}
+      <VaultRadio />
 
       <CanvasBoundary>
         <Canvas
