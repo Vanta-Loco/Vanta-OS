@@ -2,6 +2,20 @@ import { Component, useCallback, useEffect, useRef, useState, type ReactNode } f
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { useLocation } from "wouter";
 import * as THREE from "three";
+// @ts-ignore — Three.js JSM examples ship without bundled TS declarations
+import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
+// @ts-ignore
+import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
+// @ts-ignore
+import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
+// @ts-ignore
+import { FilmPass } from "three/examples/jsm/postprocessing/FilmPass.js";
+// @ts-ignore
+import { ShaderPass } from "three/examples/jsm/postprocessing/ShaderPass.js";
+// @ts-ignore
+import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
+// @ts-ignore
+import { VignetteShader } from "three/examples/jsm/shaders/VignetteShader.js";
 import { VaultRadio } from "@/components/vault-radio";
 import { WorldMinimap } from "@/components/world-minimap";
 import {
@@ -64,6 +78,30 @@ const DISTRICT_TYPES: BuildingType[][] = [
   ],
 ];
 
+// ─── Toon gradient map (3-step: shadow / mid / highlight) ─────────────────────
+function makeToonMap(): THREE.DataTexture {
+  const data = new Uint8Array([48, 128, 240]);
+  const tex  = new THREE.DataTexture(data, 3, 1, THREE.RedFormat);
+  tex.needsUpdate = true;
+  return tex;
+}
+const TOON_MAP = makeToonMap();
+
+// ─── Chromatic aberration ShaderPass definition ───────────────────────────────
+const ChromaShader = {
+  name: "ChromaShader",
+  uniforms: { tDiffuse: { value: null }, uOffset: { value: new THREE.Vector2(0.0005, 0.0003) } },
+  vertexShader:   `varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
+  fragmentShader: `
+    uniform sampler2D tDiffuse; uniform vec2 uOffset; varying vec2 vUv;
+    void main(){
+      vec4 cr=texture2D(tDiffuse,vUv+uOffset);
+      vec4 cg=texture2D(tDiffuse,vUv);
+      vec4 cb=texture2D(tDiffuse,vUv-uOffset);
+      gl_FragColor=vec4(cr.r,cg.g,cb.b,cg.a);
+    }`,
+};
+
 // ─── Seeded RNG ────────────────────────────────────────────────────────────────
 function seededRng(seed: number): () => number {
   let s = (seed ^ 0xdeadbeef) >>> 0;
@@ -94,27 +132,27 @@ function buildChunk(cx: number, cz: number): ChunkData {
   }
 
   // Ground fill — darkest layer
-  const grd = mk(new THREE.PlaneGeometry(CS, CS), new THREE.MeshBasicMaterial({ color: 0x07070e }));
+  const grd = mk(new THREE.PlaneGeometry(CS, CS), new THREE.MeshToonMaterial({ gradientMap: TOON_MAP, color: 0x07070e }));
   grd.rotation.x = -Math.PI / 2;
   grd.position.set(wx + CS / 2, 0, wz + CS / 2);
 
   // Road along NORTH edge (z = wz + CS) — clearly lighter than ground
-  const nr = mk(new THREE.PlaneGeometry(CS + RW, RW), new THREE.MeshBasicMaterial({ color: 0x16161e }));
+  const nr = mk(new THREE.PlaneGeometry(CS + RW, RW), new THREE.MeshToonMaterial({ gradientMap: TOON_MAP, color: 0x16161e }));
   nr.rotation.x = -Math.PI / 2;
   nr.position.set(wx + CS / 2, RY, wz + CS);
 
   // Road along EAST edge (x = wx + CS) — slightly higher Y to prevent z-fight at intersections
-  const er = mk(new THREE.PlaneGeometry(RW, CS + RW), new THREE.MeshBasicMaterial({ color: 0x16161e }));
+  const er = mk(new THREE.PlaneGeometry(RW, CS + RW), new THREE.MeshToonMaterial({ gradientMap: TOON_MAP, color: 0x16161e }));
   er.rotation.x = -Math.PI / 2;
   er.position.set(wx + CS, RY + 0.005, wz + CS / 2);
 
   // Sidewalk inside north road — noticeably lighter than road
-  const nsw = mk(new THREE.PlaneGeometry(CS, SW), new THREE.MeshBasicMaterial({ color: 0x1e1e30 }));
+  const nsw = mk(new THREE.PlaneGeometry(CS, SW), new THREE.MeshToonMaterial({ gradientMap: TOON_MAP, color: 0x1e1e30 }));
   nsw.rotation.x = -Math.PI / 2;
   nsw.position.set(wx + CS / 2, SWY, wz + CS - RW / 2 - SW / 2);
 
   // Sidewalk inside east road
-  const esw = mk(new THREE.PlaneGeometry(SW, CS), new THREE.MeshBasicMaterial({ color: 0x1e1e30 }));
+  const esw = mk(new THREE.PlaneGeometry(SW, CS), new THREE.MeshToonMaterial({ gradientMap: TOON_MAP, color: 0x1e1e30 }));
   esw.rotation.x = -Math.PI / 2;
   esw.position.set(wx + CS - RW / 2 - SW / 2, SWY, wz + CS / 2);
 
@@ -122,26 +160,26 @@ function buildChunk(cx: number, cz: number): ChunkData {
   const pC = 0x3c3c7a, hC = 0xb0b0ff;
   const poleZ = wz + CS - RW / 2 - SW - 1.2;
   for (let lx = wx + 14; lx < wx + CS - 6; lx += 16) {
-    const p = mk(new THREE.BoxGeometry(0.22, 5.5, 0.22), new THREE.MeshBasicMaterial({ color: pC }));
+    const p = mk(new THREE.BoxGeometry(0.22, 5.5, 0.22), new THREE.MeshToonMaterial({ gradientMap: TOON_MAP, color: pC }));
     p.position.set(lx, 2.75, poleZ);
-    const h = mk(new THREE.BoxGeometry(0.5, 0.5, 2.2), new THREE.MeshBasicMaterial({ color: hC }));
+    const h = mk(new THREE.BoxGeometry(0.5, 0.5, 2.2), new THREE.MeshToonMaterial({ gradientMap: TOON_MAP, color: hC }));
     h.position.set(lx, 5.6, poleZ - 0.9);
   }
 
   // Streetlights along east road
   const poleX = wx + CS - RW / 2 - SW - 1.2;
   for (let lz = wz + 14; lz < wz + CS - 6; lz += 16) {
-    const p = mk(new THREE.BoxGeometry(0.22, 5.5, 0.22), new THREE.MeshBasicMaterial({ color: pC }));
+    const p = mk(new THREE.BoxGeometry(0.22, 5.5, 0.22), new THREE.MeshToonMaterial({ gradientMap: TOON_MAP, color: pC }));
     p.position.set(poleX, 2.75, lz);
-    const h = mk(new THREE.BoxGeometry(2.2, 0.5, 0.5), new THREE.MeshBasicMaterial({ color: hC }));
+    const h = mk(new THREE.BoxGeometry(2.2, 0.5, 0.5), new THREE.MeshToonMaterial({ gradientMap: TOON_MAP, color: hC }));
     h.position.set(poleX - 0.9, 5.6, lz);
   }
 
   // Curb strips — visible contrast against sidewalk
   const curbC = 0x2e2e4a;
-  const curbN = mk(new THREE.BoxGeometry(CS, 0.14, 0.35), new THREE.MeshBasicMaterial({ color: curbC }));
+  const curbN = mk(new THREE.BoxGeometry(CS, 0.14, 0.35), new THREE.MeshToonMaterial({ gradientMap: TOON_MAP, color: curbC }));
   curbN.position.set(wx + CS / 2, 0.07, wz + CS - RW / 2 - SW);
-  const curbE = mk(new THREE.BoxGeometry(0.35, 0.14, CS), new THREE.MeshBasicMaterial({ color: curbC }));
+  const curbE = mk(new THREE.BoxGeometry(0.35, 0.14, CS), new THREE.MeshToonMaterial({ gradientMap: TOON_MAP, color: curbC }));
   curbE.position.set(wx + CS - RW / 2 - SW, 0.07, wz + CS / 2);
 
   // District selection based on quadrant
@@ -168,16 +206,16 @@ function buildChunk(cx: number, cz: number): ChunkData {
         const bx = bMinX + rng() * Math.max(0, bAreaW - bw);
         const bz = bMinZ + rng() * Math.max(0, bAreaD - bd);
 
-        const body = mk(new THREE.BoxGeometry(bw, bh, bd), new THREE.MeshBasicMaterial({ color: type.color }));
+        const body = mk(new THREE.BoxGeometry(bw, bh, bd), new THREE.MeshToonMaterial({ gradientMap: TOON_MAP, color: type.color }));
         body.position.set(bx + bw / 2, bh / 2, bz + bd / 2);
 
-        const roof = mk(new THREE.BoxGeometry(bw, 0.15, bd), new THREE.MeshBasicMaterial({ color: type.roofColor }));
+        const roof = mk(new THREE.BoxGeometry(bw, 0.15, bd), new THREE.MeshToonMaterial({ gradientMap: TOON_MAP, color: type.roofColor }));
         roof.position.set(bx + bw / 2, bh + 0.08, bz + bd / 2);
 
         // Random rooftop element (antenna / mechanical box)
         if (rng() > 0.55) {
           const tw = bw * 0.25 + 0.5, td = bd * 0.25 + 0.5, th = bh * 0.1 + 1;
-          const top = mk(new THREE.BoxGeometry(tw, th, td), new THREE.MeshBasicMaterial({ color: type.roofColor }));
+          const top = mk(new THREE.BoxGeometry(tw, th, td), new THREE.MeshToonMaterial({ gradientMap: TOON_MAP, color: type.roofColor }));
           top.position.set(bx + bw / 2, bh + th / 2, bz + bd / 2);
         }
       }
@@ -206,30 +244,30 @@ function buildLandmarks(): { objects: THREE.Object3D[]; disposables: Disposable[
     // Main shaft
     const shaft = mk(
       new THREE.BoxGeometry(isSubway ? 10 : 6, lm.h, isSubway ? 7 : 6),
-      new THREE.MeshBasicMaterial({ color: lm.color }),
+      new THREE.MeshToonMaterial({ gradientMap: TOON_MAP, color: lm.color }),
     );
     shaft.position.set(lm.x, lm.h / 2, lm.z);
 
     // Glowing cap
     const cap = mk(
       new THREE.BoxGeometry(isSubway ? 10.6 : 5.5, isSubway ? 0.4 : 4, isSubway ? 7.6 : 5.5),
-      new THREE.MeshBasicMaterial({ color: lm.cap }),
+      new THREE.MeshToonMaterial({ gradientMap: TOON_MAP, color: lm.cap }),
     );
     cap.position.set(lm.x, lm.h + (isSubway ? 0.2 : 2.5), lm.z);
 
     if (!isSubway) {
       // Spire
-      const spire = mk(new THREE.BoxGeometry(0.9, 6, 0.9), new THREE.MeshBasicMaterial({ color: lm.cap }));
+      const spire = mk(new THREE.BoxGeometry(0.9, 6, 0.9), new THREE.MeshToonMaterial({ gradientMap: TOON_MAP, color: lm.cap }));
       spire.position.set(lm.x, lm.h + 7, lm.z);
 
       // Second narrow shaft detail
-      const detail = mk(new THREE.BoxGeometry(4, lm.h * 0.6, 4), new THREE.MeshBasicMaterial({ color: lm.color }));
+      const detail = mk(new THREE.BoxGeometry(4, lm.h * 0.6, 4), new THREE.MeshToonMaterial({ gradientMap: TOON_MAP, color: lm.color }));
       detail.position.set(lm.x + 4, lm.h * 0.3, lm.z);
     }
 
     // Pulsing beacon (animated in useFrame)
     const bGeo = new THREE.BoxGeometry(2, 2, 2);
-    const bMat = new THREE.MeshBasicMaterial({ color: lm.cap, transparent: true, opacity: 0.9 });
+    const bMat = new THREE.MeshToonMaterial({ gradientMap: TOON_MAP, color: lm.cap, transparent: true, opacity: 0.9 });
     const beacon = new THREE.Mesh(bGeo, bMat);
     beacon.position.set(lm.x, lm.h + (isSubway ? 5 : 15), lm.z);
     disposables.push({ geo: bGeo, mat: bMat });
@@ -311,7 +349,7 @@ function CityScene({ onNear, onEnter, playerPosRef, worldSaveRef }: CityScenePro
 
     // Player body — restore saved position/angle on return from a building
     const pGeo = new THREE.BoxGeometry(1, 2, 1);
-    const pMat = new THREE.MeshBasicMaterial({ color: 0xa855f7 });
+    const pMat = new THREE.MeshToonMaterial({ gradientMap: TOON_MAP, color: 0xa855f7 });
     const player = new THREE.Mesh(pGeo, pMat);
     const initSave        = worldSaveRef.current;
     player.position.set(initSave.playerX, 1, initSave.playerZ);
@@ -328,27 +366,37 @@ function CityScene({ onNear, onEnter, playerPosRef, worldSaveRef }: CityScenePro
 
     // Forward-facing nose (direction indicator)
     const nGeo = new THREE.BoxGeometry(0.3, 0.3, 0.3);
-    const nMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    const nMat = new THREE.MeshToonMaterial({ gradientMap: TOON_MAP, color: 0xffffff });
     allDisp.push({ geo: nGeo, mat: nMat });
     const nose = new THREE.Mesh(nGeo, nMat);
     nose.position.set(0, 0.4, -0.65);
     player.add(nose);
 
-    // Ambient fill — brighter base illumination
-    const light = new THREE.AmbientLight(0xffffff, 2.2);
+    // Scene atmosphere — fog + background match for seamless depth
+    scene.background = new THREE.Color(0x060412);
+    scene.fog = new THREE.FogExp2(0x060412, 0.006);
+
+    // Low ambient — just enough to keep deep-shadow faces from pure black
+    const light = new THREE.AmbientLight(0x110022, 0.45);
     allObjs.push(light);
     scene.add(light);
 
-    // Hemisphere light — cool purple sky, warm ground bounce
-    const hemi = new THREE.HemisphereLight(0x220044, 0x100820, 1.8);
+    // Hemisphere — indigo sky dome + near-black ground bounce
+    const hemi = new THREE.HemisphereLight(0x1e0a44, 0x050008, 1.6);
     allObjs.push(hemi);
     scene.add(hemi);
 
-    // Directional moonlight — subtle side-lighting for depth
-    const moon = new THREE.DirectionalLight(0x4040aa, 0.6);
-    moon.position.set(-1, 2, 0.5);
+    // Main moonlight — cold blue-steel, strong enough to drive toon steps
+    const moon = new THREE.DirectionalLight(0x8899cc, 2.8);
+    moon.position.set(-2, 5, 1);
     allObjs.push(moon);
     scene.add(moon);
+
+    // Sickly green rim light — dirty fill from the opposite side
+    const rim = new THREE.DirectionalLight(0x1a3a10, 0.9);
+    rim.position.set(3, 0.5, -2);
+    allObjs.push(rim);
+    scene.add(rim);
 
     // Fixed landmarks
     const lmData = buildLandmarks();
@@ -444,6 +492,9 @@ function CityScene({ onNear, onEnter, playerPosRef, worldSaveRef }: CityScenePro
     console.log("[Vanta City] Scene ready ✓  districts: tech/residential/industrial/commercial");
 
     return () => {
+      scene.fog = null;
+      scene.background = null;
+
       for (const o of allObjs) scene.remove(o);
       for (const { geo, mat } of allDisp) { geo.dispose(); mat.dispose(); }
 
@@ -565,7 +616,7 @@ function CityScene({ onNear, onEnter, playerPosRef, worldSaveRef }: CityScenePro
     beaconsRef.current.forEach((beacon, i) => {
       const pulse = 0.65 + 0.55 * Math.abs(Math.sin(t * 1.8 + i * 0.85));
       beacon.scale.setScalar(pulse);
-      (beacon.material as THREE.MeshBasicMaterial).opacity =
+      (beacon.material as THREE.Material).opacity =
         0.25 + 0.75 * Math.abs(Math.sin(t * 1.4 + i * 0.85));
     });
 
@@ -590,6 +641,53 @@ function CityScene({ onNear, onEnter, playerPosRef, worldSaveRef }: CityScenePro
       onNearRef.current({ lm: effectiveLm, canEnter: enterLm !== null });
     }
   });
+
+  return null;
+}
+
+// ─── Post-processing (Bloom → ChromaticAberration → FilmGrain → Vignette) ─────
+// Priority=1 on useFrame disables R3F's auto-render; the EffectComposer owns it.
+function PostFX() {
+  const { gl, scene, camera, size } = useThree();
+  const composerRef = useRef<any>(null);
+
+  useEffect(() => {
+    const composer = new EffectComposer(gl);
+
+    composer.addPass(new RenderPass(scene, camera));
+
+    const bloom = new UnrealBloomPass(
+      new THREE.Vector2(size.width, size.height),
+      0.75,  // strength
+      0.5,   // radius
+      0.15,  // threshold — picks up streetlight heads + landmark beacons
+    );
+    composer.addPass(bloom);
+
+    composer.addPass(new ShaderPass(ChromaShader));
+
+    // FilmPass(intensity, grayscale) — animated grain every frame
+    composer.addPass(new FilmPass(0.28, false));
+
+    const vig = new ShaderPass(VignetteShader);
+    vig.uniforms["offset"].value   = 0.8;
+    vig.uniforms["darkness"].value = 1.55;
+    composer.addPass(vig);
+
+    // OutputPass handles sRGB color-space conversion for final display
+    composer.addPass(new OutputPass());
+
+    composer.setSize(size.width, size.height);
+    composerRef.current = composer;
+
+    return () => {
+      composer.dispose();
+      composerRef.current = null;
+    };
+  }, [gl, scene, camera, size.width, size.height]);
+
+  // Priority > 0 tells R3F to skip its own gl.render() — composer handles it
+  useFrame(() => { composerRef.current?.render(); }, 1);
 
   return null;
 }
@@ -620,7 +718,7 @@ export default function World() {
   const { lm, canEnter } = near;
 
   return (
-    <div style={{ position: "fixed", inset: 0, width: "100vw", height: "100vh", background: "#05030c" }}>
+    <div style={{ position: "fixed", inset: 0, width: "100vw", height: "100vh", background: "#060412" }}>
 
       {/* ── HUD ─────────────────────────────────────────────────────────────── */}
       <div style={{
@@ -685,6 +783,7 @@ export default function World() {
             playerPosRef={playerPosRef}
             worldSaveRef={worldSaveRef}
           />
+          <PostFX />
         </Canvas>
       </CanvasBoundary>
     </div>
