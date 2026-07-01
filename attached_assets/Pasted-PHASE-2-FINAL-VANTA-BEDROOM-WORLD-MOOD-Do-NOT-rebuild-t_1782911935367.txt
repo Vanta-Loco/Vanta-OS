@@ -1,0 +1,83 @@
+PHASE 2 FINAL: VANTA BEDROOM + WORLD MOOD
+
+Do NOT rebuild the city.
+Keep current lighting, roads, windows, player, minimap, radio, and landmarks.
+
+Goal:
+Finish Phase 2 by adding one playable Vanta Bedroom interior and subtle world mood systems.
+
+TASK 1 — Vanta Bedroom Interior
+Create a new 3D interior scene called VantaBedroomScene.
+
+Player enters it from one landmark, preferably MUSIC HUB or VAULT GATE.
+
+Bedroom style:
+- early 2000s emo/shoegaze bedroom
+- dirty green walls
+- dark carpet
+- plaid bed
+- black couch/chair
+- CRT TV
+- old music player/iPod object
+- posters on walls
+- ceiling fan
+- warm yellow lamp
+- grungy PS2/PS3 look
+
+Build everything from simple primitives first:
+- walls: PlaneGeometry or BoxGeometry
+- floor/ceiling
+- bed frame + mattress + blanket
+- poster planes
+- CRT from boxes
+- dresser/desk
+- lamp with PointLight
+- iPod/music player from small boxes
+
+TASK 2 — Bedroom Interaction
+Inside the bedroom:
+- Press E near the door to return to Vanta City at the last saved position.
+- Press E near the music player to toggle radio.
+- Keep the Vault Radio UI connected.
+- Add a small prompt when near interactable objects.
+
+TASK 3 — Bedroom Mood
+Add subtle animated details:
+- CRT screen glow
+- lamp flicker
+- posters slightly dark/desaturated
+- low fog or haze inside room
+- warm yellow + dirty green lighting
+- no heavy distortion yet
+
+TASK 4 — World Mood Systems
+Add subtle city ambience:
+- random window flicker on a few buildings
+- slight streetlight flicker
+- distant landmark glow
+- occasional tiny floating dust/rain particles if performance is okay
+- very subtle, not overwhelming
+
+TASK 5 — Do NOT Add Yet
+Do not add full suburbs, regular houses, cars, NPCs, combat, missions, or Verge Mode yet.
+Do not redesign the whole city layout yet.
+Do not overpopulate the city until gameplay design is locked.
+
+TASK 6 — Code Structure
+Keep it modular:
+- createVantaBedroomScene()
+- createBedroomProps()
+- createBedroomPosters()
+- createBedroomLighting()
+- updateWorldMood()
+- updateFlickeringLights()
+
+TASK 7 — Routing / Scene Switching
+If possible, do not navigate to a regular webpage for this bedroom.
+Instead, swap the active Three.js scene/state inside the game canvas:
+city mode <-> bedroom mode.
+
+If that is too complex, temporarily route to /bedroom with its own R3F canvas, but keep player state saved.
+
+Deliverable:
+A playable Vanta Bedroom prototype connected to the city through one landmark.

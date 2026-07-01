@@ -18,6 +18,7 @@ import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 import { VignetteShader } from "three/examples/jsm/shaders/VignetteShader.js";
 import { VaultRadio } from "@/components/vault-radio";
 import { WorldMinimap } from "@/components/world-minimap";
+import { VantaBedroomScene } from "@/components/vanta-bedroom";
 import {
   saveWorldState, loadWorldState, DEFAULT_WORLD_SAVE,
   type WorldSave,
@@ -569,13 +570,14 @@ class CanvasBoundary extends Component<{ children: ReactNode }, { error: string 
 // All THREE.js objects are created imperatively (useEffect + scene.add) to avoid
 // the R3F v8 / three@0.169.0 applyProps crash.
 interface CitySceneProps {
-  onNear:       (s: NearState) => void;
-  onEnter:      (route: string) => void;
-  playerPosRef: React.MutableRefObject<{ x: number; z: number; angle: number }>;
-  worldSaveRef: React.MutableRefObject<WorldSave>;
+  onNear:          (s: NearState) => void;
+  onEnter:         (route: string) => void;
+  onEnterBedroom:  () => void;
+  playerPosRef:    React.MutableRefObject<{ x: number; z: number; angle: number }>;
+  worldSaveRef:    React.MutableRefObject<WorldSave>;
 }
 
-function CityScene({ onNear, onEnter, playerPosRef, worldSaveRef }: CitySceneProps) {
+function CityScene({ onNear, onEnter, onEnterBedroom, playerPosRef, worldSaveRef }: CitySceneProps) {
   const { scene } = useThree();
 
   // Player / movement
@@ -604,10 +606,12 @@ function CityScene({ onNear, onEnter, playerPosRef, worldSaveRef }: CityScenePro
   const lastPtrYRef    = useRef(0);
 
   // Stable callback refs (prevent stale closures in event handlers)
-  const onNearRef  = useRef(onNear);
-  const onEnterRef = useRef(onEnter);
-  useEffect(() => { onNearRef.current  = onNear;  }, [onNear]);
-  useEffect(() => { onEnterRef.current = onEnter; }, [onEnter]);
+  const onNearRef          = useRef(onNear);
+  const onEnterRef         = useRef(onEnter);
+  const onEnterBedroomRef  = useRef(onEnterBedroom);
+  useEffect(() => { onNearRef.current         = onNear;         }, [onNear]);
+  useEffect(() => { onEnterRef.current        = onEnter;        }, [onEnter]);
+  useEffect(() => { onEnterBedroomRef.current = onEnterBedroom; }, [onEnterBedroom]);
 
   // ── One-time scene setup ────────────────────────────────────────────────────
   useEffect(() => {
@@ -687,6 +691,8 @@ function CityScene({ onNear, onEnter, playerPosRef, worldSaveRef }: CityScenePro
       // E = enter landmark (never used for camera rotation)
       if (e.code === "KeyE" && enterIdRef.current) {
         const lm = LANDMARKS.find(l => l.id === enterIdRef.current);
+        // Music Hub → enter the Vanta Bedroom (scene swap, no navigation)
+        if (lm?.id === "music-hub") { onEnterBedroomRef.current(); return; }
         if (lm?.route) onEnterRef.current(lm.route);
       }
     };
@@ -960,48 +966,79 @@ export default function World() {
   const [, navigate]  = useLocation();
   const [near, setNear] = useState<NearState>({ lm: null, canEnter: false });
 
+  // Scene mode: city world or bedroom interior
+  const [activeScene,   setActiveScene]   = useState<"city" | "bedroom">("city");
+  const [bedroomPrompt, setBedroomPrompt] = useState<string | null>(null);
+
   // Populated from sessionStorage so returning from a building restores exactly where the user left
   const worldSaveRef = useRef<WorldSave>(loadWorldState() ?? { ...DEFAULT_WORLD_SAVE });
 
   const handleNear = useCallback((s: NearState) => {
     setNear(s);
-    // Keep nearId in sync so it's included when we save on enter
     worldSaveRef.current.nearId = s.lm?.id ?? null;
   }, []);
 
   const handleEnter = useCallback((route: string) => {
-    // Snapshot full world state to sessionStorage before routing away
     saveWorldState({ ...worldSaveRef.current });
     navigate(route);
   }, [navigate]);
+
+  // Called by CityScene when E is pressed at MUSIC HUB
+  const handleEnterBedroom = useCallback(() => {
+    saveWorldState({ ...worldSaveRef.current });
+    setActiveScene("bedroom");
+    setBedroomPrompt(null);
+  }, []);
+
+  // Called by VantaBedroomScene when E is pressed near the door
+  const handleExitBedroom = useCallback(() => {
+    setActiveScene("city");
+    setBedroomPrompt(null);
+  }, []);
 
   // Shared player position for the minimap (updated every frame by CityScene)
   const playerPosRef = useRef<{ x: number; z: number; angle: number }>({ x: 0, z: 0, angle: 0 });
 
   const { lm, canEnter } = near;
+  const inBedroom = activeScene === "bedroom";
 
   return (
     <div style={{ position: "fixed", inset: 0, width: "100vw", height: "100vh", background: "#060412" }}>
 
-      {/* ── HUD ─────────────────────────────────────────────────────────────── */}
+      {/* ── HUD — top-left badge + controls ────────────────────────────────── */}
       <div style={{
         position: "absolute", top: 16, left: 16, zIndex: 999,
         fontFamily: "monospace", fontSize: 11, pointerEvents: "none", letterSpacing: "0.08em",
       }}>
-        <div style={{ color: "#a855f7", background: "rgba(0,0,0,0.8)", border: "1px solid #a855f7", padding: "6px 14px", borderRadius: 4 }}>
-          VANTA CITY
-        </div>
-        <div style={{ color: "#4b5563", background: "rgba(0,0,0,0.6)", padding: "6px 14px", borderRadius: 4, marginTop: 6, fontSize: 9, lineHeight: "1.9" }}>
-          WASD / ARROWS — move<br />
-          DRAG — orbit + pitch camera<br />
-          SCROLL — zoom in / out<br />
-          , . — orbit left / right<br />
-          E — enter landmark
-        </div>
+        {inBedroom ? (
+          <>
+            <div style={{ color: "#9cff66", background: "rgba(0,0,0,0.85)", border: "1px solid #9cff66", padding: "6px 14px", borderRadius: 4 }}>
+              VANTA BEDROOM
+            </div>
+            <div style={{ color: "#4b5563", background: "rgba(0,0,0,0.6)", padding: "6px 14px", borderRadius: 4, marginTop: 6, fontSize: 9, lineHeight: "1.9" }}>
+              WASD / ARROWS — move<br />
+              DRAG — orbit camera<br />
+              E — interact
+            </div>
+          </>
+        ) : (
+          <>
+            <div style={{ color: "#a855f7", background: "rgba(0,0,0,0.8)", border: "1px solid #a855f7", padding: "6px 14px", borderRadius: 4 }}>
+              VANTA CITY
+            </div>
+            <div style={{ color: "#4b5563", background: "rgba(0,0,0,0.6)", padding: "6px 14px", borderRadius: 4, marginTop: 6, fontSize: 9, lineHeight: "1.9" }}>
+              WASD / ARROWS — move<br />
+              DRAG — orbit + pitch camera<br />
+              SCROLL — zoom in / out<br />
+              , . — orbit left / right<br />
+              E — enter landmark
+            </div>
+          </>
+        )}
       </div>
 
-      {/* ── Landmark name label (broad range) ─────────────────────────────── */}
-      {lm && !canEnter && (
+      {/* ── City: landmark name label (broad range) ────────────────────────── */}
+      {!inBedroom && lm && !canEnter && (
         <div style={{
           position: "absolute", top: "18%", left: "50%", transform: "translateX(-50%)",
           color: "#94a3b8", fontFamily: "monospace", fontSize: 10,
@@ -1012,11 +1049,11 @@ export default function World() {
         </div>
       )}
 
-      {/* ── Proximity prompt (enter range) ────────────────────────────────── */}
-      {lm && canEnter && (
+      {/* ── City: proximity prompt (enter range) ────────────────────────────── */}
+      {!inBedroom && lm && canEnter && (
         <div style={{
           position: "absolute", bottom: "28%", left: "50%", transform: "translateX(-50%)",
-          background: "rgba(5,3,12,0.93)", border: `1px solid ${lm.cap.toString(16).padStart(6, "0").replace(/^/, "#")}`,
+          background: "rgba(5,3,12,0.93)", border: `1px solid #${lm.cap.toString(16).padStart(6, "0")}`,
           color: "#c4b5fd", fontFamily: "monospace", fontSize: 13,
           padding: "10px 26px", borderRadius: 4,
           letterSpacing: "0.1em", zIndex: 999, pointerEvents: "none", whiteSpace: "nowrap",
@@ -1025,10 +1062,23 @@ export default function World() {
         </div>
       )}
 
-      {/* ── Mini-map HUD ─────────────────────────────────────────────────── */}
-      <WorldMinimap playerPosRef={playerPosRef} />
+      {/* ── Bedroom: interaction prompt (door / iPod) ─────────────────────── */}
+      {inBedroom && bedroomPrompt && (
+        <div style={{
+          position: "absolute", bottom: "28%", left: "50%", transform: "translateX(-50%)",
+          background: "rgba(5,3,12,0.93)", border: "1px solid #9cff66",
+          color: "#c4b5fd", fontFamily: "monospace", fontSize: 13,
+          padding: "10px 26px", borderRadius: 4,
+          letterSpacing: "0.1em", zIndex: 999, pointerEvents: "none", whiteSpace: "nowrap",
+        }}>
+          {bedroomPrompt}
+        </div>
+      )}
 
-      {/* ── Vault Radio HUD ────────────────────────────────────────────── */}
+      {/* ── Mini-map HUD (city only) ────────────────────────────────────────── */}
+      {!inBedroom && <WorldMinimap playerPosRef={playerPosRef} />}
+
+      {/* ── Vault Radio HUD (always visible) ───────────────────────────────── */}
       <VaultRadio />
 
       <CanvasBoundary>
@@ -1040,12 +1090,20 @@ export default function World() {
             console.log("[Vanta City] Canvas ✓", gl.domElement.width, "×", gl.domElement.height)
           }
         >
-          <CityScene
-            onNear={handleNear}
-            onEnter={handleEnter}
-            playerPosRef={playerPosRef}
-            worldSaveRef={worldSaveRef}
-          />
+          {activeScene === "city" ? (
+            <CityScene
+              onNear={handleNear}
+              onEnter={handleEnter}
+              onEnterBedroom={handleEnterBedroom}
+              playerPosRef={playerPosRef}
+              worldSaveRef={worldSaveRef}
+            />
+          ) : (
+            <VantaBedroomScene
+              onExitBedroom={handleExitBedroom}
+              onPromptChange={setBedroomPrompt}
+            />
+          )}
           <PostFX />
         </Canvas>
       </CanvasBoundary>
