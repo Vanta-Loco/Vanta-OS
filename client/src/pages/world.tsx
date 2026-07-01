@@ -572,12 +572,12 @@ class CanvasBoundary extends Component<{ children: ReactNode }, { error: string 
 interface CitySceneProps {
   onNear:          (s: NearState) => void;
   onEnter:         (route: string) => void;
-  onEnterBedroom:  () => void;
+  onOpenHubMenu:   () => void;
   playerPosRef:    React.MutableRefObject<{ x: number; z: number; angle: number }>;
   worldSaveRef:    React.MutableRefObject<WorldSave>;
 }
 
-function CityScene({ onNear, onEnter, onEnterBedroom, playerPosRef, worldSaveRef }: CitySceneProps) {
+function CityScene({ onNear, onEnter, onOpenHubMenu, playerPosRef, worldSaveRef }: CitySceneProps) {
   const { scene } = useThree();
 
   // Player / movement
@@ -608,10 +608,10 @@ function CityScene({ onNear, onEnter, onEnterBedroom, playerPosRef, worldSaveRef
   // Stable callback refs (prevent stale closures in event handlers)
   const onNearRef          = useRef(onNear);
   const onEnterRef         = useRef(onEnter);
-  const onEnterBedroomRef  = useRef(onEnterBedroom);
-  useEffect(() => { onNearRef.current         = onNear;         }, [onNear]);
-  useEffect(() => { onEnterRef.current        = onEnter;        }, [onEnter]);
-  useEffect(() => { onEnterBedroomRef.current = onEnterBedroom; }, [onEnterBedroom]);
+  const onOpenHubMenuRef   = useRef(onOpenHubMenu);
+  useEffect(() => { onNearRef.current        = onNear;         }, [onNear]);
+  useEffect(() => { onEnterRef.current       = onEnter;        }, [onEnter]);
+  useEffect(() => { onOpenHubMenuRef.current = onOpenHubMenu;  }, [onOpenHubMenu]);
 
   // ── One-time scene setup ────────────────────────────────────────────────────
   useEffect(() => {
@@ -691,8 +691,8 @@ function CityScene({ onNear, onEnter, onEnterBedroom, playerPosRef, worldSaveRef
       // E = enter landmark (never used for camera rotation)
       if (e.code === "KeyE" && enterIdRef.current) {
         const lm = LANDMARKS.find(l => l.id === enterIdRef.current);
-        // Music Hub → enter the Vanta Bedroom (scene swap, no navigation)
-        if (lm?.id === "music-hub") { onEnterBedroomRef.current(); return; }
+        // Music Hub → open the destination menu (bedroom or releases)
+        if (lm?.id === "music-hub") { onOpenHubMenuRef.current(); return; }
         if (lm?.route) onEnterRef.current(lm.route);
       }
     };
@@ -983,12 +983,44 @@ export default function World() {
     navigate(route);
   }, [navigate]);
 
-  // Called by CityScene when E is pressed at MUSIC HUB
-  const handleEnterBedroom = useCallback(() => {
-    saveWorldState({ ...worldSaveRef.current });
-    setActiveScene("bedroom");
-    setBedroomPrompt(null);
+  // Hub menu — shown when player presses E at MUSIC HUB
+  const [hubMenuOpen,    setHubMenuOpen]    = useState(false);
+  const [hubSelected,    setHubSelected]    = useState(0);    // 0=releases, 1=bedroom
+
+  const handleOpenHubMenu = useCallback(() => {
+    setHubMenuOpen(true);
+    setHubSelected(0);
   }, []);
+
+  const handleHubSelect = useCallback((choice: number) => {
+    setHubMenuOpen(false);
+    if (choice === 0) {
+      saveWorldState({ ...worldSaveRef.current });
+      navigate("/releases");
+    } else {
+      saveWorldState({ ...worldSaveRef.current });
+      setActiveScene("bedroom");
+      setBedroomPrompt(null);
+    }
+  }, [navigate]);
+
+  // Keyboard nav inside hub menu
+  useEffect(() => {
+    if (!hubMenuOpen) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.code === "ArrowUp" || e.code === "ArrowDown") {
+        e.preventDefault();
+        setHubSelected(s => s === 0 ? 1 : 0);
+      } else if (e.code === "Enter") {
+        e.preventDefault();
+        handleHubSelect(hubSelected);
+      } else if (e.code === "Escape") {
+        setHubMenuOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [hubMenuOpen, hubSelected, handleHubSelect]);
 
   // Called by VantaBedroomScene when E is pressed near the door
   const handleExitBedroom = useCallback(() => {
@@ -1075,6 +1107,82 @@ export default function World() {
         </div>
       )}
 
+      {/* ── Music Hub choice menu ────────────────────────────────────────────── */}
+      {hubMenuOpen && (
+        <div
+          style={{
+            position: "absolute", inset: 0, zIndex: 1000,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            background: "rgba(0,0,0,0.72)",
+          }}
+          onClick={() => setHubMenuOpen(false)}
+        >
+          <div
+            style={{
+              background: "rgba(6,10,6,0.97)",
+              border: "1px solid #9cff66",
+              borderRadius: 6,
+              padding: "32px 48px",
+              fontFamily: "monospace",
+              minWidth: 340,
+              boxShadow: "0 0 50px rgba(156,255,102,0.07), 0 0 0 1px rgba(156,255,102,0.05)",
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ color: "#9cff66", fontSize: 14, letterSpacing: "0.24em", marginBottom: 4 }}>
+              MUSIC HUB
+            </div>
+            <div style={{ color: "#4b5563", fontSize: 10, letterSpacing: "0.14em", marginBottom: 28 }}>
+              Choose destination
+            </div>
+
+            {/* Choice 0 — Music Page */}
+            <button
+              data-testid="hub-choice-music-page"
+              onClick={() => handleHubSelect(0)}
+              onMouseEnter={() => setHubSelected(0)}
+              style={{
+                display: "block", width: "100%", textAlign: "left",
+                background: hubSelected === 0 ? "rgba(168,85,247,0.14)" : "transparent",
+                border: hubSelected === 0 ? "1px solid #a855f7" : "1px solid rgba(255,255,255,0.06)",
+                color: hubSelected === 0 ? "#c4b5fd" : "#6b7280",
+                fontFamily: "monospace", fontSize: 12, letterSpacing: "0.14em",
+                padding: "13px 18px", borderRadius: 4, marginBottom: 10,
+                cursor: "pointer",
+              }}
+            >
+              <span style={{ color: hubSelected === 0 ? "#a855f7" : "#374151", marginRight: 12, fontSize: 10 }}>01.</span>
+              MUSIC PAGE
+              <span style={{ color: "#4b5563", fontSize: 9, marginLeft: 10 }}>→ /releases</span>
+            </button>
+
+            {/* Choice 1 — Vanta Bedroom */}
+            <button
+              data-testid="hub-choice-vanta-bedroom"
+              onClick={() => handleHubSelect(1)}
+              onMouseEnter={() => setHubSelected(1)}
+              style={{
+                display: "block", width: "100%", textAlign: "left",
+                background: hubSelected === 1 ? "rgba(156,255,102,0.10)" : "transparent",
+                border: hubSelected === 1 ? "1px solid #9cff66" : "1px solid rgba(255,255,255,0.06)",
+                color: hubSelected === 1 ? "#d1fae5" : "#6b7280",
+                fontFamily: "monospace", fontSize: 12, letterSpacing: "0.14em",
+                padding: "13px 18px", borderRadius: 4, marginBottom: 26,
+                cursor: "pointer",
+              }}
+            >
+              <span style={{ color: hubSelected === 1 ? "#9cff66" : "#374151", marginRight: 12, fontSize: 10 }}>02.</span>
+              VANTA BEDROOM
+              <span style={{ color: "#4b5563", fontSize: 9, marginLeft: 10 }}>interior scene</span>
+            </button>
+
+            <div style={{ color: "#374151", fontSize: 9, letterSpacing: "0.1em" }}>
+              ↑↓ NAVIGATE · ENTER CONFIRM · ESC CLOSE
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Mini-map HUD (city only) ────────────────────────────────────────── */}
       {!inBedroom && <WorldMinimap playerPosRef={playerPosRef} />}
 
@@ -1094,7 +1202,7 @@ export default function World() {
             <CityScene
               onNear={handleNear}
               onEnter={handleEnter}
-              onEnterBedroom={handleEnterBedroom}
+              onOpenHubMenu={handleOpenHubMenu}
               playerPosRef={playerPosRef}
               worldSaveRef={worldSaveRef}
             />

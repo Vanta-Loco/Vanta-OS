@@ -65,9 +65,9 @@ function lam(
 
 // ─── Room geometry ────────────────────────────────────────────────────────────
 function createBedroomRoom(objs: THREE.Object3D[], disp: Disp[]) {
-  const wallC  = 0x1c2919;
-  const floorC = 0x181014;
-  const ceilC  = 0x161b14;
+  const wallC  = 0x3b4a28;
+  const floorC = 0x1f241b;
+  const ceilC  = 0x2a301f;
 
   // Floor
   const fl = lam(objs, disp, new THREE.PlaneGeometry(RW, RD), floorC);
@@ -100,7 +100,7 @@ function createBedroomRoom(objs: THREE.Object3D[], disp: Disp[]) {
   wST.position.set(0, (doorH + RH) / 2, HD);              wST.rotation.y = Math.PI;
 
   // Door frame trim
-  const dfC = 0x0d1210;
+  const dfC = 0x1a2416;
   const dfL = toon(objs, disp, new THREE.BoxGeometry(0.07, doorH, 0.06), dfC);
   dfL.position.set(-doorW / 2, doorH / 2, HD + 0.01);
   const dfR = toon(objs, disp, new THREE.BoxGeometry(0.07, doorH, 0.06), dfC);
@@ -109,7 +109,7 @@ function createBedroomRoom(objs: THREE.Object3D[], disp: Disp[]) {
   dfTop.position.set(0, doorH, HD + 0.01);
 
   // Baseboard along walls
-  const bbC = 0x202a1c;
+  const bbC = 0x2e3d22;
   const bN = toon(objs, disp, new THREE.BoxGeometry(RW, 0.07, 0.05), bbC);
   bN.position.set(0, 0.035, -HD + 0.025);
   const bE = toon(objs, disp, new THREE.BoxGeometry(0.05, 0.07, RD), bbC);
@@ -128,28 +128,28 @@ function createBedroomProps(objs: THREE.Object3D[], disp: Disp[]) {
 
   // ── Bed (NE area) ──────────────────────────────────────────────────────────
   const bx = 3.2, bz = -2.5, bw = 3.4, bd = 2.2;
-  t(new THREE.BoxGeometry(bw, 0.17, bd), 0x1a1208).position.set(bx, 0.085, bz);
-  t(new THREE.BoxGeometry(bw - 0.2, 0.22, bd - 0.2), 0x282038).position.set(bx, 0.30, bz);
-  // Plaid blanket (warm dark pattern — two overlapping boxes)
-  t(new THREE.BoxGeometry(bw - 0.2, 0.11, bd * 0.6), 0x3a2040).position.set(bx, 0.435, bz + 0.35);
-  t(new THREE.BoxGeometry(bw - 0.2, 0.04, bd * 0.6), 0x2a1a30).position.set(bx, 0.505, bz + 0.35);
-  t(new THREE.BoxGeometry(bw * 0.55, 0.09, 0.42), 0x201c2a).position.set(bx, 0.435, bz - 0.75); // pillow
-  t(new THREE.BoxGeometry(bw, 0.68, 0.09), 0x18100a).position.set(bx, 0.54, bz - bd / 2 - 0.045); // headboard
+  t(new THREE.BoxGeometry(bw, 0.17, bd), 0x2a2010).position.set(bx, 0.085, bz);
+  t(new THREE.BoxGeometry(bw - 0.2, 0.22, bd - 0.2), 0x35304a).position.set(bx, 0.30, bz);
+  // Plaid blanket
+  t(new THREE.BoxGeometry(bw - 0.2, 0.11, bd * 0.6), 0x384233).position.set(bx, 0.435, bz + 0.35);
+  t(new THREE.BoxGeometry(bw - 0.2, 0.04, bd * 0.6), 0x2e3828).position.set(bx, 0.505, bz + 0.35);
+  t(new THREE.BoxGeometry(bw * 0.55, 0.09, 0.42), 0x302c3a).position.set(bx, 0.435, bz - 0.75); // pillow
+  t(new THREE.BoxGeometry(bw, 0.68, 0.09), 0x241a0e).position.set(bx, 0.54, bz - bd / 2 - 0.045); // headboard
 
   // ── Couch (west-center, faces CRT) ───────────────────────────────────────
   const cx = -2.5, cz = 1.1;
-  t(new THREE.BoxGeometry(1.9, 0.21, 0.88), 0x1a1028).position.set(cx, 0.285, cz);
-  t(new THREE.BoxGeometry(1.9, 0.70, 0.13), 0x16082a).position.set(cx, 0.655, cz + 0.375);
-  t(new THREE.BoxGeometry(0.13, 0.38, 0.88), 0x16082a).position.set(cx - 1.015, 0.415, cz);
-  t(new THREE.BoxGeometry(0.13, 0.38, 0.88), 0x16082a).position.set(cx + 1.015, 0.415, cz);
+  t(new THREE.BoxGeometry(1.9, 0.21, 0.88), 0x2a1e38).position.set(cx, 0.285, cz);
+  t(new THREE.BoxGeometry(1.9, 0.70, 0.13), 0x22123c).position.set(cx, 0.655, cz + 0.375);
+  t(new THREE.BoxGeometry(0.13, 0.38, 0.88), 0x22123c).position.set(cx - 1.015, 0.415, cz);
+  t(new THREE.BoxGeometry(0.13, 0.38, 0.88), 0x22123c).position.set(cx + 1.015, 0.415, cz);
 
   // ── Desk (NW corner) ──────────────────────────────────────────────────────
   const dx = -4.0, dz = -3.2;
-  t(new THREE.BoxGeometry(1.9, 0.07, 0.80), 0x201808).position.set(dx, 0.825, dz);
-  t(new THREE.BoxGeometry(0.07, 0.82, 0.07), 0x181208).position.set(dx - 0.90, 0.41, dz - 0.35);
-  t(new THREE.BoxGeometry(0.07, 0.82, 0.07), 0x181208).position.set(dx + 0.90, 0.41, dz - 0.35);
-  t(new THREE.BoxGeometry(0.07, 0.82, 0.07), 0x181208).position.set(dx - 0.90, 0.41, dz + 0.35);
-  t(new THREE.BoxGeometry(0.07, 0.82, 0.07), 0x181208).position.set(dx + 0.90, 0.41, dz + 0.35);
+  t(new THREE.BoxGeometry(1.9, 0.07, 0.80), 0x332810).position.set(dx, 0.825, dz);
+  t(new THREE.BoxGeometry(0.07, 0.82, 0.07), 0x281e0c).position.set(dx - 0.90, 0.41, dz - 0.35);
+  t(new THREE.BoxGeometry(0.07, 0.82, 0.07), 0x281e0c).position.set(dx + 0.90, 0.41, dz - 0.35);
+  t(new THREE.BoxGeometry(0.07, 0.82, 0.07), 0x281e0c).position.set(dx - 0.90, 0.41, dz + 0.35);
+  t(new THREE.BoxGeometry(0.07, 0.82, 0.07), 0x281e0c).position.set(dx + 0.90, 0.41, dz + 0.35);
 
   // iPod / music player on desk
   t(new THREE.BoxGeometry(0.22, 0.38, 0.06), 0xc8c8c8).position.set(dx - 0.3, 1.00, dz - 0.1);
@@ -170,14 +170,14 @@ function createBedroomProps(objs: THREE.Object3D[], disp: Disp[]) {
 
   // ── CRT TV on west wall ────────────────────────────────────────────────────
   const tvZ = -0.5;
-  t(new THREE.BoxGeometry(0.42, 0.85, 0.42), 0x181818).position.set(-HW + 0.55, 0.425, tvZ);  // stand
-  t(new THREE.BoxGeometry(0.25, 1.05, 1.35), 0x141414).position.set(-HW + 0.54, 1.375, tvZ);  // body
-  t(new THREE.BoxGeometry(0.04, 0.82, 1.06), 0x0a1a0f).position.set(-HW + 0.41, 1.375, tvZ);  // screen
+  t(new THREE.BoxGeometry(0.42, 0.85, 0.42), 0x282828).position.set(-HW + 0.55, 0.425, tvZ);  // stand
+  t(new THREE.BoxGeometry(0.25, 1.05, 1.35), 0x1e1e1e).position.set(-HW + 0.54, 1.375, tvZ);  // body
+  t(new THREE.BoxGeometry(0.04, 0.82, 1.06), 0x102018).position.set(-HW + 0.41, 1.375, tvZ);  // screen (slightly lit)
   // Control knobs
-  t(new THREE.CylinderGeometry(0.04, 0.04, 0.04, 8), 0x222222).position.set(-HW + 0.41, 1.72, tvZ + 0.56);
+  t(new THREE.CylinderGeometry(0.04, 0.04, 0.04, 8), 0x303030).position.set(-HW + 0.41, 1.72, tvZ + 0.56);
 
   // ── Dresser (east wall) ────────────────────────────────────────────────────
-  t(new THREE.BoxGeometry(0.58, 1.18, 1.05), 0x1c1208).position.set(HW - 0.54, 0.59, -2.8);
+  t(new THREE.BoxGeometry(0.58, 1.18, 1.05), 0x2e2210).position.set(HW - 0.54, 0.59, -2.8);
   for (let i = 0; i < 3; i++) {
     t(new THREE.BoxGeometry(0.04, 0.04, 0.04), 0x443830).position.set(HW - 0.27, 0.38 + i * 0.35, -2.8 - 0.525);
   }
@@ -217,15 +217,15 @@ function createBedroomPosters(objs: THREE.Object3D[], disp: Disp[]) {
     cv.width = 128; cv.height = 192;
     const ctx = cv.getContext("2d");
     if (!ctx) continue;
-    ctx.fillStyle = "#0c0c0c";
+    ctx.fillStyle = "#18261a";
     ctx.fillRect(0, 0, 128, 192);
-    // Desaturated grainy look — diagonal noise lines
-    ctx.strokeStyle = "rgba(255,255,255,0.04)";
+    // Grain lines
+    ctx.strokeStyle = "rgba(255,255,255,0.06)";
     ctx.lineWidth = 1;
     for (let i = -128; i < 192; i += 5) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i + 192, 192); ctx.stroke(); }
     ctx.font = "bold 22px 'Courier New',monospace";
     ctx.fillStyle = s.fg;
-    ctx.globalAlpha = 0.82;
+    ctx.globalAlpha = 0.95;
     ctx.textAlign = "center"; ctx.textBaseline = "middle";
     const lines = s.label.split("\n");
     lines.forEach((ln, i) => ctx.fillText(ln, 64, 96 + (i - (lines.length - 1) / 2) * 28));
@@ -244,21 +244,29 @@ function createBedroomPosters(objs: THREE.Object3D[], disp: Disp[]) {
 interface BedroomLights { lamp: THREE.PointLight; crt: THREE.PointLight }
 
 function createBedroomLighting(objs: THREE.Object3D[]): BedroomLights {
-  // Dark warm ambient
-  const amb = new THREE.AmbientLight(0x1a1610, 0.9);
+  // Warm ambient base
+  const amb = new THREE.AmbientLight(0x263020, 1.2);
   objs.push(amb);
-  // Warm lamp glow (SW corner)
-  const lamp = new THREE.PointLight(0xffb84a, 2.4, 8, 2);
+
+  // Hemisphere — green-tinted sky, dark earthy ground
+  const hemi = new THREE.HemisphereLight(0x2f3f2f, 0x151a12, 1.4);
+  objs.push(hemi);
+
+  // Warm lamp glow (SW corner) — main room light
+  const lamp = new THREE.PointLight(0xff9f35, 3.0, 12, 2);
   lamp.position.set(-4.0, 1.65, 2.6);
   objs.push(lamp);
-  // CRT greenish glow
-  const crt = new THREE.PointLight(0x30ff80, 0.9, 4.0, 2);
+
+  // Soft green fill from ceiling (simulates spill from walls)
+  const fill = new THREE.PointLight(0x77ff55, 1.2, 10, 2);
+  fill.position.set(0, 2.6, 0);
+  objs.push(fill);
+
+  // CRT glow — cooler blue-green
+  const crt = new THREE.PointLight(0x88ccff, 0.9, 6, 2);
   crt.position.set(-HW + 0.6, 1.4, -0.5);
   objs.push(crt);
-  // Very dim fill from door
-  const fill = new THREE.DirectionalLight(0x1a2a18, 0.4);
-  fill.position.set(0, 3, 5);
-  objs.push(fill);
+
   return { lamp, crt };
 }
 
@@ -297,8 +305,8 @@ export function VantaBedroomScene({ onExitBedroom, onPromptChange }: BedroomProp
   const keysRef       = useRef<Set<string>>(new Set());
   const angleRef      = useRef(Math.PI);      // facing into room (north)
   const camYawRef     = useRef(0);
-  const camPitchRef   = useRef(0.28);
-  const camDistRef    = useRef(4.5);
+  const camPitchRef   = useRef(0.38);
+  const camDistRef    = useRef(3.8);
   const camTargetRef  = useRef(new THREE.Vector3());
   const lampRef       = useRef<THREE.PointLight | null>(null);
   const crtRef        = useRef<THREE.PointLight | null>(null);
@@ -318,8 +326,8 @@ export function VantaBedroomScene({ onExitBedroom, onPromptChange }: BedroomProp
     const allObjs: THREE.Object3D[] = [];
 
     // Atmosphere
-    scene.background = new THREE.Color(0x100e0c);
-    scene.fog = new THREE.Fog(0x100e0c, 5, 15);
+    scene.background = new THREE.Color(0x182015);
+    scene.fog = new THREE.FogExp2(0x182015, 0.004);
 
     // Build room
     createBedroomRoom(allObjs, disp);
