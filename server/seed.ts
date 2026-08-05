@@ -425,6 +425,34 @@ async function seedStonerism() {
 
 async function seedEcosystem() {
   await pool.query(`
+    -- ── Users & Profiles ─────────────────────────────────────────────
+    CREATE TABLE IF NOT EXISTS users (
+      id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      username      TEXT NOT NULL UNIQUE,
+      email         TEXT NOT NULL UNIQUE,
+      password_hash TEXT NOT NULL,
+      display_name  TEXT NOT NULL DEFAULT '',
+      role          TEXT NOT NULL DEFAULT 'user',
+      created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      last_login_at TIMESTAMPTZ
+    );
+
+    CREATE TABLE IF NOT EXISTS user_profiles (
+      id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id           UUID NOT NULL UNIQUE,
+      avatar_url        TEXT NOT NULL DEFAULT '',
+      banner_url        TEXT NOT NULL DEFAULT '',
+      bio               TEXT NOT NULL DEFAULT '',
+      location          TEXT NOT NULL DEFAULT '',
+      creator_category  TEXT NOT NULL DEFAULT '',
+      interests         TEXT[] NOT NULL DEFAULT '{}',
+      social_links      JSONB NOT NULL DEFAULT '{}',
+      theme_preference  TEXT NOT NULL DEFAULT 'dark',
+      skip_startup      BOOLEAN NOT NULL DEFAULT false,
+      created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
     CREATE TABLE IF NOT EXISTS world_settings (
       id               SERIAL PRIMARY KEY,
       status           TEXT NOT NULL DEFAULT 'active',
@@ -470,15 +498,30 @@ async function seedEcosystem() {
       updated_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
 
+    -- ── Dev log extra columns ──────────────────────────────────────────
+    ALTER TABLE dev_logs ADD COLUMN IF NOT EXISTS log_number INTEGER DEFAULT 0;
+    ALTER TABLE dev_logs ADD COLUMN IF NOT EXISTS cover_image TEXT NOT NULL DEFAULT '';
+    ALTER TABLE dev_logs ADD COLUMN IF NOT EXISTS author TEXT NOT NULL DEFAULT 'Vanta Cold';
+    ALTER TABLE dev_logs ADD COLUMN IF NOT EXISTS completed_changes TEXT[] NOT NULL DEFAULT '{}';
+    ALTER TABLE dev_logs ADD COLUMN IF NOT EXISTS in_progress TEXT[] NOT NULL DEFAULT '{}';
+
     CREATE TABLE IF NOT EXISTS waitlist_signups (
-      id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      app_name       TEXT NOT NULL,
-      email          TEXT NOT NULL,
-      name           TEXT NOT NULL DEFAULT '',
-      status         TEXT NOT NULL DEFAULT 'pending',
-      internal_notes TEXT NOT NULL DEFAULT '',
-      created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      app_name          TEXT NOT NULL,
+      email             TEXT NOT NULL,
+      name              TEXT NOT NULL DEFAULT '',
+      status            TEXT NOT NULL DEFAULT 'pending',
+      internal_notes    TEXT NOT NULL DEFAULT '',
+      user_id           UUID,
+      referral_source   TEXT NOT NULL DEFAULT '',
+      marketing_consent TEXT NOT NULL DEFAULT 'false',
+      created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
+
+    -- ── Waitlist extra columns (safe if already exist) ─────────────────
+    ALTER TABLE waitlist_signups ADD COLUMN IF NOT EXISTS user_id UUID;
+    ALTER TABLE waitlist_signups ADD COLUMN IF NOT EXISTS referral_source TEXT NOT NULL DEFAULT '';
+    ALTER TABLE waitlist_signups ADD COLUMN IF NOT EXISTS marketing_consent TEXT NOT NULL DEFAULT 'false';
 
     CREATE TABLE IF NOT EXISTS app_teasers (
       id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -496,4 +539,66 @@ async function seedEcosystem() {
     );
   `);
   console.log("✓ Ecosystem tables ready");
+
+  // ── Seed first dev log ──────────────────────────────────────────
+  const existingLog = await pool.query("SELECT id FROM dev_logs WHERE slug='foundation-online' LIMIT 1");
+  if (!existingLog.rows.length) {
+    await pool.query(`
+      INSERT INTO dev_logs (
+        title, slug, summary, body, status, affected_apps,
+        log_number, author, completed_changes, in_progress,
+        known_issues, next_steps, published_at
+      ) VALUES (
+        'Foundation Online',
+        'foundation-online',
+        'The core Vanta ecosystem is live. World Alpha, Vault, Stonerism, and central content management are all running.',
+        'The first phase of the Vanta OS infrastructure is now operational. This log documents what has been built, what is actively in development, and what comes next.',
+        'published',
+        ARRAY['Vanta OS', 'World', 'Vault', 'Stonerism'],
+        1,
+        'Vanta Cold',
+        ARRAY[
+          'World Alpha available — open-world city district playable in browser',
+          'Vault radio connected — stream unreleased and archived audio',
+          'Vanta Bedroom added to the Worlds section',
+          'Stonerism integrated — full cannabis culture magazine with CMS',
+          'Central Vanta content management established',
+          'Admin dashboard unified across all Vanta applications',
+          'Developer Logs, Early Access waitlists and App Teasers system active'
+        ],
+        ARRAY[
+          'Vanta OS startup experience',
+          'User profiles and authentication',
+          'Early Access waitlist infrastructure',
+          'Dashboard — Vanta OS home screen',
+          'Developer Logs public section'
+        ],
+        'World Alpha is currently single-player only. Some navigation and mobile layouts still require refinement. Several ecosystem applications remain unreleased.',
+        'Complete user profiles. Expand Black Index search. Refine the Vanta OS dashboard. Launch Wireline and Rooms waitlists.',
+        NOW()
+      )
+    `);
+    console.log("✓ Dev log #001 seeded");
+  }
+
+  // ── Seed app teasers ────────────────────────────────────────────
+  const existingTeaser = await pool.query("SELECT id FROM app_teasers WHERE slug='wireline' LIMIT 1");
+  if (!existingTeaser.rows.length) {
+    const teasers = [
+      { name: "Wireline", slug: "wireline", description: "Private communication and community system connecting Vanta members, creators and Rooms.", status: "coming-soon", features: ["Direct messaging","Group communication","Creator communities","Cross-app identity","Media sharing"], order: 1 },
+      { name: "Rooms", slug: "rooms", description: "Persistent digital spaces for communities, artists, listening parties, discussions and events.", status: "in-development", features: ["Community spaces","Listening parties","Live discussions","Artist rooms","Event spaces"], order: 2 },
+      { name: "Vanta Deck", slug: "vanta-deck", description: "A customizable physical cyberdeck and access device for the Vanta ecosystem. Hardware concept only.", status: "concept", features: ["Custom physical design","Vanta OS access","Modular controls","Creator-focused tools"], order: 3 },
+      { name: "Full Vanta OS", slug: "vanta-os", description: "The complete culture operating environment connecting identity, music, communication, worlds, publishing, commerce and creative tools.", status: "in-development", features: ["One Vanta identity","Connected applications","Music and creative tools","Communication","Publishing","Worlds"], order: 4 },
+      { name: "Voice", slug: "voice", description: "Voice communication and live conversation tools for the Vanta ecosystem.", status: "concept", features: ["Live audio","Conversation tools","Room integration"], order: 5 },
+      { name: "Studio", slug: "studio", description: "Connected tools for music, art and creator workflows.", status: "concept", features: ["Music tools","Art tools","Creator workflows"], order: 6 },
+    ];
+    for (const t of teasers) {
+      await pool.query(`
+        INSERT INTO app_teasers (name, slug, description, status, planned_features, early_access_enabled, display_order, published)
+        VALUES ($1, $2, $3, $4, $5, 'true', $6, 'true')
+        ON CONFLICT (slug) DO NOTHING
+      `, [t.name, t.slug, t.description, t.status, t.features, t.order]);
+    }
+    console.log("✓ App teasers seeded");
+  }
 }

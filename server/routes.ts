@@ -11,7 +11,9 @@ import {
   issueAdminToken,
   hasValidAdminToken,
   requireAdmin,
+  clearAdminToken,
 } from "./admin-auth";
+import { registerUserRoutes } from "./user-routes";
 
 declare module "express-session" {
   interface SessionData {
@@ -48,6 +50,9 @@ const upload = multer({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // ── User / Profile / DevLogs / Waitlist routes ───────────────────
+  registerUserRoutes(app);
+
   // ── Admin Auth ───────────────────────────────────────────────────
   app.get("/api/admin/me", (req, res) => {
     const authenticated = req.session?.isAdmin === true || hasValidAdminToken(req);
@@ -76,7 +81,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/admin/logout", (req, res) => {
-    activeAdminToken = null;
+    clearAdminToken();
     req.session.destroy(() => {
       res.clearCookie("connect.sid");
       res.json({ success: true });
@@ -556,18 +561,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch { res.status(500).json({ error: "Failed" }); }
   });
 
-  // ── Waitlists (public signup + admin management) ──────────────────
-  app.post("/api/waitlist", async (req, res) => {
-    try {
-      const { app_name, email, name } = req.body;
-      if (!app_name || !email) return res.status(400).json({ error: "app_name and email required" });
-      const r = await pool.query(
-        "INSERT INTO waitlist_signups (app_name,email,name) VALUES ($1,$2,$3) RETURNING *",
-        [app_name, email, name||""]
-      );
-      res.json(r.rows[0]);
-    } catch (e: any) { res.status(500).json({ error: e.message }); }
-  });
+  // ── Waitlists (admin management — public signup is in user-routes.ts) ──
   app.get("/api/admin/waitlists", requireAdmin, async (_req, res) => {
     try {
       const r = await pool.query("SELECT * FROM waitlist_signups ORDER BY created_at DESC");

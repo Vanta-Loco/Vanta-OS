@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -6,6 +6,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
 import { StartupScreen, STARTUP_SESSION_KEY } from "@/components/startup-screen";
+import { VantaOSBoot } from "@/components/vanta-os-boot";
+import { EnterVanta } from "@/components/enter-vanta";
 import Home from "@/pages/home";
 import PostPage from "@/pages/post";
 import CreatePost from "@/pages/create";
@@ -49,7 +51,41 @@ import StonerismArticle from "@/pages/stonerism/article";
 import StonerismReview from "@/pages/stonerism/review";
 import StonerismBusiness from "@/pages/stonerism/business";
 import StonerismAdmin from "@/pages/stonerism-admin";
+import Dashboard from "@/pages/dashboard";
+import DevLogs from "@/pages/devlogs";
+import DevLogDetail from "@/pages/devlogs-detail";
+import EarlyAccess from "@/pages/early-access";
+import EarlyAccessApp from "@/pages/early-access-app";
+import Profile from "@/pages/profile";
+import ProfileEdit from "@/pages/profile-edit";
+import Login from "@/pages/login";
+import Register from "@/pages/register";
 import NotFound from "@/pages/not-found";
+
+// ── Paths that skip the full startup experience ────────────────────────────
+const SKIP_STARTUP_PATHS = [
+  "/world", "/vault", "/admin", "/stonerism", "/enter",
+];
+
+function shouldSkipStartup(path: string): boolean {
+  return SKIP_STARTUP_PATHS.some(p => path === p || path.startsWith(p + "/"));
+}
+
+const SKIP_BOOT_KEY = "vanta-skip-os-boot";
+
+// ── Boot phase type ────────────────────────────────────────────────────────
+type BootPhase = "loader" | "boot" | "entry" | "done";
+
+function getInitialPhase(path: string): BootPhase {
+  if (shouldSkipStartup(path)) return "done";
+
+  const sessionBooted = !!sessionStorage.getItem(STARTUP_SESSION_KEY);
+  const skipBoot = !!localStorage.getItem(SKIP_BOOT_KEY);
+
+  if (!sessionBooted) return "loader";       // First visit this session: show loader
+  if (!skipBoot) return "boot";              // Seen loader but not boot: show OS boot
+  return "done";                             // Fully skipped
+}
 
 function Router() {
   return (
@@ -72,6 +108,19 @@ function Router() {
       <Route path="/fract" component={Fract} />
       <Route path="/himalayas" component={Himalayas} />
       <Route path="/fgh" component={FracturedGodhead} />
+
+      {/* ── User auth + profiles ────────────────────────────────── */}
+      <Route path="/login" component={Login} />
+      <Route path="/register" component={Register} />
+      <Route path="/dashboard" component={Dashboard} />
+      <Route path="/profile/edit" component={ProfileEdit} />
+      <Route path="/profile/:username" component={Profile} />
+
+      {/* ── Public Vanta OS pages ────────────────────────────────── */}
+      <Route path="/devlogs" component={DevLogs} />
+      <Route path="/devlogs/:slug" component={DevLogDetail} />
+      <Route path="/early-access" component={EarlyAccess} />
+      <Route path="/early-access/:slug" component={EarlyAccessApp} />
 
       {/* ── Admin ───────────────────────────────────────────────── */}
       <Route path="/admin/login" component={AdminLogin} />
@@ -108,25 +157,59 @@ function Router() {
 }
 
 function App() {
-  const [showStartup, setShowStartup] = useState(
-    () =>
-      !sessionStorage.getItem(STARTUP_SESSION_KEY) &&
-      !new URLSearchParams(window.location.search).has("nosplash") &&
-      window.location.pathname !== "/world" &&
-      !window.location.pathname.startsWith("/stonerism") &&
-      !window.location.pathname.startsWith("/admin") &&
-      !window.location.pathname.startsWith("/vault")
+  const [phase, setPhase] = useState<BootPhase>(
+    () => getInitialPhase(window.location.pathname)
   );
+
+  const handleLoaderComplete = useCallback(() => {
+    const skipBoot = !!localStorage.getItem(SKIP_BOOT_KEY);
+    sessionStorage.setItem(STARTUP_SESSION_KEY, "1");
+    setPhase(skipBoot ? "done" : "boot");
+  }, []);
+
+  const handleBootComplete = useCallback(() => {
+    setPhase("entry");
+  }, []);
+
+  const handleEnterComplete = useCallback(() => {
+    setPhase("done");
+  }, []);
+
+  // Safety: if boot phase gets stuck, auto-advance after 10s
+  useEffect(() => {
+    if (phase === "boot") {
+      const t = setTimeout(() => setPhase("entry"), 10_000);
+      return () => clearTimeout(t);
+    }
+    if (phase === "entry") {
+      const t = setTimeout(() => setPhase("done"), 30_000);
+      return () => clearTimeout(t);
+    }
+  }, [phase]);
 
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="dark">
         <TooltipProvider>
           <Toaster />
-          {showStartup && (
-            <StartupScreen onComplete={() => setShowStartup(false)} />
+
+          {/* Phase 1: Original Vanta loader */}
+          {phase === "loader" && (
+            <StartupScreen onComplete={handleLoaderComplete} />
           )}
-          <Router />
+
+          {/* Phase 2: Vanta OS boot sequence */}
+          {phase === "boot" && (
+            <VantaOSBoot onComplete={handleBootComplete} />
+          )}
+
+          {/* Phase 3: Cinematic Enter Vanta screen */}
+          {phase === "entry" && (
+            <EnterVanta onEnter={handleEnterComplete} />
+          )}
+
+          {/* Phase 4: Normal app */}
+          {phase === "done" && <Router />}
         </TooltipProvider>
       </ThemeProvider>
     </QueryClientProvider>

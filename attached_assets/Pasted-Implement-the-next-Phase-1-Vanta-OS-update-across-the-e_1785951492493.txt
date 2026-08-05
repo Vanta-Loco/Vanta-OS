@@ -1,0 +1,1001 @@
+Implement the next Phase 1 Vanta OS update across the existing Vanta Cold project.
+
+Do not rebuild or replace the existing application. Preserve all current routes, styling, data, music, Stonerism features, World Alpha features, Vault features, release pages, blog posts, theme functionality and working Admin functionality. Extend the existing architecture carefully.
+
+Do not modify, rebuild or debug the existing Admin system during this task.
+
+Main Goal
+
+Turn the current Vanta Cold entry experience into an interactive Vanta OS boot and authentication flow, then add the foundation for:
+
+* User profiles
+* Developer logs
+* Early-access email waitlists
+* Upcoming app teasers
+* A persistent global dark/light theme system
+* A reusable Vanta app launcher
+* A Vanta OS-style user dashboard
+
+The World Alpha and Stonerism should remain functional, but do not expand their main features during this task.
+
+⸻
+
+1. Global Theme Behaviour
+
+Preserve the existing dark/light mode toggle and make sure it remains available consistently across all major Vanta applications and routes, including:
+
+* Main Vanta dashboard/homepage
+* Main blog
+* Individual blog posts
+* Music
+* Releases
+* Vault
+* World Alpha
+* Worlds page
+* Stonerism
+* Stonerism articles and reviews
+* Black Index
+* User profiles
+* Developer logs
+* Early Access pages
+* Future app teaser pages
+
+Do not duplicate separate theme systems inside every page.
+
+Use one reusable shared theme provider and shared layout where possible.
+
+Theme Toggle Requirements
+
+* Available on every public app and logged-in area
+* Saves the visitor’s preference
+* Uses local storage for logged-out visitors
+* Uses the profile preference for logged-in users where supported
+* Defaults to the current Vanta dark aesthetic
+* Avoids flashing the incorrect theme during page load
+* Works on mobile and desktop
+* Does not reset when moving between Vanta apps
+
+Both themes must remain visually consistent with the Vanta identity.
+
+Light mode must not become a generic white SaaS interface.
+
+Use an aged silver, pale grey, muted green, off-white and CRT-terminal-inspired palette.
+
+Do not break or redesign the existing header controls.
+
+⸻
+
+2. Preserve the Existing Initial Vanta Loader
+
+Keep the existing Vanta loading animation that already appears when the application opens.
+
+Do not remove it.
+
+After the current loader completes, transition into the new Vanta OS startup screen.
+
+The complete sequence should be:
+
+1. Existing Vanta loader
+2. Vanta OS startup/boot screen
+3. Interactive Enter Vanta screen
+4. Login, create-profile or guest screen
+5. Vanta dashboard or public experience
+
+Returning authenticated users should be able to bypass unnecessary authentication steps after the boot sequence.
+
+Add a setting called:
+
+Skip startup next time
+
+Keep the startup experience enabled by default for Phase 1.
+
+The setting should skip the additional boot and Enter Vanta screens on later visits without removing the original application loader where it is technically required.
+
+Provide a way to re-enable the startup experience from profile settings.
+
+⸻
+
+3. Vanta OS Boot Screen
+
+After the existing loader, show a full-screen Vanta OS startup sequence.
+
+Visual Direction
+
+* PS2/PS3-inspired startup
+* Early-2000s computer BIOS
+* CRT scanlines
+* Soft screen bloom
+* Subtle digital noise
+* Dark green, dirty yellow and black palette
+* Restrained glitches
+* Atmospheric rather than overly flashy
+
+Suggested boot copy:
+
+VANTA OS
+
+INITIALIZING SYSTEM
+
+LOADING MODULES
+
+VAULT …….. ONLINE
+WORLD …….. ALPHA
+BLACK INDEX .. ONLINE
+PROFILES ….. ONLINE
+STONERISM …. ONLINE
+NETWORK …… CONNECTED
+
+SYSTEM READY
+
+PRESS ANY KEY
+
+Animate the module lines progressively rather than displaying everything at once.
+
+Support:
+
+* Keyboard input
+* Mouse click
+* Touch input
+* Reduced-motion accessibility preference
+
+Do not make the sequence excessively slow.
+
+Include a safe timeout or fallback so the website remains accessible if the animation fails.
+
+⸻
+
+4. Interactive Enter Vanta Screen
+
+After the boot sequence, transition into the main entry screen.
+
+Use either the current World Alpha city scene or a lightweight cinematic recreation as the background.
+
+The screen should include:
+
+* Looping rain
+* Slow green fog
+* CRT scanlines
+* Subtle film grain
+* Occasional restrained glitch
+* Moving or flickering apartment lights
+* Slight parallax movement
+* Low-volume music selected from the Vault
+* Volume and mute control
+* Mobile-friendly performance fallback
+
+Centered content:
+
+VANTA
+
+A CULTURE OPERATING SYSTEM
+
+[ ENTER VANTA ]
+
+ALPHA VERSION 0.1
+
+The radio and music must respect browser autoplay restrictions.
+
+Begin playback only after a valid user interaction when necessary.
+
+Use tracks from the existing Vault system.
+
+Do not hard-code only one song if the existing Vault already supports multiple tracks.
+
+Add a compact audio control near the bottom of the screen containing:
+
+* Play/pause where appropriate
+* Mute/unmute
+* Volume
+* Current track title
+* VANTA RADIO label
+
+If the complete 3D World Alpha scene is too heavy for the entry screen, use a performant looping visual, static cinematic composition or simplified scene instead of loading the full playable game.
+
+Do not duplicate the full World Alpha engine solely for this screen.
+
+⸻
+
+5. Authentication and Profile Creation
+
+After selecting Enter Vanta, show:
+
+* Welcome Back / Login
+* Create Vanta Profile
+* Continue as Guest
+
+Do not force account creation merely to view public Vanta content.
+
+Use the existing project stack, database patterns and session architecture.
+
+Do not introduce an unrelated second authentication system.
+
+Guest Users May
+
+* Explore public apps
+* Listen to public Vault music
+* Read public posts
+* View Stonerism
+* View releases
+* Enter public World Alpha
+* View Developer Logs
+* Join Early Access waitlists
+* Use public Black Index search
+
+Guest Users May Not
+
+* Save favourites
+* Create posts
+* Follow profiles
+* Save app interests
+* Edit profile information
+* Access protected creator features
+* Access private user data
+
+Login Screen
+
+Keep the atmospheric background visible but blurred and darkened.
+
+Include:
+
+* Email
+* Password
+* Login
+* Forgot password only if the current authentication system supports it
+* Create account
+* Continue as guest
+
+Display clear success and error states.
+
+Do not refresh silently after failed login.
+
+Create Profile
+
+Create a simple Phase 1 onboarding flow.
+
+Required Fields
+
+* Unique username
+* Display name
+* Email
+* Password
+* Confirm password
+
+Optional Fields
+
+* Profile image
+* Short bio
+* Location
+* Artist or creator category
+* Favourite Vanta interests
+
+Interest choices may include:
+
+* Music
+* Games
+* Fashion
+* Writing
+* Cannabis culture
+* Art
+* Film
+* Technology
+* FGH lore
+
+Validate:
+
+* Username uniqueness
+* Username length
+* Supported username characters
+* Email format
+* Email uniqueness where required
+* Password requirements
+* Password confirmation
+
+Reserve important system usernames such as:
+
+* admin
+* administrator
+* vanta
+* vantacold
+* system
+* support
+* official
+* stonerism
+* wireline
+* blackindex
+
+Never expose passwords or private authentication information to the frontend.
+
+⸻
+
+6. Vanta Dashboard
+
+After login, load a dashboard rather than immediately placing the user on a normal blog homepage.
+
+The dashboard should feel like a Vanta OS desktop or home console, not a corporate SaaS dashboard.
+
+Header
+
+Preserve the existing shared header and its working controls.
+
+Add or connect:
+
+* Vanta logo
+* Global search
+* App launcher
+* Notifications placeholder
+* User avatar/profile menu
+* Dark/light mode toggle
+* Vanta Radio status
+
+Do not redesign or break the existing header unnecessarily.
+
+Continue
+
+Show these where real data exists:
+
+* Continue World Alpha
+* Continue listening
+* Recently viewed app
+* Recently viewed post
+
+If no recent data exists, show a useful empty state rather than fabricated activity.
+
+Featured Apps
+
+Create cards for:
+
+* Vault
+* World Alpha
+* Stonerism
+* Black Index
+* Main Blog
+* Music
+* Releases
+* Developer Logs
+
+Each card should have:
+
+* App name
+* Short description
+* Visual identity
+* Current status where relevant
+* Open or Continue button
+
+Upcoming Apps
+
+Create teaser cards for:
+
+* Wireline
+* Rooms
+* Vanta Deck
+* Full Vanta OS
+* Voice
+* Studio
+
+Each upcoming app card should contain:
+
+* App name
+* Short description
+* Development status
+* Visual placeholder or teaser artwork
+* Join Early Access button
+* Number of interested users only if accurate data exists
+
+Do not use made-up signup totals.
+
+Latest From Vanta
+
+Show a mixed activity feed containing:
+
+* Latest release
+* Latest blog post
+* Latest Stonerism content
+* Latest published Developer Log
+* Current World Alpha status
+
+Do not fabricate content.
+
+Pull from existing data and newly created published records.
+
+⸻
+
+7. App Launcher
+
+Add a reusable Vanta app launcher accessible from the global header.
+
+It may appear as:
+
+* A grid icon
+* A Vanta symbol
+* An Apps button
+
+The launcher should open a panel containing:
+
+* Home
+* Blog
+* Music
+* Releases
+* Vault
+* World
+* Stonerism
+* Black Index
+* Profiles
+* Developer Logs
+* Early Access
+
+Future apps should appear as locked or Coming Soon entries:
+
+* Wireline
+* Rooms
+* Voice
+* Studio
+* Market
+* Vanta Deck
+* Full Vanta OS
+
+The app launcher must work on desktop and mobile.
+
+On desktop, use a clean panel, overlay or app grid.
+
+On mobile, use a full-width drawer or bottom sheet rather than a cramped dropdown.
+
+Requirements:
+
+* Clear focus handling
+* Keyboard accessibility
+* Touch-friendly controls
+* Escape-to-close on desktop
+* No horizontal overflow
+* No duplicated route logic
+* Unreleased apps must not lead to broken pages
+
+Coming Soon entries should open their teaser page where one exists.
+
+⸻
+
+8. User Profiles
+
+Create Phase 1 user profile pages.
+
+Suggested route:
+
+/profile/:username
+
+Each profile should include:
+
+* Avatar
+* Banner
+* Username
+* Display name
+* Bio
+* Location if supplied
+* Member since
+* Creator category
+* Selected interests
+* Social links if supplied
+* Role badge where relevant
+
+Do not display sensitive information such as:
+
+* Private email address
+* Password information
+* Authentication tokens
+* Private settings
+* Internal account notes
+
+Profile Sections
+
+Add tabs or sections for:
+
+* Activity
+* Saved Music
+* Saved Posts
+* Saved Stonerism Content
+* App Interests
+* Achievements
+
+For Phase 1, sections without active functionality may display a polished Coming Soon state.
+
+Do not create fake activity, achievements or saved content.
+
+Edit Profile
+
+Create a profile settings page where users can edit:
+
+* Avatar
+* Banner
+* Display name
+* Bio
+* Location
+* Creator category
+* Interests
+* Social links
+* Theme preference
+* Startup preference
+
+Users must only be able to edit their own profiles.
+
+Enforce this on the server as well as the frontend.
+
+Validate uploaded images, URLs and text-field lengths.
+
+Provide default avatars and banners that fit the Vanta visual system.
+
+⸻
+
+9. Developer Logs
+
+Create a public Developer Logs section.
+
+Suggested routes:
+
+* /devlogs
+* /devlogs/:slug
+
+Each log should support:
+
+* Title
+* Slug
+* Log number
+* Date
+* Cover image
+* Summary
+* Full content
+* Apps affected
+* Completed changes
+* Known issues
+* What is next
+* Status
+* Author
+* Published or draft state
+
+The public listing page should only display published logs.
+
+The public listing page should support filters such as:
+
+* All
+* Vanta OS
+* World
+* Vault
+* Stonerism
+* Black Index
+* Profiles
+
+Connect the new Developer Log content type to the existing working content-management architecture where appropriate, but do not rebuild or modify the existing Admin authentication or Admin layout during this task.
+
+Add an initial Developer Log based only on completed work already present in the project.
+
+Possible first log:
+
+DEV LOG #001
+
+FOUNDATION ONLINE
+
+Completed:
+
+* World Alpha available
+* Vault radio connected
+* Vanta Bedroom added
+* Stonerism integrated
+* Central Vanta content management established
+
+In Development:
+
+* Vanta OS startup experience
+* User profiles
+* Early Access
+* Developer Logs
+* Dashboard
+
+Known Issues:
+
+* World Alpha is currently single-player
+* Some navigation and mobile layouts still require refinement
+* Several ecosystem applications remain unreleased
+
+Next:
+
+* Complete Profiles
+* Complete Early Access
+* Expand Black Index
+* Refine Vanta OS dashboard
+
+Only mark features accurately.
+
+Do not describe work created during this task as completed until it is genuinely working and tested.
+
+⸻
+
+10. Early Access and Email Waitlists
+
+Create one unified Early Access system for upcoming Vanta apps.
+
+Suggested public route:
+
+/early-access
+
+Create individual app routes where useful:
+
+* /early-access/wireline
+* /early-access/rooms
+* /early-access/vanta-deck
+* /early-access/vanta-os
+* /early-access/voice
+* /early-access/studio
+
+Each waitlist signup should store:
+
+* Email
+* User ID if logged in
+* App or project selected
+* Signup date
+* Referral source if available
+* Marketing consent
+* Status
+
+The existing management system may store internal notes where already supported, but do not rebuild or expand Admin functionality during this task.
+
+Requirements:
+
+* Prevent duplicate signups for the same email and app.
+* Allow one email to join multiple app waitlists.
+* Do not automatically subscribe users to unrelated marketing lists.
+* Require clear consent.
+* Normalize email addresses safely.
+* Add server-side validation.
+* Rate-limit or otherwise protect the endpoint from obvious abuse.
+* Keep signup records private.
+* Do not expose signup emails or records publicly.
+
+Consent wording:
+
+“Send me development updates and early-access announcements for this Vanta project.”
+
+Success feedback:
+
+ACCESS REQUEST RECEIVED
+
+YOU WILL BE CONTACTED WHEN THE SYSTEM OPENS
+
+For logged-in users, prefill the email but still require confirmation.
+
+Show a clear message when the email has already joined that specific waitlist.
+
+Do not reveal whether an email belongs to an existing private user account.
+
+⸻
+
+11. Upcoming App Teasers
+
+Create polished teaser pages or modals for the following projects.
+
+Wireline
+
+A private communication and community system connecting Vanta members, creators and Rooms.
+
+Status:
+
+Coming Soon
+
+Possible planned capabilities:
+
+* Direct messaging
+* Group communication
+* Creator communities
+* Cross-app identity
+* Media sharing
+* Connections to Rooms
+
+Rooms
+
+Persistent digital spaces for communities, artists, listening parties, discussions and events.
+
+Status:
+
+Concept / In Development
+
+Possible planned capabilities:
+
+* Community spaces
+* Listening parties
+* Live discussions
+* Artist rooms
+* Event spaces
+* Shared media
+
+Vanta Deck
+
+A customizable physical cyberdeck and access device for the Vanta ecosystem.
+
+Status:
+
+Hardware Concept
+
+Possible planned capabilities:
+
+* Custom physical design
+* Vanta OS access
+* Modular controls
+* Music and communication access
+* Creator-focused tools
+
+Clearly label this as a concept.
+
+Do not present it as manufactured, available for purchase or technically finalized.
+
+Full Vanta OS
+
+The complete culture operating environment connecting identity, music, communication, worlds, publishing, commerce and creative tools.
+
+Status:
+
+In Development
+
+Possible planned capabilities:
+
+* One Vanta identity
+* Connected applications
+* Music and creative tools
+* Communication
+* Publishing
+* Worlds
+* Discovery
+* Commerce
+
+Voice
+
+Voice communication and live conversation tools for the Vanta ecosystem.
+
+Status:
+
+Concept
+
+Studio
+
+Connected tools for music, art and creator workflows.
+
+Status:
+
+Concept
+
+Each teaser should include:
+
+* Visual identity
+* Short concept
+* Current status
+* Planned capabilities
+* Join Early Access button
+* Return to dashboard button
+
+Do not present speculative hardware or software as already released.
+
+⸻
+
+12. Black Index Connection
+
+Do not fully rebuild Black Index during this task.
+
+Ensure the new public content types can later be indexed:
+
+* Public user profiles
+* Published Developer Logs
+* Apps
+* Public teaser pages
+
+If Black Index already performs search, extend its searchable categories where safe.
+
+Never expose:
+
+* Private user information
+* Private email addresses
+* Passwords
+* Authentication records
+* Waitlist records
+* Unpublished Developer Logs
+* Private profile settings
+* Internal notes
+
+Waitlist forms may be discoverable as public pages, but waitlist submission records must never appear in search results.
+
+⸻
+
+13. Mobile Navigation
+
+The complete flow must work properly on mobile portrait screens.
+
+Requirements:
+
+* No horizontal overflow
+* Header items do not disappear without an accessible replacement
+* App navigation remains accessible
+* Theme toggle remains accessible
+* Profile menu remains accessible
+* Entry-screen text remains readable
+* Login forms fit smaller screens
+* Registration forms fit smaller screens
+* App cards stack correctly
+* Upcoming-app cards do not become too narrow
+* Developer Logs remain readable
+* Waitlist forms remain usable
+* Touch controls have suitable target sizes
+* Use a drawer, bottom sheet or scrollable app bar where appropriate
+
+Test common mobile widths around:
+
+* 320px
+* 375px
+* 390px
+* 430px
+
+Do not rely only on desktop browser resizing.
+
+Test touch interaction and scrolling behaviour.
+
+⸻
+
+14. Database and Backend
+
+Use the existing stack and database patterns.
+
+Do not introduce a second authentication system or unrelated database.
+
+Add or update database models for:
+
+* Users
+* Profiles
+* User roles where already required by the existing account architecture
+* Developer Logs
+* Waitlist entries
+* App interests
+* User preferences
+* Recent activity where useful
+
+Use migrations rather than destructive schema replacement.
+
+Preserve all existing content and records.
+
+Add server-side validation.
+
+Protect:
+
+* Profile edits
+* Private user preferences
+* Draft Developer Logs
+* Account-specific saved content
+* Private waitlist information
+* User-management endpoints already protected by the existing system
+
+Use the project’s existing session or token patterns.
+
+Do not modify or replace the working Admin authentication flow.
+
+Do not expose protected database fields through public API responses.
+
+⸻
+
+15. Visual System
+
+Keep the existing Vanta Verge visual direction:
+
+* Black and dirty green
+* Muted yellow lighting
+* CRT texture
+* PS2-era digital atmosphere
+* Fog and bloom
+* Early-2000s underground internet
+* Shoegaze
+* Punk
+* Urban fantasy energy
+
+Avoid:
+
+* Generic modern SaaS gradients
+* Bright blue corporate styling
+* Excessive glassmorphism
+* Overly clean white cards
+* Neon cyberpunk clichés everywhere
+* Making every element glitch constantly
+* Replacing the current Vanta design language
+
+The interface should feel mysterious but still usable.
+
+Light mode should remain Vanta-themed through:
+
+* Aged silver
+* Muted off-white
+* Pale grey
+* Soft green
+* Worn terminal-inspired accents
+* Readable dark typography
+
+Maintain consistency across the boot flow, dashboard, profiles, Developer Logs, waitlists and teaser pages.
+
+⸻
+
+16. Performance and Accessibility
+
+* Lazy-load heavy background scenes.
+* Do not load the full World Alpha game solely to decorate the entry screen unless performance remains acceptable.
+* Provide a low-performance visual fallback.
+* Respect reduced-motion settings.
+* Add keyboard navigation.
+* Add visible focus states.
+* Ensure readable contrast.
+* Add labels to icon-only buttons.
+* Support touch interaction.
+* Avoid blocking the website if animations fail.
+* Avoid blocking the website if audio fails.
+* Optimize background effects for mobile devices.
+* Do not request or load all Vault audio files at once.
+* Prevent the boot sequence from replaying unnecessarily during ordinary internal navigation.
+* Avoid layout shifts during theme initialization.
+
+⸻
+
+17. Final Quality Check
+
+Before considering the task complete, verify:
+
+* Existing Vanta loader still works.
+* New startup sequence follows it.
+* Enter Vanta works.
+* Enter Vanta supports keyboard, mouse and touch.
+* Reduced-motion mode works.
+* Vault audio does not break.
+* Entry-screen radio uses existing Vault data.
+* Audio respects autoplay restrictions.
+* Login works.
+* Failed login shows a clear error.
+* Guest access works.
+* Account creation works.
+* Profile creation works.
+* Public profiles display correctly.
+* Private emails are not displayed.
+* Users can only edit their own profiles.
+* Dashboard loads.
+* Dashboard uses real content.
+* App launcher works.
+* App launcher works on mobile.
+* Theme toggle remains functional.
+* Theme preference persists between routes.
+* Global shared layout works across the new pages.
+* Developer Logs work.
+* Only published Developer Logs appear publicly.
+* Early Access forms store records.
+* Duplicate waitlist records are handled.
+* Waitlist records remain private.
+* Upcoming-app teaser cards and pages work.
+* Black Index does not expose private data.
+* Mobile navigation works.
+* Current blog remains functional.
+* World Alpha remains functional.
+* Vault remains functional.
+* Vanta Radio remains functional.
+* Music and Releases remain functional.
+* Stonerism remains functional.
+* Existing Admin functionality remains unchanged and functional.
+* No existing data has been deleted.
+* No placeholder button leads to a broken page.
+* No unfinished feature is falsely labelled as released.
+* No speculative hardware is presented as available.
+* Startup animations cannot permanently block the website.
+
+At the end, provide a concise implementation report containing:
+
+1. Files changed
+2. Database changes and migrations
+3. New public routes
+4. New authentication and profile routes
+5. New reusable components
+6. Theme integration completed
+7. Tests performed
+8. Known limitations
+9. Recommended next Phase 1 task
+
+Begin by auditing the current project structure, user authentication, theme provider, shared layout, database models and route architecture before making changes.
+
+Reuse existing working components wherever possible.
+
+Do not spend time rebuilding functioning systems.
+
+Do not modify, rebuild or debug the working Admin authentication, Admin navigation or Admin dashboard during this task.
