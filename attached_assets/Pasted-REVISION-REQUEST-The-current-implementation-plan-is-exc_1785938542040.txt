@@ -1,0 +1,552 @@
+REVISION REQUEST
+
+The current implementation plan is excellent. Before building, I want to revise the architecture to make sure Stonerism is designed as a long-term flagship application inside the Vanta ecosystem, not simply a cannabis blog.
+
+Think of Stonerism as a premium South African cannabis, wellness, culture and lifestyle platform that could eventually become one of the biggest apps inside Vanta OS.
+
+=========================================================
+1. THINK LIKE A MEDIA COMPANY, NOT A BLOG
+=========================================================
+
+Do not architect the system around articles only.
+
+Instead build a flexible content system capable of supporting multiple content types using the same reusable architecture.
+
+Content types should include:
+
+• Articles
+• Reviews
+• Editorials
+• Guides
+• Interviews
+• Videos
+• Podcasts
+• Photo Essays
+• Galleries
+• Events
+• Series
+• Episodes
+• Community Spotlights
+• Documentaries
+
+Examples:
+
+Behind The Brand → Series
+
+Episode 1
+
+Episode 2
+
+Episode 3
+
+Stoner Girls Review → Series
+
+Munchie Run → Series
+
+The Green Guide → Series
+
+From Grow To Store → Series
+
+These should all use one reusable content architecture.
+
+=========================================================
+2. BUILD MEDIA-FIRST
+=========================================================
+
+Every content item should support:
+
+Hero image
+
+Gallery
+
+Video
+
+YouTube embed
+
+Instagram Reel
+
+TikTok
+
+Podcast/audio
+
+Pull quotes
+
+Downloads
+
+Source citations
+
+Reading time
+
+Author
+
+Editor
+
+Reviewer
+
+Photographer
+
+Videographer
+
+Evidence level
+
+Disclosure
+
+Featured status
+
+Tags
+
+Series
+
+Episode Number
+
+SEO metadata
+
+Even if some fields are unused in Phase 1.
+
+=========================================================
+3. RENAME THE ADMIN "ARTICLES" SECTION
+=========================================================
+
+Instead of:
+
+Articles
+
+Use:
+
+Content
+
+Then allow filtering by:
+
+Article
+
+Review
+
+Guide
+
+Interview
+
+Series
+
+Episode
+
+Video
+
+Podcast
+
+Event
+
+Editorial
+
+=========================================================
+4. DESIGN A UNIVERSAL ENTITY SYSTEM
+=========================================================
+
+Instead of designing around only cannabis businesses, make one reusable entity profile system.
+
+Entity types should support:
+
+Grower
+
+Dispensary
+
+Cannabis Club
+
+Brand
+
+Restaurant
+
+Coffee Shop
+
+Smoke Shop
+
+Grow Shop
+
+Food Truck
+
+Wellness Clinic
+
+Yoga Studio
+
+Gym
+
+Festival
+
+Venue
+
+Market
+
+Retreat
+
+Artist
+
+Creator
+
+Community Organisation
+
+This allows Munchies, Wellness and Cannabis to reuse the same profile architecture.
+
+=========================================================
+5. DISCOVER SECTION
+=========================================================
+
+Instead of only category pages, add a Discover experience.
+
+Homepage should include:
+
+Latest Reviews
+
+Latest Stories
+
+Featured Brands
+
+Trending Businesses
+
+Upcoming Events
+
+Latest Wellness Guides
+
+Newest Food Reviews
+
+Community Picks
+
+This section should become dynamic.
+
+=========================================================
+6. BUILD FOR FUTURE USER ACCOUNTS
+=========================================================
+
+Do not build authentication yet.
+
+However architect the database so users can later have:
+
+Profile
+
+Saved Articles
+
+Saved Reviews
+
+Favourite Businesses
+
+Favourite Brands
+
+Favourite Restaurants
+
+Favourite Events
+
+Bookmarks
+
+Reading History
+
+Following
+
+Notifications
+
+Wishlist
+
+Community submissions
+
+This should not require rebuilding later.
+
+=========================================================
+7. SUPPORT SERIES
+=========================================================
+
+Series should become first-class content.
+
+Examples:
+
+Behind The Brand
+
+Stoner Girls Review
+
+The Green Guide
+
+Munchie Run
+
+Community Spotlight
+
+From Grow To Store
+
+Each series should contain unlimited episodes.
+
+=========================================================
+8. FUTURE MAP SUPPORT
+=========================================================
+
+Do not build maps yet.
+
+However every entity and event should support:
+
+Latitude
+
+Longitude
+
+City
+
+Province
+
+Country
+
+This allows interactive maps later.
+
+=========================================================
+9. PREPARE FOR BLACK INDEX
+=========================================================
+
+Everything should eventually become searchable through Black Index.
+
+Content
+
+Businesses
+
+Brands
+
+Events
+
+Food
+
+Wellness
+
+Reviews
+
+Series
+
+The architecture should support this later.
+
+=========================================================
+10. PREPARE FOR SHARED VANTA ACCOUNTS
+=========================================================
+
+Do not build this yet.
+
+However the architecture should support later integration with:
+
+Wireline
+
+Black Index
+
+Vault
+
+Rooms
+
+Music
+
+Worlds
+
+Shared notifications
+
+Shared creator profiles
+
+Shared media library
+
+Shared identity
+
+Shared comments
+
+Shared messaging
+
+=========================================================
+11. MEDIA LIBRARY
+=========================================================
+
+Build the architecture so all uploaded media eventually comes from one reusable media library.
+
+Images
+
+Videos
+
+Logos
+
+Gallery photos
+
+Documents
+
+Audio
+
+Podcast episodes
+
+This media system should eventually be reusable across every Vanta application.
+
+=========================================================
+12. HOMEPAGE IMPROVEMENTS
+=========================================================
+
+Rename "Mind + Spirit" to:
+
+Perspectives
+
+or
+
+Inner Life
+
+This section should include:
+
+Stoicism
+
+Taoism
+
+Buddhism
+
+Psychology
+
+Meditation
+
+Journaling
+
+Astrology
+
+Zodiac
+
+Dreams
+
+African philosophy
+
+Creativity
+
+Spiritual traditions
+
+without favouring one belief system.
+
+Also add a Discover section beneath the hero.
+
+=========================================================
+13. ORIGINAL SERIES
+=========================================================
+
+Build the homepage around recurring original shows.
+
+Behind The Brand
+
+Stoner Girls Review
+
+Munchie Run
+
+From Grow To Store
+
+The Green Guide
+
+Community Spotlight
+
+Each should eventually become episodic.
+
+=========================================================
+14. WELLNESS
+=========================================================
+
+Expand Wellness.
+
+Include support for:
+
+Movement
+
+Recovery
+
+Nutrition
+
+Sleep
+
+Breathwork
+
+Yoga
+
+Hiking
+
+Cold plunges
+
+Saunas
+
+Meditation
+
+General health
+
+Doctor-supported wellness
+
+Supplement reviews
+
+Equipment reviews
+
+Do not make unsupported medical claims.
+
+Support evidence levels and disclosures.
+
+=========================================================
+15. COMMUNITY
+=========================================================
+
+The platform should encourage real-world community.
+
+Future events include:
+
+Yoga mornings
+
+Hiking meetups
+
+Beach cleanups
+
+Community markets
+
+Live music sessions
+
+Food festivals
+
+Grow workshops
+
+Art exhibitions
+
+Wellness retreats
+
+Community gardens
+
+Tree planting
+
+Charity drives
+
+Open mic nights
+
+Film nights
+
+Plant swaps
+
+This should become part of the long-term architecture.
+
+=========================================================
+16. VANTA DESIGN PHILOSOPHY
+=========================================================
+
+Stonerism should feel like one of the flagship applications inside Vanta OS.
+
+It must have its own identity while still clearly belonging to Vanta.
+
+Think:
+
+Premium
+
+Editorial
+
+Minimal
+
+Dark
+
+Natural
+
+Cinematic
+
+South African
+
+Modern
+
+Not stereotypical cannabis branding.
+
+=========================================================
+17. CODE QUALITY
+=========================================================
+
+Prioritize reusable components and scalable architecture over quick implementation.
+
+Avoid duplicate systems.
+
+If a reusable system can replace multiple feature-specific implementations, choose the reusable solution.
+
+Think about how this architecture will support five years of growth without needing major rewrites.
+
+Build Stonerism as though it will eventually become one of the core applications inside the Vanta ecosystem.

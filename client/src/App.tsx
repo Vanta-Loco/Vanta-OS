@@ -26,6 +26,19 @@ import Wireline from "@/pages/wireline";
 import Fract from "@/pages/fract";
 import Himalayas from "@/pages/himalayas";
 import FracturedGodhead from "@/pages/fgh";
+import StonerismHome from "@/pages/stonerism/index";
+import StonerismCannabis from "@/pages/stonerism/cannabis";
+import StonerismPlaces from "@/pages/stonerism/places";
+import StonerismBrands from "@/pages/stonerism/brands";
+import StonerismMunchies from "@/pages/stonerism/munchies";
+import StonerismWellness from "@/pages/stonerism/wellness";
+import StonerismInnerLife from "@/pages/stonerism/inner-life";
+import StonerismEvents from "@/pages/stonerism/events";
+import StonerismJournal from "@/pages/stonerism/journal";
+import StonerismArticle from "@/pages/stonerism/article";
+import StonerismReview from "@/pages/stonerism/review";
+import StonerismBusiness from "@/pages/stonerism/business";
+import StonerismAdmin from "@/pages/stonerism-admin";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -51,6 +64,20 @@ function Router() {
       <Route path="/fract" component={Fract} />
       <Route path="/himalayas" component={Himalayas} />
       <Route path="/fgh" component={FracturedGodhead} />
+      {/* ── Stonerism ───────────────────────────────────────────── */}
+      <Route path="/stonerism" component={StonerismHome} />
+      <Route path="/stonerism/cannabis" component={StonerismCannabis} />
+      <Route path="/stonerism/places" component={StonerismPlaces} />
+      <Route path="/stonerism/brands" component={StonerismBrands} />
+      <Route path="/stonerism/munchies" component={StonerismMunchies} />
+      <Route path="/stonerism/wellness" component={StonerismWellness} />
+      <Route path="/stonerism/inner-life" component={StonerismInnerLife} />
+      <Route path="/stonerism/events" component={StonerismEvents} />
+      <Route path="/stonerism/journal" component={StonerismJournal} />
+      <Route path="/stonerism/article/:slug" component={StonerismArticle} />
+      <Route path="/stonerism/review/:slug" component={StonerismReview} />
+      <Route path="/stonerism/business/:slug" component={StonerismBusiness} />
+      <Route path="/admin/stonerism" component={StonerismAdmin} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -60,7 +87,8 @@ function App() {
   const [showStartup, setShowStartup] = useState(
     () =>
       !sessionStorage.getItem(STARTUP_SESSION_KEY) &&
-      window.location.pathname !== "/world"
+      window.location.pathname !== "/world" &&
+      !window.location.pathname.startsWith("/stonerism")
   );
 
   return (

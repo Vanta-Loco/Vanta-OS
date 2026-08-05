@@ -1,6 +1,7 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { registerStonerismRoutes } from "./stonerism-routes";
 import { insertPostSchema, insertReleaseSchema, insertVaultItemSchema, updateSiteContentSchema } from "@shared/schema";
 import { z } from "zod";
 import { generateAudioPreview, deleteAudioPreview } from "./audio-preview";
@@ -432,6 +433,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to update about content" });
     }
   });
+
+  registerStonerismRoutes(app);
 
   const httpServer = createServer(app);
   return httpServer;

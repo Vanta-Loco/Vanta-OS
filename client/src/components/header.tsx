@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/theme-toggle";
 import {
   PenSquare, Search, LayoutDashboard, LogOut, LockKeyhole, Terminal, ChevronDown,
-  MapPin, Database, Radio, Coins, Mountain, Skull,
+  MapPin, Database, Radio, Coins, Mountain, Skull, Leaf,
 } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
@@ -27,6 +27,7 @@ const osLinks = [
   { href: "/fract", label: "FRACT", desc: "Reputation economy", Icon: Coins },
   { href: "/himalayas", label: "Hidden Himalayas", desc: "Cold expansion", Icon: Mountain },
   { href: "/fgh", label: "Fractured Godhead", desc: "Lore archive", Icon: Skull },
+  { href: "/stonerism", label: "Stonerism", desc: "Cannabis culture", Icon: Leaf },
 ];
 
 export function Header() {
