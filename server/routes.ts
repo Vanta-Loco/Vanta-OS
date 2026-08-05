@@ -1,51 +1,23 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { pool } from "./db";
 import { registerStonerismRoutes } from "./stonerism-routes";
 import { insertPostSchema, insertReleaseSchema, insertVaultItemSchema, updateSiteContentSchema } from "@shared/schema";
 import { z } from "zod";
 import { generateAudioPreview, deleteAudioPreview } from "./audio-preview";
 import { compressAudioFile, deleteCompressedAudio } from "./audio-compress";
-import crypto from "crypto";
+import {
+  issueAdminToken,
+  hasValidAdminToken,
+  requireAdmin,
+} from "./admin-auth";
 
 declare module "express-session" {
   interface SessionData {
     isAdmin: boolean;
     vaultAuthorized: boolean;
   }
-}
-
-// ── Token-based admin auth ───────────────────────────────────────────────────
-// Cookies are unreliable in Replit's preview (SameSite/Secure issues in iframes
-// and iOS WebViews). We issue a random token on login, store it server-side,
-// and the client sends it as X-Admin-Token on every request. Sessions still
-// work as a fallback for direct-browser access.
-let activeAdminToken: string | null = null;
-
-function issueAdminToken(): string {
-  activeAdminToken = crypto.randomBytes(32).toString("hex");
-  return activeAdminToken;
-}
-
-function hasValidAdminToken(req: Request): boolean {
-  const header = req.headers["x-admin-token"];
-  return (
-    typeof header === "string" &&
-    activeAdminToken !== null &&
-    // Use timingSafeEqual to prevent timing attacks
-    (() => {
-      try {
-        const a = Buffer.from(header);
-        const b = Buffer.from(activeAdminToken!);
-        return a.length === b.length && crypto.timingSafeEqual(a, b);
-      } catch { return false; }
-    })()
-  );
-}
-
-function requireAdmin(req: Request, res: Response, next: NextFunction) {
-  if (req.session?.isAdmin === true || hasValidAdminToken(req)) return next();
-  return res.status(401).json({ error: "Unauthorized" });
 }
 import multer from "multer";
 import path from "path";
@@ -470,6 +442,214 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   registerStonerismRoutes(app);
+
+  // ── Admin: Vault items (all, no vault-session gate) ──────────────
+  app.get("/api/admin/vault/items", requireAdmin, async (_req, res) => {
+    try { res.json(await storage.getVaultItems()); }
+    catch { res.status(500).json({ error: "Failed to fetch vault items" }); }
+  });
+
+  // ── Admin: World Alpha settings ───────────────────────────────────
+  app.get("/api/admin/world", requireAdmin, async (_req, res) => {
+    try {
+      const r = await pool.query("SELECT * FROM world_settings WHERE id=1");
+      res.json(r.rows[0] || {});
+    } catch { res.status(500).json({ error: "Failed" }); }
+  });
+  app.patch("/api/admin/world", requireAdmin, async (req, res) => {
+    try {
+      const f = req.body;
+      const sets: string[] = [];
+      const vals: unknown[] = [];
+      let i = 1;
+      const allowed = ["status","alpha_availability","description","current_version",
+        "maintenance_message","radio_enabled","known_issues","developer_notes","featured_image"];
+      for (const k of allowed) {
+        if (k in f) { sets.push(`${k}=$${i++}`); vals.push(f[k]); }
+      }
+      sets.push(`updated_at=NOW()`);
+      if (sets.length === 1) return res.json({});
+      vals.push(1);
+      const r = await pool.query(
+        `UPDATE world_settings SET ${sets.join(",")} WHERE id=$${i} RETURNING *`, vals
+      );
+      res.json(r.rows[0]);
+    } catch { res.status(500).json({ error: "Failed" }); }
+  });
+
+  // ── Admin: Black Index config ─────────────────────────────────────
+  app.get("/api/admin/black-index", requireAdmin, async (_req, res) => {
+    try {
+      const r = await pool.query("SELECT * FROM black_index_config WHERE id=1");
+      res.json(r.rows[0] || {});
+    } catch { res.status(500).json({ error: "Failed" }); }
+  });
+  app.patch("/api/admin/black-index", requireAdmin, async (req, res) => {
+    try {
+      const f = req.body;
+      const allowed = ["index_blog","index_music","index_releases","index_stonerism",
+        "index_profiles","index_devlogs","index_teasers"];
+      const sets: string[] = [];
+      const vals: unknown[] = [];
+      let i = 1;
+      for (const k of allowed) {
+        if (k in f) { sets.push(`${k}=$${i++}`); vals.push(f[k]); }
+      }
+      sets.push("updated_at=NOW()");
+      if (sets.length === 1) return res.json({});
+      vals.push(1);
+      const r = await pool.query(
+        `UPDATE black_index_config SET ${sets.join(",")} WHERE id=$${i} RETURNING *`, vals
+      );
+      res.json(r.rows[0]);
+    } catch { res.status(500).json({ error: "Failed" }); }
+  });
+
+  // ── Admin: Dev Logs ────────────────────────────────────────────────
+  app.get("/api/admin/devlogs", requireAdmin, async (_req, res) => {
+    try {
+      const r = await pool.query("SELECT * FROM dev_logs ORDER BY created_at DESC");
+      res.json(r.rows);
+    } catch { res.status(500).json({ error: "Failed" }); }
+  });
+  app.post("/api/admin/devlogs", requireAdmin, async (req, res) => {
+    try {
+      const { title, slug, summary, body, status, affected_apps, known_issues, next_steps } = req.body;
+      const published_at = status === "published" ? new Date().toISOString() : null;
+      const r = await pool.query(
+        `INSERT INTO dev_logs (title,slug,summary,body,status,affected_apps,known_issues,next_steps,published_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
+        [title||"",slug||"",summary||"",body||"",status||"draft",
+         affected_apps||[],known_issues||"",next_steps||"",published_at]
+      );
+      res.json(r.rows[0]);
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+  app.patch("/api/admin/devlogs/:id", requireAdmin, async (req, res) => {
+    try {
+      const f = req.body;
+      const allowed = ["title","slug","summary","body","status","affected_apps","known_issues","next_steps"];
+      const sets: string[] = [];
+      const vals: unknown[] = [];
+      let i = 1;
+      for (const k of allowed) {
+        if (k in f) { sets.push(`${k}=$${i++}`); vals.push(f[k]); }
+      }
+      if ("status" in f && f.status === "published") {
+        sets.push(`published_at=NOW()`);
+      } else if ("status" in f && f.status !== "published") {
+        sets.push(`published_at=NULL`);
+      }
+      sets.push("updated_at=NOW()");
+      vals.push(req.params.id);
+      const r = await pool.query(
+        `UPDATE dev_logs SET ${sets.join(",")} WHERE id=$${i} RETURNING *`, vals
+      );
+      if (!r.rows[0]) return res.status(404).json({ error: "Not found" });
+      res.json(r.rows[0]);
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+  app.delete("/api/admin/devlogs/:id", requireAdmin, async (req, res) => {
+    try {
+      await pool.query("DELETE FROM dev_logs WHERE id=$1", [req.params.id]);
+      res.status(204).send();
+    } catch { res.status(500).json({ error: "Failed" }); }
+  });
+
+  // ── Waitlists (public signup + admin management) ──────────────────
+  app.post("/api/waitlist", async (req, res) => {
+    try {
+      const { app_name, email, name } = req.body;
+      if (!app_name || !email) return res.status(400).json({ error: "app_name and email required" });
+      const r = await pool.query(
+        "INSERT INTO waitlist_signups (app_name,email,name) VALUES ($1,$2,$3) RETURNING *",
+        [app_name, email, name||""]
+      );
+      res.json(r.rows[0]);
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+  app.get("/api/admin/waitlists", requireAdmin, async (_req, res) => {
+    try {
+      const r = await pool.query("SELECT * FROM waitlist_signups ORDER BY created_at DESC");
+      res.json(r.rows);
+    } catch { res.status(500).json({ error: "Failed" }); }
+  });
+  app.patch("/api/admin/waitlists/:id", requireAdmin, async (req, res) => {
+    try {
+      const { status, internal_notes } = req.body;
+      const r = await pool.query(
+        "UPDATE waitlist_signups SET status=COALESCE($1,status), internal_notes=COALESCE($2,internal_notes) WHERE id=$3 RETURNING *",
+        [status, internal_notes, req.params.id]
+      );
+      res.json(r.rows[0]);
+    } catch { res.status(500).json({ error: "Failed" }); }
+  });
+  app.delete("/api/admin/waitlists/:id", requireAdmin, async (req, res) => {
+    try {
+      await pool.query("DELETE FROM waitlist_signups WHERE id=$1", [req.params.id]);
+      res.status(204).send();
+    } catch { res.status(500).json({ error: "Failed" }); }
+  });
+  app.get("/api/admin/waitlists/export.csv", requireAdmin, async (_req, res) => {
+    try {
+      const r = await pool.query("SELECT app_name,email,name,status,created_at FROM waitlist_signups ORDER BY created_at DESC");
+      const header = "app_name,email,name,status,created_at\n";
+      const rows = r.rows.map((row: any) =>
+        [row.app_name, row.email, row.name, row.status, row.created_at].map((v: any) =>
+          `"${String(v||"").replace(/"/g,'""')}"`).join(",")
+      ).join("\n");
+      res.setHeader("Content-Type","text/csv");
+      res.setHeader("Content-Disposition","attachment; filename=\"waitlists.csv\"");
+      res.send(header + rows);
+    } catch { res.status(500).json({ error: "Failed" }); }
+  });
+
+  // ── Admin: App Teasers ────────────────────────────────────────────
+  app.get("/api/admin/apps", requireAdmin, async (_req, res) => {
+    try {
+      const r = await pool.query("SELECT * FROM app_teasers ORDER BY display_order ASC, created_at DESC");
+      res.json(r.rows);
+    } catch { res.status(500).json({ error: "Failed" }); }
+  });
+  app.post("/api/admin/apps", requireAdmin, async (req, res) => {
+    try {
+      const { name,slug,description,status,planned_features,teaser_image,early_access_enabled,display_order,published } = req.body;
+      const r = await pool.query(
+        `INSERT INTO app_teasers (name,slug,description,status,planned_features,teaser_image,early_access_enabled,display_order,published)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
+        [name||"",slug||"",description||"",status||"coming-soon",
+         planned_features||[],teaser_image||"",early_access_enabled||"false",
+         display_order||0,published||"false"]
+      );
+      res.json(r.rows[0]);
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+  app.patch("/api/admin/apps/:id", requireAdmin, async (req, res) => {
+    try {
+      const f = req.body;
+      const allowed = ["name","slug","description","status","planned_features",
+        "teaser_image","early_access_enabled","display_order","published"];
+      const sets: string[] = [];
+      const vals: unknown[] = [];
+      let i = 1;
+      for (const k of allowed) {
+        if (k in f) { sets.push(`${k}=$${i++}`); vals.push(f[k]); }
+      }
+      sets.push("updated_at=NOW()");
+      vals.push(req.params.id);
+      const r = await pool.query(
+        `UPDATE app_teasers SET ${sets.join(",")} WHERE id=$${i} RETURNING *`, vals
+      );
+      if (!r.rows[0]) return res.status(404).json({ error: "Not found" });
+      res.json(r.rows[0]);
+    } catch (e: any) { res.status(500).json({ error: e.message }); }
+  });
+  app.delete("/api/admin/apps/:id", requireAdmin, async (req, res) => {
+    try {
+      await pool.query("DELETE FROM app_teasers WHERE id=$1", [req.params.id]);
+      res.status(204).send();
+    } catch { res.status(500).json({ error: "Failed" }); }
+  });
 
   const httpServer = createServer(app);
   return httpServer;

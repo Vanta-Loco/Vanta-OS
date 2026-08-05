@@ -8,11 +8,7 @@ import {
   insertStonerismReviewSchema,
   insertStonerismEventSchema,
 } from "@shared/schema";
-
-function requireAdmin(req: Request, res: Response, next: NextFunction) {
-  if (req.session?.isAdmin === true) return next();
-  return res.status(401).json({ error: "Unauthorized" });
-}
+import { requireAdmin } from "./admin-auth";
 
 function handleError(res: Response, error: unknown, msg: string) {
   if (error instanceof z.ZodError) return res.status(400).json({ error: error.errors });

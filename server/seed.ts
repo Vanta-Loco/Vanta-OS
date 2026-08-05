@@ -88,6 +88,7 @@ export async function seedDatabase() {
   }
 
   await seedStonerism();
+  await seedEcosystem();
 }
 
 async function seedStonerism() {
@@ -420,4 +421,79 @@ async function seedStonerism() {
   ]);
 
   console.log("✓ Stonerism data seeded successfully");
+}
+
+async function seedEcosystem() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS world_settings (
+      id               SERIAL PRIMARY KEY,
+      status           TEXT NOT NULL DEFAULT 'active',
+      alpha_availability TEXT NOT NULL DEFAULT 'closed',
+      description      TEXT NOT NULL DEFAULT '',
+      current_version  TEXT NOT NULL DEFAULT '0.1.0',
+      maintenance_message TEXT NOT NULL DEFAULT '',
+      radio_enabled    TEXT NOT NULL DEFAULT 'false',
+      known_issues     TEXT NOT NULL DEFAULT '',
+      developer_notes  TEXT NOT NULL DEFAULT '',
+      featured_image   TEXT NOT NULL DEFAULT '',
+      updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    INSERT INTO world_settings (id) VALUES (1)
+      ON CONFLICT (id) DO NOTHING;
+
+    CREATE TABLE IF NOT EXISTS black_index_config (
+      id               SERIAL PRIMARY KEY,
+      index_blog       TEXT NOT NULL DEFAULT 'true',
+      index_music      TEXT NOT NULL DEFAULT 'true',
+      index_releases   TEXT NOT NULL DEFAULT 'true',
+      index_stonerism  TEXT NOT NULL DEFAULT 'true',
+      index_profiles   TEXT NOT NULL DEFAULT 'false',
+      index_devlogs    TEXT NOT NULL DEFAULT 'true',
+      index_teasers    TEXT NOT NULL DEFAULT 'false',
+      updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    INSERT INTO black_index_config (id) VALUES (1)
+      ON CONFLICT (id) DO NOTHING;
+
+    CREATE TABLE IF NOT EXISTS dev_logs (
+      id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      title          TEXT NOT NULL DEFAULT '',
+      slug           TEXT NOT NULL UNIQUE,
+      summary        TEXT NOT NULL DEFAULT '',
+      body           TEXT NOT NULL DEFAULT '',
+      status         TEXT NOT NULL DEFAULT 'draft',
+      affected_apps  TEXT[] NOT NULL DEFAULT '{}',
+      known_issues   TEXT NOT NULL DEFAULT '',
+      next_steps     TEXT NOT NULL DEFAULT '',
+      published_at   TIMESTAMPTZ,
+      created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS waitlist_signups (
+      id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      app_name       TEXT NOT NULL,
+      email          TEXT NOT NULL,
+      name           TEXT NOT NULL DEFAULT '',
+      status         TEXT NOT NULL DEFAULT 'pending',
+      internal_notes TEXT NOT NULL DEFAULT '',
+      created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS app_teasers (
+      id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      name                  TEXT NOT NULL DEFAULT '',
+      slug                  TEXT NOT NULL UNIQUE,
+      description           TEXT NOT NULL DEFAULT '',
+      status                TEXT NOT NULL DEFAULT 'coming-soon',
+      planned_features      TEXT[] NOT NULL DEFAULT '{}',
+      teaser_image          TEXT NOT NULL DEFAULT '',
+      early_access_enabled  TEXT NOT NULL DEFAULT 'false',
+      display_order         INTEGER NOT NULL DEFAULT 0,
+      published             TEXT NOT NULL DEFAULT 'false',
+      created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at            TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+  console.log("✓ Ecosystem tables ready");
 }

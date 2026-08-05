@@ -1,0 +1,322 @@
+Expand the existing working Admin system so it covers the full Vanta ecosystem.
+
+The Admin login and session now work correctly. Do not rebuild or replace authentication.
+
+The current issue is that the Admin dashboard does not include management access for all Vanta apps and content types.
+
+Main requirement
+
+Use one central Admin dashboard for the entire Vanta Cold platform.
+
+Do not create separate admin login systems for Stonerism, World, Vault or any other app.
+
+The same authenticated admin session must work across all Vanta routes and apps.
+
+Admin dashboard sections
+
+Audit the current project and add navigation and management sections for all existing supported areas:
+
+* Main Blog
+* Blog Posts
+* Music
+* Releases
+* Vault
+* Vault Tracks
+* Worlds
+* World Alpha settings and content
+* Stonerism
+* Stonerism Articles
+* Stonerism Reviews
+* Black Index
+* Users and Profiles
+* Developer Logs
+* Early Access Waitlists
+* Upcoming App Teasers
+* Site Settings
+
+Only add editing controls for functionality that currently exists in the project. Do not fabricate management tools for data that does not yet exist.
+
+Stonerism
+
+Add Stonerism to the central Admin dashboard.
+
+The admin should be able to manage existing Stonerism content, including where supported:
+
+* Create articles
+* Edit articles
+* Publish or unpublish articles
+* Delete articles with confirmation
+* Manage reviews
+* Moderate user-submitted content
+* Manage featured content
+* Manage categories, strains, growers or locations if those models already exist
+
+Reuse the existing Stonerism database and routes.
+
+Do not create a second Stonerism database or authentication system.
+
+Vault and Music
+
+Add management access for:
+
+* Uploading tracks
+* Editing track details
+* Removing tracks with confirmation
+* Updating cover art
+* Changing track order where supported
+* Managing releases
+* Setting published or draft status
+* Choosing whether a track may play on Vanta Radio
+
+Preserve all existing music files and metadata.
+
+World Alpha
+
+Do not rebuild or expand the game during this task.
+
+Add a lightweight World Admin section for existing configurable data only, such as:
+
+* World status
+* Alpha availability
+* Featured image
+* Description
+* Current version
+* Maintenance message
+* Radio enabled or disabled
+* Available Vault tracks
+* Known issues
+* Developer notes
+
+Do not attempt to build a full visual game editor.
+
+Black Index
+
+Add an Admin section for managing what public content types Black Index may search.
+
+Allow the admin to enable or disable indexing for:
+
+* Blog posts
+* Music
+* Releases
+* Stonerism
+* Public user profiles
+* Developer Logs
+* App teaser pages
+
+Never allow private information, passwords, emails, waitlist records, admin notes or draft content to appear in public search.
+
+Users and Profiles
+
+Add user-management tools where the profile system exists:
+
+* Search users
+* View public profile details
+* View account status
+* Assign or remove supported roles
+* Suspend or reactivate accounts
+* Remove inappropriate public profile content
+* View join date
+* View app interests
+
+Do not display passwords or expose sensitive authentication data.
+
+Protect role changes and destructive actions.
+
+Developer Logs
+
+Add management tools for:
+
+* Create
+* Edit
+* Save draft
+* Publish
+* Unpublish
+* Delete with confirmation
+* Assign affected apps
+* Manage known issues and next steps
+
+Early Access Waitlists
+
+Add waitlist management for:
+
+* Wireline
+* Rooms
+* Voice
+* Studio
+* Vanta Deck
+* Full Vanta OS
+
+Include:
+
+* Signup totals
+* Signups by app
+* Recent signups
+* Search
+* Filter
+* Status
+* Internal notes
+* Remove with confirmation
+* CSV export
+
+Keep waitlist information private.
+
+Upcoming App Teasers
+
+Add management for teaser content:
+
+* App name
+* Short description
+* Status
+* Planned features
+* Teaser image
+* Early Access enabled or disabled
+* Display order
+* Published or hidden
+
+Shared Admin layout
+
+Create or update one reusable Admin layout with:
+
+* Sidebar or responsive navigation
+* Current section title
+* Search where relevant
+* Mobile navigation
+* Logout
+* Return to Vanta
+* Theme compatibility
+
+Suggested navigation grouping:
+
+CONTENT
+
+* Blog
+* Music
+* Releases
+* Vault
+* Stonerism
+* Developer Logs
+
+ECOSYSTEM
+
+* World Alpha
+* Black Index
+* App Teasers
+* Early Access
+
+COMMUNITY
+
+* Users
+* Profiles
+* Moderation
+
+SYSTEM
+
+* Site Settings
+* Admin Session
+* Logout
+
+The layout should remain usable on desktop and mobile.
+
+Routing
+
+Use consistent protected admin routes, for example:
+
+* /admin
+* /admin/blog
+* /admin/music
+* /admin/releases
+* /admin/vault
+* /admin/world
+* /admin/stonerism
+* /admin/black-index
+* /admin/users
+* /admin/devlogs
+* /admin/waitlists
+* /admin/apps
+* /admin/settings
+
+Reuse existing routes where they already exist rather than creating duplicates.
+
+Every Admin API route and page must use the existing working server-side admin authorization.
+
+Do not rely only on hidden frontend links.
+
+Global Admin session
+
+Verify that the same working Admin session remains active when navigating between:
+
+* Main Vanta website
+* Main Blog
+* Music
+* Vault
+* Releases
+* World
+* Stonerism
+* Black Index
+* Developer Logs
+* Profiles
+* Early Access
+* Admin dashboard
+
+The admin should not need to enter the password again when changing between Vanta apps on the same domain.
+
+Ensure cookies or sessions use the correct root path and are not limited to a single app route.
+
+Admin button
+
+Keep the existing Admin button behaviour.
+
+When visible, it should always open the central Admin dashboard.
+
+Do not add separate Admin buttons for each app.
+
+Preserve existing functionality
+
+Do not:
+
+* Replace the working Admin login
+* Change the existing admin password
+* Introduce a second session system
+* Delete existing content
+* Replace existing databases
+* Break World Alpha
+* Break Vault music or Vanta Radio
+* Break Stonerism
+* Break the main blog
+* Break Releases
+* Break the theme toggle
+
+Verification
+
+Do not mark this complete until the following are tested:
+
+1. Log into Admin once.
+2. Open the main Admin dashboard.
+3. Confirm all supported app sections appear in navigation.
+4. Open Blog management.
+5. Open Vault management.
+6. Open Releases management.
+7. Open World Alpha management.
+8. Open Stonerism management.
+9. Open Black Index settings.
+10. Open Users or Profiles management.
+11. Open Developer Logs.
+12. Open Early Access waitlists.
+13. Open Upcoming App Teasers.
+14. Navigate from Stonerism back to Admin without logging in again.
+15. Navigate from World back to Admin without logging in again.
+16. Refresh several Admin sections and confirm the session persists.
+17. Confirm every Admin route is protected server-side.
+18. Confirm no private records appear publicly.
+
+At completion, report:
+
+* Existing Admin sections found
+* New Admin sections added
+* Admin routes added or reused
+* Database models connected
+* Features not added because no supporting model exists
+* Confirmation that one Admin session works across all Vanta apps
+* Tests completed
+
+Focus only on expanding the existing Admin dashboard across the ecosystem. Do not begin the Vanta OS boot screen, profiles or other unrelated Phase 1 features during this task.

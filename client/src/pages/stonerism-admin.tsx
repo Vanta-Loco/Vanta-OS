@@ -3,10 +3,24 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAdmin } from "@/hooks/use-admin";
 import { Link, useLocation } from "wouter";
-import { Header } from "@/components/header";
+import { AdminLayout, AdminGuard } from "@/components/admin/admin-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { getAdminToken } from "@/lib/queryClient";
+
+// Auth-header helper for bare fetch calls in this file
+function authFetch(url: string, opts: RequestInit = {}): Promise<Response> {
+  const token = getAdminToken();
+  return fetch(url, {
+    ...opts,
+    credentials: "include",
+    headers: {
+      ...(opts.headers || {}),
+      ...(token ? { "X-Admin-Token": token } : {}),
+    },
+  });
+}
 
 type Tab = "content" | "businesses" | "reviews" | "events" | "newsletter";
 
@@ -47,7 +61,7 @@ function ContentTab() {
 
   const { data: content = [] } = useQuery<any[]>({
     queryKey: ["/api/admin/stonerism/content"],
-    queryFn: () => fetch("/api/admin/stonerism/content").then(r => r.json()),
+    queryFn: () => authFetch("/api/admin/stonerism/content").then(r => r.json()),
   });
 
   const filtered = content.filter((c: any) => typeFilter === "all" || c.type === typeFilter);
@@ -56,20 +70,20 @@ function ContentTab() {
     mutationFn: (data: any) => {
       const method = editing?.id ? "PATCH" : "POST";
       const url = editing?.id ? `/api/admin/stonerism/content/${editing.id}` : "/api/admin/stonerism/content";
-      return fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }).then(r => r.json());
+      return authFetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }).then(r => r.json());
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["/api/admin/stonerism/content"] }); setEditing(null); setMsg("Saved."); setTimeout(() => setMsg(""), 2000); },
     onError: () => setMsg("Error saving."),
   });
 
   const del = useMutation({
-    mutationFn: (id: string) => fetch(`/api/admin/stonerism/content/${id}`, { method: "DELETE" }),
+    mutationFn: (id: string) => authFetch(`/api/admin/stonerism/content/${id}`, { method: "DELETE" }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/admin/stonerism/content"] }),
   });
 
   const publish = useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) =>
-      fetch(`/api/admin/stonerism/content/${id}`, {
+      authFetch(`/api/admin/stonerism/content/${id}`, {
         method: "PATCH", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status, publishedAt: status === "published" ? new Date().toISOString() : null }),
       }).then(r => r.json()),
@@ -178,20 +192,20 @@ function BusinessesTab() {
 
   const { data: entities = [] } = useQuery<any[]>({
     queryKey: ["/api/stonerism/businesses"],
-    queryFn: () => fetch("/api/stonerism/businesses").then(r => r.json()),
+    queryFn: () => authFetch("/api/stonerism/businesses").then(r => r.json()),
   });
 
   const save = useMutation({
     mutationFn: (data: any) => {
       const method = editing?.id ? "PATCH" : "POST";
       const url = editing?.id ? `/api/admin/stonerism/businesses/${editing.id}` : "/api/admin/stonerism/businesses";
-      return fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }).then(r => r.json());
+      return authFetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }).then(r => r.json());
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["/api/stonerism/businesses"] }); setEditing(null); },
   });
 
   const del = useMutation({
-    mutationFn: (id: string) => fetch(`/api/admin/stonerism/businesses/${id}`, { method: "DELETE" }),
+    mutationFn: (id: string) => authFetch(`/api/admin/stonerism/businesses/${id}`, { method: "DELETE" }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/stonerism/businesses"] }),
   });
 
@@ -270,20 +284,20 @@ function EventsTab() {
 
   const { data: events = [] } = useQuery<any[]>({
     queryKey: ["/api/stonerism/events"],
-    queryFn: () => fetch("/api/stonerism/events").then(r => r.json()),
+    queryFn: () => authFetch("/api/stonerism/events").then(r => r.json()),
   });
 
   const save = useMutation({
     mutationFn: (data: any) => {
       const method = editing?.id ? "PATCH" : "POST";
       const url = editing?.id ? `/api/admin/stonerism/events/${editing.id}` : "/api/admin/stonerism/events";
-      return fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }).then(r => r.json());
+      return authFetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }).then(r => r.json());
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["/api/stonerism/events"] }); setEditing(null); },
   });
 
   const del = useMutation({
-    mutationFn: (id: string) => fetch(`/api/admin/stonerism/events/${id}`, { method: "DELETE" }),
+    mutationFn: (id: string) => authFetch(`/api/admin/stonerism/events/${id}`, { method: "DELETE" }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/stonerism/events"] }),
   });
 
@@ -351,7 +365,7 @@ function EventsTab() {
 function NewsletterTab() {
   const { data: subs = [] } = useQuery<any[]>({
     queryKey: ["/api/admin/stonerism/newsletter"],
-    queryFn: () => fetch("/api/admin/stonerism/newsletter").then(r => r.json()),
+    queryFn: () => authFetch("/api/admin/stonerism/newsletter").then(r => r.json()),
   });
 
   return (
@@ -376,34 +390,18 @@ function NewsletterTab() {
 
 // ── Main component ─────────────────────────────────────────────────────────
 export default function StonerismAdmin() {
-  const [, navigate] = useLocation();
-  const { isAuthenticated } = useAdmin();
   const [tab, setTab] = useState<Tab>("content");
 
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-muted-foreground mb-4">Admin access required.</p>
-          <Link href="/admin/login"><Button>Sign in</Button></Link>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      <div className="max-w-7xl mx-auto px-6 pt-28 pb-16">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
-          <div>
-            <p className="text-xs font-mono text-muted-foreground uppercase tracking-widest mb-2">Admin / Stonerism</p>
-            <h1 className="text-2xl font-display font-bold">Stonerism CMS</h1>
-          </div>
-          <Link href="/stonerism"><Button variant="outline" size="sm">View Stonerism ↗</Button></Link>
-        </div>
-
+    <AdminGuard>
+      <AdminLayout
+        title="Stonerism"
+        action={
+          <Link href="/stonerism">
+            <Button variant="outline" size="sm" className="text-xs">View Stonerism ↗</Button>
+          </Link>
+        }
+      >
         {/* Tabs */}
         <div className="flex gap-1 border-b border-border mb-8 flex-wrap">
           {TAB_LABELS.map(({ id, label }) => (
@@ -425,7 +423,7 @@ export default function StonerismAdmin() {
         {tab === "reviews"    && <div className="text-sm text-muted-foreground">Review management coming soon. Use the API directly.</div>}
         {tab === "events"     && <EventsTab />}
         {tab === "newsletter" && <NewsletterTab />}
-      </div>
-    </div>
+      </AdminLayout>
+    </AdminGuard>
   );
 }

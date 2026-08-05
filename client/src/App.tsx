@@ -20,6 +20,16 @@ import Worlds from "@/pages/worlds";
 import Enter from "@/pages/enter";
 import AdminLogin from "@/pages/admin-login";
 import AdminDashboard from "@/pages/admin";
+import AdminBlog from "@/pages/admin/blog";
+import AdminReleases from "@/pages/admin/releases";
+import AdminVault from "@/pages/admin/vault";
+import AdminWorld from "@/pages/admin/world";
+import AdminBlackIndex from "@/pages/admin/black-index";
+import AdminUsers from "@/pages/admin/users";
+import AdminDevLogs from "@/pages/admin/devlogs";
+import AdminWaitlists from "@/pages/admin/waitlists";
+import AdminApps from "@/pages/admin/apps";
+import AdminSettings from "@/pages/admin/settings";
 import Vault from "@/pages/vault";
 import World from "@/pages/world";
 import Wireline from "@/pages/wireline";
@@ -56,14 +66,28 @@ function Router() {
       <Route path="/releases/edit/:id" component={ReleasesEdit} />
       <Route path="/worlds" component={Worlds} />
       <Route path="/enter" component={Enter} />
-      <Route path="/admin/login" component={AdminLogin} />
-      <Route path="/admin" component={AdminDashboard} />
       <Route path="/vault" component={Vault} />
       <Route path="/world" component={World} />
       <Route path="/wireline" component={Wireline} />
       <Route path="/fract" component={Fract} />
       <Route path="/himalayas" component={Himalayas} />
       <Route path="/fgh" component={FracturedGodhead} />
+
+      {/* ── Admin ───────────────────────────────────────────────── */}
+      <Route path="/admin/login" component={AdminLogin} />
+      <Route path="/admin" component={AdminDashboard} />
+      <Route path="/admin/blog" component={AdminBlog} />
+      <Route path="/admin/releases" component={AdminReleases} />
+      <Route path="/admin/vault" component={AdminVault} />
+      <Route path="/admin/stonerism" component={StonerismAdmin} />
+      <Route path="/admin/world" component={AdminWorld} />
+      <Route path="/admin/black-index" component={AdminBlackIndex} />
+      <Route path="/admin/users" component={AdminUsers} />
+      <Route path="/admin/devlogs" component={AdminDevLogs} />
+      <Route path="/admin/waitlists" component={AdminWaitlists} />
+      <Route path="/admin/apps" component={AdminApps} />
+      <Route path="/admin/settings" component={AdminSettings} />
+
       {/* ── Stonerism ───────────────────────────────────────────── */}
       <Route path="/stonerism" component={StonerismHome} />
       <Route path="/stonerism/cannabis" component={StonerismCannabis} />
@@ -77,7 +101,7 @@ function Router() {
       <Route path="/stonerism/article/:slug" component={StonerismArticle} />
       <Route path="/stonerism/review/:slug" component={StonerismReview} />
       <Route path="/stonerism/business/:slug" component={StonerismBusiness} />
-      <Route path="/admin/stonerism" component={StonerismAdmin} />
+
       <Route component={NotFound} />
     </Switch>
   );
