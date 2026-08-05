@@ -1,0 +1,205 @@
+STONERISM MOBILE HEADER RESPONSIVE FIX
+
+The Stonerism header navigation does not fit properly on upright mobile screens. Fix the responsive behavior so no links are clipped, wrapped awkwardly, pushed off-screen, or made too small to tap.
+
+IMPORTANT:
+- Preserve the existing desktop design.
+- Do not try to force all Stonerism navigation links into one row on phones.
+- Do not use horizontal page overflow as the main solution.
+- Mobile navigation must work in portrait and landscape orientations.
+- Reuse the existing mobile drawer/sheet components where possible.
+
+==================================================
+1. RESPONSIVE BREAKPOINT BEHAVIOR
+==================================================
+
+Use three navigation states:
+
+A. Desktop / wide tablet
+At sufficiently wide widths, show the full Stonerism header navigation:
+
+Home
+Cannabis
+Places or Discover
+Brands
+Munchies
+Wellness
+Perspectives
+Events
+Journal
+
+B. Portrait mobile and narrow tablet
+Hide the full navigation row completely.
+
+Show only:
+- Stonerism wordmark/logo on the left
+- Optional compact current-page label
+- Hamburger/menu button on the right
+
+C. Landscape phone
+Do not assume landscape automatically has enough room for every link.
+
+If the viewport is still too narrow, keep using the hamburger menu.
+Only show the full navigation when it genuinely fits without wrapping or clipping.
+
+Use width-based responsive breakpoints, not orientation alone.
+
+==================================================
+2. MOBILE STONERISM DRAWER
+==================================================
+
+When the Stonerism menu button is tapped, open a mobile drawer or full-screen sheet containing:
+
+Home
+Cannabis
+Discover or Places
+Brands
+Munchies
+Wellness
+Perspectives
+Events
+Journal
+
+Then include a separated footer action:
+
+Back to Vanta
+
+Each navigation item must:
+- Be a proper link
+- Use a comfortable touch target
+- Close the drawer after selection
+- Clearly show the active page
+- Work without hover
+- Be keyboard accessible
+
+==================================================
+3. CURRENT PAGE LABEL
+==================================================
+
+On mobile, show a compact label beneath or beside the Stonerism wordmark indicating the current section.
+
+Examples:
+
+STONERISM
+Wellness
+
+STONERISM
+Munchies
+
+STONERISM
+Perspectives
+
+Keep this compact so the header does not become too tall.
+
+==================================================
+4. PREVENT HEADER OVERFLOW
+==================================================
+
+Ensure:
+- No navigation links extend beyond the viewport.
+- No horizontal scrollbar is created by the header.
+- The wordmark can shrink appropriately without becoming unreadable.
+- Icons do not overlap text.
+- The menu button always remains visible.
+- Header padding reduces slightly on screens below 390px.
+- Text does not wrap into multiple broken lines inside the header.
+
+Add:
+- min-width: 0 where needed
+- overflow handling for flex children
+- proper flex-shrink values
+- text truncation only for the current-page label if absolutely necessary
+
+==================================================
+5. OPTIONAL TABLET TREATMENT
+==================================================
+
+For medium widths where all navigation links almost fit but not comfortably:
+
+Use either:
+- The mobile drawer layout, or
+- A compact “More” menu for the least important links
+
+Prefer the full mobile drawer until there is enough width for all links to fit comfortably.
+
+Do not make the font extremely small just to preserve the desktop row.
+
+==================================================
+6. STICKY HEADER BEHAVIOR
+==================================================
+
+Keep the Stonerism header sticky if it already is.
+
+Verify:
+- It stays above page content.
+- The drawer appears above the sticky header.
+- Opening the drawer locks background scrolling.
+- Closing restores scrolling.
+- The header does not cover the top of page content.
+- Anchor links and routed pages account for the header height.
+
+==================================================
+7. TEST VIEWPORTS
+==================================================
+
+Test the Stonerism header and drawer at:
+
+Portrait:
+320 x 568
+360 x 800
+375 x 812
+390 x 844
+393 x 852
+430 x 932
+
+Landscape:
+568 x 320
+667 x 375
+740 x 360
+812 x 375
+844 x 390
+932 x 430
+
+Tablet:
+768 x 1024
+820 x 1180
+1024 x 768
+
+At every size verify:
+- No clipped links
+- No horizontal overflow
+- Menu button visible
+- Every Stonerism section reachable
+- Active section visible
+- Drawer opens and closes properly
+- Content is not hidden beneath the header
+
+==================================================
+8. DO NOT DUPLICATE NAVIGATION LOGIC
+==================================================
+
+Create one shared Stonerism navigation configuration array containing:
+
+label
+route
+icon optional
+description optional
+
+Use the same data for:
+- Desktop navigation
+- Mobile drawer
+- Active-page detection
+
+Do not maintain separate hard-coded route lists that can fall out of sync.
+
+==================================================
+9. FINAL CHECK
+==================================================
+
+After the fix:
+- Run TypeScript checks
+- Run the production build
+- Fix all errors
+- Confirm desktop navigation remains unchanged
+- Confirm portrait and landscape mobile navigation both work
+- Report the exact files changed
