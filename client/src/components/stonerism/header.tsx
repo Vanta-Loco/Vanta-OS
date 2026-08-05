@@ -2,9 +2,10 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Link, useLocation } from "wouter";
 import {
-  Menu, X, ArrowLeft,
+  Menu, X, ArrowLeft, LayoutDashboard,
   Home, Leaf, MapPin, Tag, UtensilsCrossed, Heart, Brain, Calendar, BookOpen,
 } from "lucide-react";
+import { useAdmin } from "@/hooks/use-admin";
 
 // ── Single source of truth for all nav ──────────────────────────────────────
 const NAV = [
@@ -43,6 +44,7 @@ export function StonerismHeader() {
   const [open, setOpen] = useState(false);
   const backdropRef     = useRef<HTMLDivElement>(null);
   const activeLabel     = useActiveLabel(location);
+  const { isAuthenticated: isAdmin } = useAdmin();
 
   // ── Close on route change ──────────────────────────────────────────────────
   useEffect(() => { setOpen(false); }, [location]);
@@ -170,6 +172,23 @@ export function StonerismHeader() {
                 flexShrink: 0,
               }}
             >
+              {/* Admin dashboard button — desktop only, admins only */}
+              {isAdmin && (
+                <Link href="/admin" className="hidden lg:block">
+                  <span
+                    title="Admin Dashboard"
+                    style={{
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      width: 34, height: 34, borderRadius: 4, cursor: "pointer",
+                      color: "var(--stn-lime)",
+                      border: "1px solid rgba(167,199,118,0.35)",
+                    }}
+                  >
+                    <LayoutDashboard size={15} />
+                  </span>
+                </Link>
+              )}
+
               {/* Back to Vanta — desktop only */}
               <Link href="/">
                 <span
@@ -313,6 +332,26 @@ export function StonerismHeader() {
             );
           })}
         </div>
+
+        {/* Admin dashboard link — mobile, admins only */}
+        {isAdmin && (
+          <div style={{ padding: "8px 0", borderTop: "1px solid rgba(117,139,89,0.15)", flexShrink: 0 }}>
+            <Link href="/admin" onClick={close}>
+              <span
+                style={{
+                  display: "flex", alignItems: "center", gap: 14,
+                  padding: "0 20px", minHeight: 52, cursor: "pointer",
+                  color: "var(--stn-lime)",
+                }}
+              >
+                <LayoutDashboard size={18} style={{ flexShrink: 0 }} />
+                <span style={{ fontSize: 15, fontWeight: 600, letterSpacing: "0.04em" }}>
+                  Admin Dashboard
+                </span>
+              </span>
+            </Link>
+          </div>
+        )}
 
         {/* Back to Vanta footer */}
         <div

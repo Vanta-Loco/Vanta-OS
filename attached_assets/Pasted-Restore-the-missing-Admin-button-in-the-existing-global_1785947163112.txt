@@ -1,0 +1,36 @@
+Restore the missing Admin button in the existing global header/navigation.
+
+The Admin button previously appeared in the top-right corner beside the Vault button and the dark/light mode toggle. Do not redesign or rebuild the header, and do not change the current position or behaviour of the Vault button or theme toggle.
+
+Requirements:
+
+* Restore the Admin button beside the existing Vault button and dark/light mode toggle.
+* Use the same styling, size, spacing and visual language as the other header controls.
+* The button must link to the existing admin page/dashboard.
+* Preserve the existing admin login and authentication system.
+* Show the Admin button only to an authenticated administrator.
+* Keep admin routes protected on the backend; do not rely only on hiding the frontend button.
+* Make the shared header and Admin button available across the whole Vanta website, including:
+    * Main blog
+    * Music and releases
+    * Vault
+    * World and web game pages
+    * Stonerism
+    * Black Index
+    * Future profile, developer-log and early-access pages
+* The Admin button should open the same central admin system, with access to management sections for the main website and Stonerism where those tools already exist.
+* Do not create a second Stonerism admin system.
+* Do not add a new theme toggle or Vault button because those already exist.
+* Do not remove or overwrite any existing routes, content, database records or functionality.
+* Check why the Admin button stopped rendering and repair the original condition, import, layout or authentication issue rather than layering a duplicate button over the header.
+* Verify the controls fit correctly on desktop and mobile. On smaller screens, the Admin button may appear inside the existing navigation drawer if necessary, but it must remain accessible to admins.
+
+Before finishing, verify:
+
+1. The Vault button remains unchanged.
+2. The dark/light mode toggle remains unchanged.
+3. The Admin button is visible beside them for admins.
+4. The Admin button is hidden for ordinary users and guests.
+5. Clicking it opens the existing admin dashboard.
+6. The Admin button is accessible while viewing Stonerism and the other Vanta apps.
+7. Existing admin authentication and permissions still work.
