@@ -1,0 +1,141 @@
+MOBILE NAVIGATION FIX
+
+The desktop navigation works, but the mobile version is difficult to use because the main pages and Vanta OS apps are not accessible.
+
+Please fix the mobile navigation across the entire Vanta Cold application.
+
+Requirements:
+
+1. Add a proper mobile menu button
+- Use a hamburger menu icon in the top-right of the main header.
+- Keep the Vanta Cold logo/wordmark visible on the left.
+- The menu button must be easy to tap.
+- It should work on all mobile screen sizes.
+
+2. Create a mobile navigation drawer
+When the hamburger button is tapped, open a full-height side drawer or full-screen mobile menu.
+
+Include all main website routes:
+
+Home
+Releases
+Worlds
+About
+
+Also include a clearly labeled section:
+
+VANTA OS
+
+Inside the VANTA OS section include:
+
+District
+Black Index
+Wireline
+Stonerism
+FRACT
+Hidden Himalayas
+Fractured Godhead
+
+Each item must show:
+- App name
+- Existing subtitle where available
+- Existing or matching Lucide icon
+- Correct route
+
+Stonerism should navigate to:
+/stonerism
+
+3. Do not rely on hover for mobile
+The current OS dropdown uses hover on desktop.
+
+On mobile:
+- Do not use hover.
+- The VANTA OS section should expand/collapse on tap or appear fully listed inside the drawer.
+- Users must be able to reach every OS app with one or two taps.
+
+4. Preserve desktop navigation
+Do not remove or redesign the desktop navigation.
+
+Desktop should continue showing:
+Home
+Releases
+Worlds
+About
+OS dropdown
+
+Only add a dedicated mobile navigation experience.
+
+5. Mobile drawer behavior
+- Close when a navigation item is selected.
+- Close when the user taps outside the drawer.
+- Close when Escape is pressed where supported.
+- Prevent the page behind it from scrolling while open.
+- Restore page scrolling when closed.
+- Include an obvious close button.
+- Keep the menu above all page content using the correct z-index.
+
+6. Accessibility
+- Add aria-labels to the menu and close buttons.
+- Use aria-expanded and aria-controls.
+- Make every link keyboard accessible.
+- Include visible focus states.
+- Ensure good contrast.
+- Use minimum comfortable touch target sizes.
+
+7. Responsive header
+Make sure the mobile header:
+- Does not overflow.
+- Does not cover page content.
+- Stays readable on narrow screens.
+- Works on Stonerism pages as well as the main Vanta pages.
+- Does not show clipped desktop menu items on mobile.
+
+8. Stonerism internal mobile navigation
+The Stonerism app also needs a mobile menu.
+
+Include:
+
+Home
+Cannabis
+Places or Discover
+Brands
+Munchies
+Wellness
+Perspectives
+Events
+Journal
+
+Also include:
+Back to Vanta
+
+Do not rely on the desktop Stonerism navigation appearing at the top on mobile.
+
+9. Test routes
+Verify these all work from mobile navigation:
+
+/
+/releases
+/worlds
+/about
+/stonerism
+/stonerism/cannabis
+/stonerism/places
+/stonerism/brands
+/stonerism/munchies
+/stonerism/wellness
+/stonerism/mind-spirit
+/stonerism/events
+/stonerism/journal
+
+Use the project’s actual existing route names if any differ.
+
+10. Final checks
+After implementing:
+- Test at 320px, 375px, 390px and 430px widths.
+- Confirm every main route is reachable.
+- Confirm every Vanta OS app is reachable.
+- Confirm the Stonerism section is reachable.
+- Confirm no content is hidden behind the header.
+- Run TypeScript and build checks.
+- Fix all errors before completion.
+- Report the exact files modified.
