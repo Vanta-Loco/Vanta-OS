@@ -1,0 +1,154 @@
+Fix the existing Admin login loop.
+
+Current behaviour:
+
+* I open /admin.
+* I enter the existing admin password.
+* The page loads briefly.
+* It returns to the same admin password-entry screen.
+* No clear “incorrect password” error appears.
+
+Do not create a new admin system or replace the existing password. Debug and repair the current admin authentication flow.
+
+Investigate the complete login flow
+
+Trace:
+
+1. The admin login form submission.
+2. The frontend request sent by the form.
+3. The admin login API endpoint.
+4. Password comparison.
+5. Session or authentication token creation.
+6. Cookie/session storage.
+7. The request used to verify admin access.
+8. The redirect to the admin dashboard.
+9. The middleware protecting /admin.
+
+Determine whether the failure is caused by:
+
+* The login form posting to the wrong endpoint.
+* The API returning success but the frontend not handling it.
+* The password environment variable being missing or renamed.
+* Leading/trailing whitespace in the configured password.
+* A session not being saved before redirecting.
+* The session cookie not being sent.
+* Incorrect cookie secure, sameSite, domain or path settings.
+* credentials: "include" missing from frontend requests.
+* CORS not allowing credentials.
+* Session middleware loading after the admin routes.
+* The admin verification endpoint checking a different session field than the login endpoint sets.
+* The page redirecting before the login request finishes.
+* The admin state being lost during navigation.
+* The frontend querying admin status before the cookie is available.
+* Development and deployed environments using different secrets.
+* A stale cached login state.
+
+Required behaviour
+
+After entering the correct admin password:
+
+* The server verifies the password.
+* The server creates and saves the admin session.
+* The browser receives the authentication cookie.
+* The frontend waits for the login response to complete.
+* The user is redirected to the existing admin dashboard.
+* Refreshing /admin keeps the admin logged in.
+* Navigating between the main Vanta site and Stonerism keeps the same admin session.
+* The session should only end after logout or expiry.
+
+After entering an incorrect password:
+
+* Stay on the login screen.
+* Show a visible “Incorrect admin password” message.
+* Do not refresh silently or enter a redirect loop.
+
+Session requirements
+
+Use the project’s existing authentication method.
+
+If it uses Express sessions:
+
+* Confirm session middleware is registered before admin routes.
+* Store a consistent field such as req.session.isAdmin = true.
+* Confirm the protection middleware checks that exact same field.
+* Explicitly save the session before redirecting or returning success where necessary.
+* Ensure the cookie path is /.
+* In local Replit development, do not require HTTPS-only cookies if that prevents the cookie from being stored.
+* In production, use secure cookies over HTTPS.
+* Keep httpOnly enabled.
+* Use an appropriate sameSite value.
+* Ensure the session secret exists.
+
+If frontend and backend use different origins:
+
+* Enable credentialed CORS for the actual frontend origin.
+* Send frontend authentication requests with credentials: "include".
+* Do not use wildcard * origin together with credentials.
+
+If it uses token authentication:
+
+* Confirm the token is stored safely.
+* Confirm subsequent admin requests send it.
+* Confirm route protection reads the same token.
+* Do not expose the admin password or secret to frontend code.
+
+Environment variables
+
+Check the exact environment variable currently used for the admin password and session secret.
+
+Do not print the actual password or secret in logs or the implementation report.
+
+If the password variable is missing, tell me the exact variable name that must be added to Replit Secrets, but do not invent or expose a password.
+
+Trim accidental whitespace before comparing the submitted password, while preserving case sensitivity.
+
+Debug logging
+
+Temporarily add safe server logs for:
+
+* Login request received
+* Password accepted or rejected
+* Session created
+* Session saved
+* Admin verification succeeded or failed
+
+Never log:
+
+* The submitted password
+* The configured password
+* Session secrets
+* Authentication tokens
+
+Remove unnecessary temporary logs after confirming the fix.
+
+Do not weaken security
+
+* Do not hard-code the admin password in frontend or backend source files.
+* Do not bypass the password check.
+* Do not make /admin publicly accessible.
+* Do not remove server-side admin protection.
+* Do not solve the loop by automatically marking every visitor as admin.
+
+Verification
+
+Do not mark this complete until you test the full flow in the live preview:
+
+1. Open /admin in a logged-out/private browser state.
+2. Enter an incorrect password and confirm a visible error appears.
+3. Enter the correct password.
+4. Confirm the admin dashboard opens.
+5. Refresh the page.
+6. Confirm it remains on the admin dashboard.
+7. Navigate to Stonerism and back to /admin.
+8. Confirm the admin session remains active.
+9. Log out.
+10. Confirm /admin requires the password again.
+
+At the end, report:
+
+* The exact cause of the login loop.
+* The files changed.
+* Whether the project uses sessions or tokens.
+* The session field or authentication state used.
+* The environment-variable names required, without revealing their values.
+* Confirmation that refresh and cross-app navigation were tested.

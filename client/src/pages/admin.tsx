@@ -431,13 +431,16 @@ function AboutEditor() {
 export default function Admin() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
-  const { isAuthenticated, isLoading: authLoading, logout } = useAdmin();
+  const { isAuthenticated, isLoading: authLoading, isFetching: authFetching, logout } = useAdmin();
 
   useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
+    // Guard: don't redirect while the auth query is still loading or fetching —
+    // this prevents the stale-cache redirect loop where the dashboard sees the
+    // previous {authenticated:false} before the background refetch completes.
+    if (!authLoading && !authFetching && !isAuthenticated) {
       navigate("/admin/login");
     }
-  }, [isAuthenticated, authLoading, navigate]);
+  }, [isAuthenticated, authLoading, authFetching, navigate]);
 
   const { data: posts, isLoading: postsLoading } = useQuery<Post[]>({
     queryKey: ["/api/admin/posts"],

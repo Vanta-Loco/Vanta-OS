@@ -58,7 +58,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!adminPassword) {
       return res.status(500).json({ error: "ADMIN_PASSWORD not configured." });
     }
-    if (password === adminPassword) {
+    // Trim whitespace from both sides before comparing to avoid copy-paste
+    // whitespace causing silent failures.
+    const submitted = typeof password === "string" ? password.trim() : "";
+    if (submitted === adminPassword.trim()) {
       req.session.isAdmin = true;
       req.session.save((err) => {
         if (err) return res.status(500).json({ error: "Session error" });
