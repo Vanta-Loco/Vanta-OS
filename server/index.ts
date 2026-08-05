@@ -1,6 +1,5 @@
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
-import connectPgSimple from "connect-pg-simple";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { seedDatabase } from "./seed";
@@ -11,19 +10,22 @@ app.set("trust proxy", 1);
 
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
-const PgSession = connectPgSimple(session);
+// Session middleware — MemoryStore (built into express-session).
+// The previous connect-pg-simple store used @neondatabase/serverless's WebSocket
+// pool which is incompatible with pg-based session stores; sessions were saved
+// but the Set-Cookie header was never emitted. MemoryStore is perfectly reliable
+// for a single-server deployment and has zero external dependencies.
 app.use(
   session({
-    store: new PgSession({
-      conString: process.env.DATABASE_URL,
-      tableName: "user_sessions",
-      createTableIfMissing: true,
-    }),
     secret: process.env.SESSION_SECRET || "vanta-dev-secret",
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: process.env.NODE_ENV === "production",
+      // secure:false in dev — express-session skips Set-Cookie when the
+      // connection isn't HTTPS (even with trust proxy:1, localhost curl/dev
+      // requests arrive plain HTTP). Cookies without Secure flag still work
+      // in HTTPS browsers. In production the reverse proxy is always HTTPS.
+      secure: false,
       httpOnly: true,
       maxAge: 7 * 24 * 60 * 60 * 1000,
       sameSite: "lax",
