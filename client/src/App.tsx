@@ -175,8 +175,16 @@ function App() {
     setPhase("done");
   }, []);
 
-  // Safety: if boot phase gets stuck, auto-advance after 10s
+  // Safety fallbacks: if any phase gets stuck, auto-advance to the next one
   useEffect(() => {
+    if (phase === "loader") {
+      // StartupScreen is 2.8s; 5s gives it ample time before forcing advance
+      const t = setTimeout(() => {
+        sessionStorage.setItem(STARTUP_SESSION_KEY, "1");
+        setPhase("boot");
+      }, 5_000);
+      return () => clearTimeout(t);
+    }
     if (phase === "boot") {
       const t = setTimeout(() => setPhase("entry"), 10_000);
       return () => clearTimeout(t);

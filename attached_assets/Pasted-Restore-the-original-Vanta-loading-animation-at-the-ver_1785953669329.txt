@@ -1,0 +1,51 @@
+Restore the original Vanta loading animation at the very beginning of the current startup flow.
+
+The project currently starts with the new Vanta OS / PS2-style boot screen and Enter Vanta screen, but the original Vanta loader was removed.
+
+Do not rebuild the startup system.
+
+Do not add profiles, dashboards, waitlists, Developer Logs, authentication changes or any other Phase 1 features during this task.
+
+Only restore the original loader and place it before the new startup sequence.
+
+The correct startup order must be:
+
+1. Original Vanta loading animation
+2. New Vanta OS / PS2-style boot screen
+3. Enter Vanta screen
+4. Existing destination or login flow
+
+Requirements:
+
+* Find the original loader component, animation, assets and styling already present in the project history or current codebase.
+* Reuse the original implementation rather than recreating it from memory.
+* Do not replace or redesign the original loader.
+* Preserve its original logo, animation, timing, sound and visual effects where those assets still exist.
+* Mount the original loader as the first application state.
+* When the original loader finishes, transition cleanly into the existing PS2-style Vanta OS boot screen.
+* Do not route directly to Enter Vanta after the original loader.
+* Do not remove or change the new boot screen.
+* Do not remove or change the Enter Vanta screen.
+* Avoid both loaders running at the same time.
+* Avoid flashing the homepage between startup stages.
+* Prevent internal route navigation from replaying the full startup flow.
+* The full startup should run only when first entering or refreshing the application, according to the current startup-preference behaviour.
+* Respect reduced-motion settings.
+* Add a fallback so the app continues to the Vanta OS boot screen if the original loader animation fails.
+* Keep mobile and desktop behaviour intact.
+* Do not modify World Alpha, Vault, Stonerism, the blog, Releases, Admin, the database or authentication.
+
+Before marking the task complete, test this exact sequence in the live preview:
+
+Original Vanta Loader → Vanta OS Boot → Enter Vanta
+
+Confirm there is no blank screen, homepage flash, duplicated loader or broken transition.
+
+At completion, report only:
+
+1. The original loader component restored
+2. The file where the startup sequence is controlled
+3. The startup-state order
+4. Confirmation that the three-stage sequence was visually tested
+
+Focus only on restoring the original loader before the existing startup sequence.
