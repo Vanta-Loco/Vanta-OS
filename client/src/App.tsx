@@ -87,8 +87,11 @@ function App() {
   const [showStartup, setShowStartup] = useState(
     () =>
       !sessionStorage.getItem(STARTUP_SESSION_KEY) &&
+      !new URLSearchParams(window.location.search).has("nosplash") &&
       window.location.pathname !== "/world" &&
-      !window.location.pathname.startsWith("/stonerism")
+      !window.location.pathname.startsWith("/stonerism") &&
+      !window.location.pathname.startsWith("/admin") &&
+      !window.location.pathname.startsWith("/vault")
   );
 
   return (

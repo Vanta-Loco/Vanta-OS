@@ -1,0 +1,58 @@
+The Admin button is still not visible in the actual top-right header beside the existing Vault button and dark/light mode toggle.
+
+Do not report this task as complete until the button is visibly rendered in that exact location in the browser.
+
+Please inspect the currently rendered header component using the page structure and trace which component is actually displaying:
+
+* Vault
+* Dark/light mode toggle
+
+Then add the Admin button directly inside that same right-side controls container.
+
+The intended visible order is:
+
+Vault | Admin | Dark/Light Mode
+
+or:
+
+Admin | Vault | Dark/Light Mode
+
+Keep the spacing and styling consistent with the existing controls.
+
+Important debugging requirements:
+
+1. Find the exact shared header component currently rendering the Vault button and theme toggle.
+2. Do not add the Admin button to an unused header, old layout, hidden component, mobile-only component or separate dashboard component.
+3. Confirm the button is not being hidden by:
+    * display: none
+    * responsive classes such as hidden, md:hidden or lg:flex
+    * overflow clipping
+    * insufficient header width
+    * a low z-index
+    * text colour matching the background
+    * an incorrect authentication condition
+    * an undefined user role
+4. Temporarily render the button without the admin condition to confirm its physical placement.
+5. Once placement is confirmed, reconnect it to the existing admin authentication condition.
+6. If the current account does not contain a recognised admin role, repair the role check using the same admin/session logic already used by the existing admin page.
+7. Do not create a new admin page. Link the button to the existing admin route.
+8. Make sure it appears on the main Vanta page and on Stonerism because both should use the same shared header.
+9. Keep the Vault button and theme toggle exactly as they currently are.
+10. Check the live preview after the change, not only the source code.
+
+For debugging, add a temporary visible label:
+
+ADMIN TEST
+
+directly beside Vault and the theme toggle.
+
+After confirming that ADMIN TEST appears in the live preview, replace it with the final Admin button and restore the correct admin-only visibility rule.
+
+Before finishing, provide:
+
+* The exact header component file changed
+* The exact admin visibility condition being used
+* The existing route the Admin button links to
+* Confirmation that the button was visually checked in the live preview beside Vault and the theme toggle
+
+Do not mark this complete based only on successful compilation. It must be visibly present in the rendered interface.
