@@ -1,0 +1,971 @@
+Build STONERISM PHASE 1 inside my existing Vanta Cold application.
+
+IMPORTANT:
+- Do not rebuild or replace the existing Vanta Cold website.
+- Preserve all current routes, pages, database content, music, releases, worlds, OS applications, styling and navigation.
+- Inspect the existing project structure first and reuse its current routing, components, database conventions and design system.
+- The project uses React, TypeScript, Vite, Express, PostgreSQL/Drizzle, Tailwind and Shadcn.
+- Make all changes responsive for desktop, tablet and mobile.
+- Do not use placeholder external image URLs that may break.
+- Use styled gradient/image-placeholder blocks where media has not yet been uploaded.
+- Stonerism must feel like part of Vanta, but have its own visual identity.
+
+==================================================
+1. ADD STONERISM TO THE VANTA OS DROPDOWN
+==================================================
+
+Add a new item to the existing OS hover dropdown shown in the website navigation.
+
+Place it beneath Wireline or near the other major applications.
+
+OS dropdown item:
+
+Name: Stonerism
+Subtitle: Cannabis culture
+Icon: use a Leaf, Sprout or Flower2 icon from lucide-react
+
+When clicked, navigate to:
+
+/stonerism
+
+Do not remove or reorder the existing OS applications unless necessary for responsive spacing.
+
+The menu item should visually match the current entries such as:
+
+District
+Black Index
+Wireline
+FRACT
+Hidden Himalayas
+Fractured Godhead
+
+==================================================
+2. CREATE STONERISM ROUTES
+==================================================
+
+Create these Phase 1 routes:
+
+/stonerism
+/stonerism/cannabis
+/stonerism/places
+/stonerism/brands
+/stonerism/munchies
+/stonerism/wellness
+/stonerism/mind-spirit
+/stonerism/events
+/stonerism/journal
+/stonerism/article/:slug
+/stonerism/review/:slug
+/stonerism/business/:slug
+
+Also add a temporary protected or admin-only publishing route if an existing admin system is already present:
+
+/admin/stonerism
+
+Do not create a second authentication system. Reuse the existing admin authentication and authorization.
+
+==================================================
+3. STONERISM DESIGN SYSTEM
+==================================================
+
+Stonerism should look like a dark South African cannabis, culture and wellness magazine operating inside Vanta OS.
+
+Use:
+
+Background:
+- Near black: #090b08
+- Deep forest: #101710
+- Panel green: #172018
+- Cream text: #ece8dc
+- Muted text: #aaa99f
+- Moss accent: #758b59
+- Lime accent used sparingly: #a7c776
+- Earth brown: #715640
+- Burnt orange accent: #b36a3c
+
+Visual atmosphere:
+- Vintage botanical magazine
+- 1990s alternative culture publication
+- Film grain
+- Scanned paper textures
+- Old cannabis catalogues
+- Natural wellness
+- Premium but underground
+- Do not make it bright, cartoonish or generic Rastafarian
+- Do not cover the interface in cannabis leaf icons
+- Use subtle borders and editorial typography
+- Maintain Vanta’s dark, cinematic identity
+
+Typography:
+- Use the application’s existing fonts where possible
+- Large bold sans-serif headlines
+- Small uppercase monospaced labels
+- Editorial article body text
+- Wide letter spacing for category labels
+
+Add a very subtle fixed grain/noise overlay using CSS only.
+Ensure the overlay never blocks clicks.
+
+==================================================
+4. CREATE STONERISM APP SHELL
+==================================================
+
+Create reusable components inside the project’s existing component structure:
+
+StonerismLayout
+StonerismHeader
+StonerismMobileNav
+StonerismFooter
+StonerismHero
+StonerismSectionHeader
+ArticleCard
+ReviewCard
+BusinessCard
+EventCard
+CategoryChip
+RatingBadge
+EditorialNotice
+MediaPlaceholder
+
+The Stonerism header should contain:
+
+STONERISM wordmark
+Home
+Cannabis
+Places
+Brands
+Munchies
+Wellness
+Mind + Spirit
+Events
+Journal
+
+On mobile, use a menu drawer.
+
+Also include:
+
+“Part of Vanta OS”
+
+and a compact button that returns users to the main Vanta website.
+
+==================================================
+5. BUILD THE STONERISM HOMEPAGE
+==================================================
+
+Create a polished homepage at /stonerism.
+
+The page should include:
+
+A. Hero section
+
+Small label:
+VANTA OS / STONERISM
+
+Large headline:
+South African cannabis culture, wellness and community.
+
+Supporting text:
+Discover growers, brands, places, food, ideas and experiences shaping a more conscious culture.
+
+Primary button:
+Explore Stonerism
+
+Secondary button:
+Latest Stories
+
+Add an editorial media panel beside or behind the text with a botanical, magazine-cover style placeholder.
+
+B. Featured story section
+
+Feature a large editorial card:
+
+Category:
+Behind the Brand
+
+Title:
+Inside the Vault: The Craft Behind South African Premium Pre-Rolls
+
+Description:
+A look at the people, process, packaging and culture behind an independent premium pre-roll brand.
+
+Label:
+Coming soon — Stank Bank
+
+Do not imply Stank Bank is a dispensary.
+Present it as a premium pre-roll brand with a rolling and packaging vault in the East Rand.
+
+C. Featured grower and places section
+
+Add a second feature:
+
+Category:
+Grower + Dispensary
+
+Title:
+From Grow to Store
+
+Description:
+Exploring cultivation, genetics, store design and the customer experience behind South African cannabis businesses.
+
+Label:
+Coming soon — Culture
+
+Present Culture as a grower and dispensary chain.
+
+D. Explore Stonerism category grid
+
+Create six large category cards:
+
+Cannabis
+Strains, education, growers and responsible use.
+
+Places
+Dispensaries, clubs, smoke shops and cannabis-friendly spaces.
+
+Munchies
+Restaurants, cafés, desserts, late-night food and recipes.
+
+Wellness
+Mind, body, movement, recovery and general health.
+
+Mind + Spirit
+Philosophy, astrology, meditation and spiritual exploration.
+
+Events
+Yoga mornings, hikes, markets, cleanups, live music and exhibitions.
+
+E. Original series section
+
+Add cards for:
+
+Behind the Brand
+Founder stories and production access.
+
+Stoner Girls Review
+Personality-led product, place and food reviews.
+
+From Grow to Store
+Cultivation and retail documentaries.
+
+Munchie Run
+Food discoveries after a cannabis feature.
+
+The Green Guide
+Evidence-aware wellness products and health equipment.
+
+F. Community action section
+
+Heading:
+Culture should leave something behind.
+
+Show planned community experiences:
+
+Yoga mornings
+Hiking meetups
+Beach cleanups
+Community markets
+Live music sessions
+Food festivals
+Grow workshops
+Art exhibitions
+Wellness retreats
+
+Add a button:
+View Upcoming Events
+
+G. Latest journal section
+
+Display a grid of seeded Phase 1 article cards.
+
+H. Newsletter section
+
+Heading:
+Join the circle.
+
+Text:
+New stories, reviews, gatherings and guides from Stonerism.
+
+For Phase 1, the form can save an email to the database if the project already supports forms and database writes.
+If not, create the backend endpoint and table safely.
+
+Fields:
+Email address
+City optional
+Consent checkbox
+
+Do not silently subscribe users without consent.
+
+==================================================
+6. CANNABIS PAGE
+==================================================
+
+At /stonerism/cannabis create an editorial discovery page.
+
+Include sections:
+
+Cannabis education
+Strain features
+Responsible use
+Grower stories
+Cannabis law and policy
+Product knowledge
+Cannabinoids and terpenes
+
+Add a visible editorial notice:
+
+“Stonerism provides cultural and educational content. It does not provide medical advice or facilitate unlawful cannabis sales.”
+
+Create sample cards:
+
+Understanding Terpenes
+Flower, Pre-Rolls and Extracts
+Responsible Consumption
+South African Landrace Genetics
+How to Read a Product Label
+Combustion vs Dry-Herb Vaporisation
+
+Do not make unsupported medical claims.
+
+==================================================
+7. PLACES PAGE
+==================================================
+
+At /stonerism/places create a directory-style Phase 1 page.
+
+For now, use editorial business cards controlled by the admin.
+
+Business categories:
+
+Grower
+Dispensary
+Cannabis club
+Smoke shop
+Grow shop
+Cannabis-friendly venue
+Wellness space
+Munchie spot
+
+Add filters:
+
+All
+Johannesburg
+Pretoria
+Cape Town
+Durban
+Other
+
+Add category filters.
+
+Do not include direct cannabis purchasing, checkout, delivery or order buttons.
+
+Allowed actions:
+
+View profile
+Read review
+Visit official website
+View social profile
+Get directions, only when an address is publicly provided
+
+Business profiles must support a legal/status disclaimer field rather than claiming every listed company is legally authorised.
+
+==================================================
+8. BRANDS PAGE
+==================================================
+
+At /stonerism/brands create brand discovery.
+
+Categories:
+
+Pre-rolls
+Flower
+Edibles
+Accessories
+Rolling papers
+Glass
+Grow equipment
+Wellness
+Food and beverage
+
+Seed a draft profile for:
+
+Stank Bank
+Type: Premium pre-roll brand
+Region: Gauteng
+Feature status: Coming soon
+Description: Premium South African pre-roll brand with a dedicated rolling and packaging vault in the East Rand.
+
+Do not invent pricing, strain names, THC percentages or product claims.
+
+==================================================
+9. MUNCHIES PAGE
+==================================================
+
+At /stonerism/munchies create a food editorial page.
+
+Hero headline:
+Food worth leaving the couch for.
+
+Categories:
+
+Burgers
+Pizza
+Chicken
+Kota
+Braai
+Desserts
+Coffee
+Breakfast
+Healthy eats
+Late-night
+Recipes
+
+Add a Phase 1 scorecard display component with:
+
+Taste
+Portion
+Value
+Atmosphere
+Late-night factor
+Munchie satisfaction
+
+Create sample article cards:
+
+Best Late-Night Food in Jozi
+The Search for the Perfect Smash Burger
+Desserts Worth Crossing Town For
+Healthy Munchies That Still Hit
+Coffee Shops Made for Slow Mornings
+
+==================================================
+10. WELLNESS PAGE
+==================================================
+
+At /stonerism/wellness create a serious health and lifestyle section.
+
+Hero:
+Take care of the body carrying you.
+
+Sections:
+
+Movement
+Sleep
+Nutrition
+Recovery
+Breathwork
+General health
+Harm reduction
+Doctor-supported wellness
+Equipment and product guides
+
+Create an expert-review label system:
+
+Editorial
+Expert reviewed
+Doctor reviewed
+Sponsored
+Product supplied
+Affiliate disclosure
+
+Do not automatically label content doctor reviewed unless an actual reviewer has been assigned in the database.
+
+Create sample topics:
+
+Beginner Yoga for Stiff Bodies
+Walking as a Daily Reset
+Building a Better Sleep Routine
+Hydration and Recovery
+Understanding Supplement Labels
+When to Speak to a Healthcare Professional
+Smoking, Lungs and Harm Reduction
+
+For supplements and wellness brands:
+- Never claim they prevent damage from smoking or drinking.
+- Never imply liver or lung support products make harmful consumption safe.
+- Include an evidence level field.
+- Include ingredient transparency.
+- Include third-party testing status.
+- Include medical disclaimer text.
+
+==================================================
+11. MIND + SPIRIT PAGE
+==================================================
+
+At /stonerism/mind-spirit build an exploratory editorial section.
+
+Sections:
+
+Philosophy
+Meditation
+Journaling
+Psychology
+Astrology
+Zodiac
+Dreams
+African thought
+Buddhism
+Taoism
+Stoicism
+Existentialism
+Spiritual traditions
+Creativity
+
+Use respectful language.
+
+Clearly distinguish:
+
+Evidence-based mental health content
+Philosophical interpretation
+Spiritual belief
+Astrological entertainment or reflection
+
+Add sample cards:
+
+A Beginner’s Guide to Stoicism
+What Taoism Says About Forcing Life
+Journaling Through Change
+The Zodiac as a Tool for Reflection
+Dream Journals and Personal Symbolism
+Rest as Resistance
+African Philosophies of Community
+
+Do not present astrology or spiritual claims as scientific fact.
+
+==================================================
+12. EVENTS PAGE
+==================================================
+
+At /stonerism/events create an event discovery page.
+
+Event categories:
+
+Yoga
+Hiking
+Beach cleanup
+Community cleanup
+Market
+Live music
+Food
+Grow workshop
+Art exhibition
+Wellness retreat
+Talk
+Film screening
+
+Event cards must show:
+
+Title
+Category
+Date
+Time
+City
+Venue
+Short description
+Age restriction
+Free or paid
+Host
+Image
+Status
+RSVP link or external ticket link
+
+For Phase 1, events are created by the admin only.
+
+Create planned placeholder events marked “Concept” rather than pretending they are scheduled:
+
+Stonerism Yoga Morning
+Jozi Nature Walk
+Community Market
+Live Sessions
+Art + Plant Exhibition
+Wellness Weekend
+
+==================================================
+13. JOURNAL AND ARTICLE PAGES
+==================================================
+
+At /stonerism/journal add:
+
+Search
+Category filter
+Featured article
+Latest articles
+Popular topics
+Editor’s picks
+
+Article page at /stonerism/article/:slug must support:
+
+Title
+Subtitle
+Author
+Reviewer or expert reviewer
+Published date
+Updated date
+Hero media
+Category
+Tags
+Body content
+Pull quotes
+Sources
+Disclosure
+Related stories
+
+Use safe structured rendering.
+Do not render unsanitized HTML directly.
+
+==================================================
+14. REVIEW PAGES
+==================================================
+
+Create /stonerism/review/:slug.
+
+Review types:
+
+Dispensary
+Grower
+Brand
+Product
+Pre-roll
+Flower
+Food
+Wellness product
+Event
+Experience
+
+Each review supports:
+
+Overall score
+Individual category scores
+Summary
+What worked
+What could improve
+Who it is for
+Price/value notes
+Review date
+Reviewer profiles
+Products supplied disclosure
+Sponsored disclosure
+Relationship disclosure
+Evidence level for wellness products
+
+For the Stank Bank feature, use the pre-roll score categories:
+
+Packaging
+Construction
+Draw
+Burn
+Aroma
+Flavour
+Smoothness
+Experience
+Value
+
+For Culture or place reviews, use:
+
+Atmosphere
+Service
+Staff knowledge
+Product range
+Presentation
+Value
+Beginner friendliness
+Overall experience
+
+Do not seed fake scores for businesses that have not been reviewed.
+Use “Not yet reviewed” for coming-soon profiles.
+
+==================================================
+15. BUSINESS PROFILE PAGES
+==================================================
+
+Create /stonerism/business/:slug.
+
+Fields:
+
+Name
+Slug
+Business type
+Description
+City
+Province
+Public address optional
+Website optional
+Instagram optional
+Founded year optional
+Founder information optional
+Verified status
+Feature status
+Legal/status disclaimer
+Header image
+Gallery
+Related articles
+Related reviews
+Products or services
+Disclosure notes
+
+Seed:
+
+Stank Bank
+Culture
+
+Stank Bank:
+- Premium pre-roll brand
+- East Rand/Gauteng
+- Rolling and packaging vault
+- Coming soon
+- No fake products or ratings
+
+Culture:
+- Grower and dispensary chain
+- Johannesburg/Gauteng
+- Multiple locations
+- Coming soon
+- No fake store count, addresses, strains or ratings
+
+==================================================
+16. DATABASE
+==================================================
+
+Inspect the current Drizzle schema and add tables using the project’s existing naming conventions.
+
+Suggested tables:
+
+stonerism_articles
+stonerism_categories
+stonerism_businesses
+stonerism_reviews
+stonerism_review_scores
+stonerism_events
+stonerism_authors
+stonerism_expert_reviewers
+stonerism_newsletter_subscribers
+stonerism_disclosures
+
+Suggested article fields:
+
+id
+title
+slug
+subtitle
+excerpt
+body
+categoryId
+authorId
+heroImage
+status
+featured
+publishedAt
+updatedAt
+createdAt
+seoTitle
+seoDescription
+
+Suggested business fields:
+
+id
+name
+slug
+businessType
+description
+city
+province
+address
+websiteUrl
+instagramUrl
+verified
+featureStatus
+legalDisclaimer
+heroImage
+createdAt
+updatedAt
+
+Suggested review fields:
+
+id
+title
+slug
+reviewType
+businessId optional
+articleId optional
+overallScore optional
+summary
+whatWorked
+whatCouldImprove
+whoItIsFor
+disclosure
+status
+publishedAt
+createdAt
+updatedAt
+
+Suggested event fields:
+
+id
+title
+slug
+category
+description
+city
+venue
+startDate
+endDate
+ageRestriction
+priceLabel
+host
+status
+ticketUrl
+heroImage
+createdAt
+updatedAt
+
+Suggested newsletter subscriber fields:
+
+id
+email
+city
+consent
+subscribedAt
+unsubscribedAt
+
+Generate and run the required migration using the project’s current migration process.
+
+Do not delete or reset existing data.
+
+==================================================
+17. API
+==================================================
+
+Create safe API routes using the project’s current Express conventions.
+
+Public GET routes:
+
+GET /api/stonerism/articles
+GET /api/stonerism/articles/:slug
+GET /api/stonerism/businesses
+GET /api/stonerism/businesses/:slug
+GET /api/stonerism/reviews
+GET /api/stonerism/reviews/:slug
+GET /api/stonerism/events
+
+Newsletter:
+
+POST /api/stonerism/newsletter
+
+Validate email.
+Require consent.
+Prevent obvious duplicate subscriptions.
+Add basic rate limiting if the project already uses a rate-limit utility.
+
+Admin routes should require the existing admin session:
+
+POST /api/admin/stonerism/articles
+PATCH /api/admin/stonerism/articles/:id
+DELETE /api/admin/stonerism/articles/:id
+
+Repeat equivalent CRUD routes for businesses, reviews and events.
+
+Validate all request bodies using the project’s existing validation library, preferably Zod.
+
+==================================================
+18. ADMIN
+==================================================
+
+Extend the existing admin dashboard with a Stonerism section.
+
+Tabs:
+
+Articles
+Businesses
+Reviews
+Events
+Newsletter
+
+Admin should be able to:
+
+Create draft
+Edit
+Preview
+Publish
+Unpublish
+Feature
+Archive
+
+Use forms with clear validation errors.
+
+Do not build complex rich-text editing if the project does not already support it.
+For Phase 1, a structured textarea or Markdown editor is acceptable.
+Render Markdown safely.
+
+==================================================
+19. SEED CONTENT
+==================================================
+
+Seed enough draft content to make the pages feel designed, but mark fictional or future content as Draft or Coming Soon.
+
+Seed categories:
+
+Cannabis
+Places
+Brands
+Munchies
+Wellness
+Mind + Spirit
+Events
+Community
+Journal
+
+Seed business profiles:
+
+Stank Bank
+Culture
+
+Seed draft articles:
+
+Inside the Vault: The Craft Behind Premium Pre-Rolls
+From Grow to Store
+Understanding Terpenes
+Responsible Cannabis Consumption
+Food Worth Leaving the Couch For
+Beginner Yoga for Stiff Bodies
+The Zodiac as a Tool for Reflection
+Culture Should Leave Something Behind
+
+Do not fabricate quotes, test results, addresses, prices, founders’ names or ratings.
+
+==================================================
+20. SEO AND ACCESSIBILITY
+==================================================
+
+Add page-specific titles and descriptions.
+
+Examples:
+
+Stonerism | South African Cannabis Culture and Wellness
+Cannabis | Stonerism
+Munchies | Stonerism
+Wellness | Stonerism
+Events | Stonerism
+
+Use semantic headings.
+All buttons and links must be keyboard accessible.
+Include visible focus states.
+Ensure sufficient colour contrast.
+Images must support alt text.
+Respect prefers-reduced-motion.
+
+==================================================
+21. FINAL CHECK
+==================================================
+
+After implementation:
+
+- Run TypeScript checks
+- Run the build
+- Fix all build errors
+- Verify all existing routes still work
+- Verify the OS dropdown remains functional
+- Verify the new Stonerism item works on hover and mobile
+- Verify every Stonerism route loads
+- Verify responsive layouts
+- Verify no existing data was deleted
+- Verify seed content does not contain made-up business claims
+- Report the exact files created and modified
+- Explain any manual database or environment steps still required
