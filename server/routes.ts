@@ -6,6 +6,7 @@ import { insertPostSchema, insertReleaseSchema, insertVaultItemSchema, updateSit
 import { z } from "zod";
 import { generateAudioPreview, deleteAudioPreview } from "./audio-preview";
 import { compressAudioFile, deleteCompressedAudio } from "./audio-compress";
+import crypto from "crypto";
 
 declare module "express-session" {
   interface SessionData {
@@ -14,8 +15,36 @@ declare module "express-session" {
   }
 }
 
+// ── Token-based admin auth ───────────────────────────────────────────────────
+// Cookies are unreliable in Replit's preview (SameSite/Secure issues in iframes
+// and iOS WebViews). We issue a random token on login, store it server-side,
+// and the client sends it as X-Admin-Token on every request. Sessions still
+// work as a fallback for direct-browser access.
+let activeAdminToken: string | null = null;
+
+function issueAdminToken(): string {
+  activeAdminToken = crypto.randomBytes(32).toString("hex");
+  return activeAdminToken;
+}
+
+function hasValidAdminToken(req: Request): boolean {
+  const header = req.headers["x-admin-token"];
+  return (
+    typeof header === "string" &&
+    activeAdminToken !== null &&
+    // Use timingSafeEqual to prevent timing attacks
+    (() => {
+      try {
+        const a = Buffer.from(header);
+        const b = Buffer.from(activeAdminToken!);
+        return a.length === b.length && crypto.timingSafeEqual(a, b);
+      } catch { return false; }
+    })()
+  );
+}
+
 function requireAdmin(req: Request, res: Response, next: NextFunction) {
-  if (req.session?.isAdmin === true) return next();
+  if (req.session?.isAdmin === true || hasValidAdminToken(req)) return next();
   return res.status(401).json({ error: "Unauthorized" });
 }
 import multer from "multer";
@@ -49,7 +78,8 @@ const upload = multer({
 export async function registerRoutes(app: Express): Promise<Server> {
   // ── Admin Auth ───────────────────────────────────────────────────
   app.get("/api/admin/me", (req, res) => {
-    res.json({ authenticated: req.session?.isAdmin === true });
+    const authenticated = req.session?.isAdmin === true || hasValidAdminToken(req);
+    res.json({ authenticated });
   });
 
   app.post("/api/admin/login", (req, res) => {
@@ -58,14 +88,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!adminPassword) {
       return res.status(500).json({ error: "ADMIN_PASSWORD not configured." });
     }
-    // Trim whitespace from both sides before comparing to avoid copy-paste
-    // whitespace causing silent failures.
     const submitted = typeof password === "string" ? password.trim() : "";
     if (submitted === adminPassword.trim()) {
+      const token = issueAdminToken();
+      // Best-effort session save (may not persist in all proxy environments)
       req.session.isAdmin = true;
-      req.session.save((err) => {
-        if (err) return res.status(500).json({ error: "Session error" });
-        res.json({ authenticated: true });
+      req.session.save(() => {
+        // Return the token regardless of session save result — the client will
+        // use the token header as primary auth, session as fallback
+        res.json({ authenticated: true, token });
       });
     } else {
       return res.status(401).json({ error: "Invalid password" });
@@ -73,6 +104,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/admin/logout", (req, res) => {
+    activeAdminToken = null;
     req.session.destroy(() => {
       res.clearCookie("connect.sid");
       res.json({ success: true });

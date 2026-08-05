@@ -21,14 +21,16 @@ app.use(
     resave: false,
     saveUninitialized: false,
     cookie: {
-      // secure:false in dev — express-session skips Set-Cookie when the
-      // connection isn't HTTPS (even with trust proxy:1, localhost curl/dev
-      // requests arrive plain HTTP). Cookies without Secure flag still work
-      // in HTTPS browsers. In production the reverse proxy is always HTTPS.
-      secure: false,
+      // SameSite=None + Secure=true: required because Replit's preview pane
+      // is an iframe on replit.com (different top-level site). SameSite=Lax
+      // silently blocks cookies inside cross-site iframes. SameSite=None
+      // allows them, but browsers require Secure=true alongside it.
+      // trust proxy:1 above means req.secure=true when Replit's proxy sends
+      // X-Forwarded-Proto:https, so express-session will emit Set-Cookie.
+      secure: true,
       httpOnly: true,
       maxAge: 7 * 24 * 60 * 60 * 1000,
-      sameSite: "lax",
+      sameSite: "none",
     },
   })
 );

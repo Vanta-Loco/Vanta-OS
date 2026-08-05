@@ -1,20 +1,28 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest, queryClient, setAdminToken, clearAdminToken, getAdminToken } from "@/lib/queryClient";
 
 export function useAdmin() {
   const { data, isLoading, isFetching } = useQuery<{ authenticated: boolean }>({
     queryKey: ["/api/admin/me"],
     retry: false,
     staleTime: 0,
+    // Seed initial state from localStorage so the UI doesn't flash
+    // "unauthenticated" on first render if a token is already stored.
+    initialData: getAdminToken() ? { authenticated: true } : undefined,
   });
 
   const loginMutation = useMutation({
-    mutationFn: (password: string) =>
-      apiRequest("POST", "/api/admin/login", { password }),
-    onSuccess: () => {
-      // Immediately write {authenticated:true} into the cache so the /admin
-      // dashboard doesn't read stale {authenticated:false} and redirect back
-      // to the login page before the background refetch completes.
+    mutationFn: async (password: string) => {
+      const res = await apiRequest("POST", "/api/admin/login", { password });
+      return res.json() as Promise<{ authenticated: boolean; token?: string }>;
+    },
+    onSuccess: (data) => {
+      if (data?.token) {
+        // Persist token so subsequent requests and page reloads stay authenticated
+        setAdminToken(data.token);
+      }
+      // Optimistically update cache — prevents stale {authenticated:false} from
+      // triggering the redirect loop before the background refetch completes
       queryClient.setQueryData(["/api/admin/me"], { authenticated: true });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/me"] });
     },
@@ -23,6 +31,8 @@ export function useAdmin() {
   const logoutMutation = useMutation({
     mutationFn: () => apiRequest("POST", "/api/admin/logout"),
     onSuccess: () => {
+      clearAdminToken();
+      queryClient.setQueryData(["/api/admin/me"], { authenticated: false });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/me"] });
       queryClient.clear();
     },
