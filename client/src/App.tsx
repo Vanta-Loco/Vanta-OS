@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
 import { StartupScreen, STARTUP_SESSION_KEY } from "@/components/startup-screen";
+import { VantaOSIntro } from "@/components/vanta-os-intro";
 import { VantaOSBoot } from "@/components/vanta-os-boot";
 import { EnterVanta } from "@/components/enter-vanta";
 import Home from "@/pages/home";
@@ -62,29 +63,40 @@ import Login from "@/pages/login";
 import Register from "@/pages/register";
 import NotFound from "@/pages/not-found";
 
-// ── Paths that skip the full startup experience ────────────────────────────
+// ── Session / localStorage keys ────────────────────────────────────────────
+// STARTUP_SESSION_KEY ("vc-boot"): set when original loader (StartupScreen) completes
+const INTRO_SESSION_KEY = "vc-intro";     // set when user clicks ENTER THE SYSTEM
+const SKIP_BOOT_KEY     = "vanta-skip-os-boot"; // localStorage: user opted to skip boot+entry
+
+// ── Paths that bypass all startup phases ───────────────────────────────────
 const SKIP_STARTUP_PATHS = [
   "/world", "/vault", "/admin", "/stonerism", "/enter",
 ];
-
 function shouldSkipStartup(path: string): boolean {
   return SKIP_STARTUP_PATHS.some(p => path === p || path.startsWith(p + "/"));
 }
 
-const SKIP_BOOT_KEY = "vanta-skip-os-boot";
-
-// ── Boot phase type ────────────────────────────────────────────────────────
-type BootPhase = "loader" | "boot" | "entry" | "done";
+// ── Boot phase state machine ───────────────────────────────────────────────
+// loader → intro → boot → entry → done
+//
+// loader : Original "VANTA COLD" startup animation (auto, ~2.8 s)
+// intro  : VANTA OS — ENTER THE SYSTEM (interactive, user must click)
+// boot   : PS2-style INITIALIZING SYSTEM terminal sequence (interactive)
+// entry  : Cinematic ENTER VANTA screen (interactive)
+// done   : Normal app / router
+type BootPhase = "loader" | "intro" | "boot" | "entry" | "done";
 
 function getInitialPhase(path: string): BootPhase {
   if (shouldSkipStartup(path)) return "done";
 
-  const sessionBooted = !!sessionStorage.getItem(STARTUP_SESSION_KEY);
-  const skipBoot = !!localStorage.getItem(SKIP_BOOT_KEY);
+  const loaderDone = !!sessionStorage.getItem(STARTUP_SESSION_KEY); // loader was shown
+  const introDone  = !!sessionStorage.getItem(INTRO_SESSION_KEY);   // user clicked Enter
+  const skipBoot   = !!localStorage.getItem(SKIP_BOOT_KEY);         // user opted to skip
 
-  if (!sessionBooted) return "loader";       // First visit this session: show loader
-  if (!skipBoot) return "boot";              // Seen loader but not boot: show OS boot
-  return "done";                             // Fully skipped
+  if (!loaderDone) return "loader";  // fresh session — show loader first
+  if (!introDone)  return "intro";   // loader done, show ENTER THE SYSTEM
+  if (!skipBoot)   return "boot";    // intro done, show PS2 boot
+  return "done";                     // skip-boot set — go straight to app
 }
 
 function Router() {
@@ -161,9 +173,15 @@ function App() {
     () => getInitialPhase(window.location.pathname)
   );
 
+  // ── Phase handlers ─────────────────────────────────────────────
   const handleLoaderComplete = useCallback(() => {
-    const skipBoot = !!localStorage.getItem(SKIP_BOOT_KEY);
     sessionStorage.setItem(STARTUP_SESSION_KEY, "1");
+    setPhase("intro");
+  }, []);
+
+  const handleIntroComplete = useCallback(() => {
+    sessionStorage.setItem(INTRO_SESSION_KEY, "1");
+    const skipBoot = !!localStorage.getItem(SKIP_BOOT_KEY);
     setPhase(skipBoot ? "done" : "boot");
   }, []);
 
@@ -175,24 +193,27 @@ function App() {
     setPhase("done");
   }, []);
 
-  // Safety fallbacks: if any phase gets stuck, auto-advance to the next one
+  // ── Safety fallbacks: auto-advance if any phase gets stuck ─────
   useEffect(() => {
+    let t: ReturnType<typeof setTimeout>;
     if (phase === "loader") {
-      // StartupScreen is 2.8s; 5s gives it ample time before forcing advance
-      const t = setTimeout(() => {
+      // StartupScreen runs 2.8 s; 5 s gives it room before forcing advance
+      t = setTimeout(() => {
         sessionStorage.setItem(STARTUP_SESSION_KEY, "1");
-        setPhase("boot");
+        setPhase("intro");
       }, 5_000);
-      return () => clearTimeout(t);
+    } else if (phase === "intro") {
+      // Intro is interactive but auto-advance after 60 s so nobody gets stuck
+      t = setTimeout(() => {
+        sessionStorage.setItem(INTRO_SESSION_KEY, "1");
+        setPhase("boot");
+      }, 60_000);
+    } else if (phase === "boot") {
+      t = setTimeout(() => setPhase("entry"), 10_000);
+    } else if (phase === "entry") {
+      t = setTimeout(() => setPhase("done"), 30_000);
     }
-    if (phase === "boot") {
-      const t = setTimeout(() => setPhase("entry"), 10_000);
-      return () => clearTimeout(t);
-    }
-    if (phase === "entry") {
-      const t = setTimeout(() => setPhase("done"), 30_000);
-      return () => clearTimeout(t);
-    }
+    return () => clearTimeout(t);
   }, [phase]);
 
   return (
@@ -201,22 +222,27 @@ function App() {
         <TooltipProvider>
           <Toaster />
 
-          {/* Phase 1: Original Vanta loader */}
+          {/* Stage 1 — Original "VANTA COLD" loading animation (auto, ~2.8 s) */}
           {phase === "loader" && (
             <StartupScreen onComplete={handleLoaderComplete} />
           )}
 
-          {/* Phase 2: Vanta OS boot sequence */}
+          {/* Stage 2 — VANTA OS — ENTER THE SYSTEM (interactive gateway) */}
+          {phase === "intro" && (
+            <VantaOSIntro onEnter={handleIntroComplete} />
+          )}
+
+          {/* Stage 3 — PS2-style INITIALIZING SYSTEM boot sequence */}
           {phase === "boot" && (
             <VantaOSBoot onComplete={handleBootComplete} />
           )}
 
-          {/* Phase 3: Cinematic Enter Vanta screen */}
+          {/* Stage 4 — Cinematic ENTER VANTA screen */}
           {phase === "entry" && (
             <EnterVanta onEnter={handleEnterComplete} />
           )}
 
-          {/* Phase 4: Normal app */}
+          {/* Stage 5 — Normal app */}
           {phase === "done" && <Router />}
         </TooltipProvider>
       </ThemeProvider>

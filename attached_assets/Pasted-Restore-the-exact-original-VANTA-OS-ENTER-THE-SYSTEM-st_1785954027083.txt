@@ -1,0 +1,93 @@
+Restore the exact original “VANTA OS — ENTER THE SYSTEM” startup screen that existed before the new PS2-style boot sequence was added.
+
+This is not a request to create another generic loading animation.
+
+The missing screen is the original Vanta OS entry/loadout that appeared before the recent Phase 1 startup changes. It included the Vanta OS identity and an ENTER THE SYSTEM interaction.
+
+The current startup flow has the new PS2-style boot and Enter Vanta screen, but the original VANTA OS / ENTER THE SYSTEM screen is still missing.
+
+Correct startup order
+
+The sequence must be:
+
+1. Original VANTA OS — ENTER THE SYSTEM screen
+2. New PS2-style Vanta OS boot sequence
+3. New Enter Vanta screen
+4. Existing site destination
+
+Required work
+
+* Search the current codebase, git history, Replit checkpoints, deleted files and previous component imports for the exact original screen.
+* Look specifically for text, components, styles or assets containing:
+    * ENTER THE SYSTEM
+    * VANTA OS
+    * EnterSystem
+    * VantaLoader
+    * VantaIntro
+    * BootScreen
+    * StartupScreen
+    * SplashScreen
+* Restore the original component and its original styling rather than designing a new interpretation.
+* If the original file was deleted but exists in project history or a checkpoint, recover that version.
+* Preserve its original logo, wording, animation, button interaction, timing, background and transition.
+* Mount it as the first startup stage before the current PS2-style boot.
+* When the user activates ENTER THE SYSTEM, transition into the existing PS2-style boot sequence.
+* Do not skip directly from the original screen to the homepage.
+* Do not replace the current PS2 boot or current Enter Vanta screen.
+* Do not create a fourth generic loader.
+* Do not modify authentication, Admin, profiles, database, Stonerism, Vault, World Alpha, blog, Releases or theme functionality.
+* Do not redesign the original screen unless the exact original assets are genuinely unrecoverable.
+
+Important distinction
+
+These are three separate screens:
+
+Screen 1 — Original screen being restored
+
+VANTA OS
+
+ENTER THE SYSTEM
+
+Screen 2 — Current PS2-style boot
+
+INITIALIZING SYSTEM
+
+LOADING MODULES
+
+SYSTEM READY
+
+Screen 3 — Current cinematic entry
+
+VANTA
+
+A CULTURE OPERATING SYSTEM
+
+ENTER VANTA
+
+Do not merge these screens together.
+
+Verification
+
+Do not mark the task complete until the live preview visibly shows this exact order:
+
+VANTA OS / ENTER THE SYSTEM
+
+→
+
+PS2-style INITIALIZING SYSTEM boot
+
+→
+
+ENTER VANTA cinematic screen
+
+Use a fresh session or clear the startup-skip local-storage value before testing so the intro is not being bypassed.
+
+At completion, report only:
+
+1. Exact original component recovered
+2. Source used to recover it: current files, git history or checkpoint
+3. Startup controller file changed
+4. Final startup order
+5. Confirmation it was visually tested in a fresh session
+
+Focus exclusively on restoring the original VANTA OS — ENTER THE SYSTEM screen.
