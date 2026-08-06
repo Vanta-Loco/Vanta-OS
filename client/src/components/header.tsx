@@ -10,7 +10,7 @@ import {
   PenSquare, Search, LayoutDashboard, LogOut, LockKeyhole,
   Terminal, ChevronDown, Menu, X,
   MapPin, Database, Radio, Coins, Mountain, Skull, Leaf,
-  Grid3x3, User, Settings, BookOpen, Clock,
+  Grid3x3, User, Settings, BookOpen, Clock, Trophy,
 } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
@@ -21,11 +21,13 @@ const navLinks = [
   { href: "/",         label: "Home"     },
   { href: "/releases", label: "Releases" },
   { href: "/worlds",   label: "Worlds"   },
+  { href: "/play",     label: "Play" },
   { href: "/about",    label: "About"    },
 ];
 
 const osLinks = [
   { href: "/world",      label: "District",         desc: "Vanta City map",       Icon: MapPin    },
+  { href: "/play",       label: "Play",             desc: "Pickup sports, competitions and community activity", Icon: Trophy},
   { href: "/search",     label: "Black Index",       desc: "Archive search",       Icon: Database  },
   { href: "/wireline",   label: "Wireline",          desc: "Dispatch relay",       Icon: Radio     },
   { href: "/stonerism",  label: "Stonerism",         desc: "Cannabis culture",     Icon: Leaf      },

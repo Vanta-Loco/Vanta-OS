@@ -20,7 +20,7 @@ import Releases from "@/pages/releases";
 import ReleasesNew from "@/pages/releases-new";
 import ReleasesEdit from "@/pages/releases-edit";
 import Worlds from "@/pages/worlds";
-import VantaSport from "@/pages/vanta-sport";
+import VantaPlay from "@/pages/vanta-play";
 import Enter from "@/pages/enter";
 import AdminLogin from "@/pages/admin-login";
 import AdminDashboard from "@/pages/admin";
@@ -117,7 +117,7 @@ function Router() {
       <Route path="/enter" component={Enter} />
       <Route path="/vault" component={Vault} />
       <Route path="/world" component={World} />
-      <Route path="/sport" component={VantaSport} />
+      <Route path="/play" component={VantaPlay} />
       <Route path="/wireline" component={Wireline} />
       <Route path="/fract" component={Fract} />
       <Route path="/himalayas" component={Himalayas} />
