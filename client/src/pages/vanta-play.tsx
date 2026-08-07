@@ -167,9 +167,21 @@ export default function VantaPlay() {
   return (
     <main className="min-h-screen bg-background text-foreground">
       <section className="mx-auto max-w-6xl px-5 py-14 md:py-20">
-        <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">
-          Vanta OS Application
-        </p>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+  <div>
+    <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">
+      Vanta Play
+    </p>
+
+    <p className="mt-2 text-sm text-muted-foreground">
+      Powered by Vanta Passport
+    </p>
+  </div>
+
+  <div className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">
+    South Africa Alpha · v0.2
+  </div>
+</div>
 
         <h1 className="mt-4 max-w-4xl text-5xl font-semibold tracking-tight md:text-7xl">
           Vanta Play
@@ -196,6 +208,53 @@ export default function VantaPlay() {
             {showHostForm ? "Close Form" : "Host a Game"}
           </button>
         </div>
+
+<section className="mt-12 rounded-2xl border border-border bg-card p-6 md:p-8">
+  <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+    <div>
+      <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">
+        🔥 Featured Game
+      </p>
+
+      <h2 className="mt-3 text-3xl font-semibold">
+        Friday Night Basketball
+      </h2>
+
+      <p className="mt-2 text-muted-foreground">
+        Wanderers Club • Johannesburg
+      </p>
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        <span className="rounded-full border border-border px-3 py-1 text-xs">
+          🏀 Basketball
+        </span>
+
+        <span className="rounded-full border border-border px-3 py-1 text-xs">
+          Friday
+        </span>
+
+        <span className="rounded-full border border-border px-3 py-1 text-xs">
+          19:00
+        </span>
+
+        <span className="rounded-full border border-border px-3 py-1 text-xs">
+          Intermediate
+        </span>
+
+        <span className="rounded-full border border-border px-3 py-1 text-xs">
+          8 / 10 Players
+        </span>
+      </div>
+    </div>
+
+    <button
+      type="button"
+      className="rounded-md bg-primary px-6 py-3 text-sm font-medium text-primary-foreground"
+    >
+      Join Featured Game
+    </button>
+  </div>
+</section>
 
         <section className="mt-14 grid gap-4 md:grid-cols-4">
           {[
