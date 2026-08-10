@@ -193,6 +193,84 @@ export function registerUserRoutes(app: Express) {
     }
   });
 
+  // ─── Vanta Passport ────────────────────────────────────────────────────────
+app.get("/api/passport", requireUser, async (req: Request, res: Response) => {
+  try {
+    const { userId } = (req as any).currentUser;
+
+    let result = await pool.query(
+      `
+      SELECT
+        id,
+        user_id,
+        passport_id,
+        passport_level,
+        passport_xp,
+        character_config,
+        created_at,
+        updated_at
+      FROM user_passports
+      WHERE user_id = $1
+      LIMIT 1
+      `,
+      [userId]
+    );
+
+    // First Passport visit: create the member's Passport system record
+    if (!result.rows[0]) {
+      await pool.query(
+        `
+        INSERT INTO user_passports (
+          user_id,
+          passport_id,
+          passport_level,
+          passport_xp,
+          character_config
+        )
+        VALUES (
+          $1,
+          'VNT-' || UPPER(
+            SUBSTRING(
+              REPLACE(gen_random_uuid()::text, '-', ''),
+              1,
+              8
+            )
+          ),
+          1,
+          0,
+          '{}'::jsonb
+        )
+        ON CONFLICT (user_id) DO NOTHING
+        `,
+        [userId]
+      );
+
+      result = await pool.query(
+        `
+        SELECT
+          id,
+          user_id,
+          passport_id,
+          passport_level,
+          passport_xp,
+          character_config,
+          created_at,
+          updated_at
+        FROM user_passports
+        WHERE user_id = $1
+        LIMIT 1
+        `,
+        [userId]
+      );
+    }
+
+    res.json(result.rows[0]);
+  } catch (e: any) {
+    console.error("Passport error:", e);
+    res.status(500).json({ error: "Unable to load Passport" });
+  }
+});
+
   // ── Update own profile ────────────────────────────────────────────
   app.patch("/api/profile", requireUser, async (req: Request, res: Response) => {
     try {

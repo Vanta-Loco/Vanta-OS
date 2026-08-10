@@ -453,6 +453,20 @@ async function seedEcosystem() {
       updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
 
+    CREATE TABLE IF NOT EXISTS user_passports (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+
+  passport_id TEXT NOT NULL UNIQUE,
+  passport_level INTEGER NOT NULL DEFAULT 1,
+  passport_xp INTEGER NOT NULL DEFAULT 0,
+
+  character_config JSONB NOT NULL DEFAULT '{}',
+
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
     CREATE TABLE IF NOT EXISTS world_settings (
       id               SERIAL PRIMARY KEY,
       status           TEXT NOT NULL DEFAULT 'active',
