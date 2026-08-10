@@ -22,12 +22,14 @@ const navLinks = [
   { href: "/releases", label: "Releases" },
   { href: "/worlds",   label: "Worlds"   },
   { href: "/play",     label: "Play" },
+  { href: "/passport", label: "Passport" },
   { href: "/about",    label: "About"    },
 ];
 
 const osLinks = [
   { href: "/world",      label: "District",         desc: "Vanta City map",       Icon: MapPin    },
   { href: "/play",       label: "Play",             desc: "Pickup sports, competitions and community activity", Icon: Trophy},
+  { href: "/passport",   label: "Passport",         description: "Identity, achievements and activity across Vanta", Icon: User,},
   { href: "/search",     label: "Black Index",       desc: "Archive search",       Icon: Database  },
   { href: "/wireline",   label: "Wireline",          desc: "Dispatch relay",       Icon: Radio     },
   { href: "/stonerism",  label: "Stonerism",         desc: "Cannabis culture",     Icon: Leaf      },
