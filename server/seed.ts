@@ -521,6 +521,32 @@ CREATE TABLE IF NOT EXISTS passport_achievement_unlocks (
 
 CREATE INDEX IF NOT EXISTS passport_achievement_unlocks_passport_id_idx
   ON passport_achievement_unlocks(passport_id);
+  CREATE TABLE IF NOT EXISTS vanta_play_games (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  sport TEXT NOT NULL,
+  city TEXT NOT NULL,
+  venue TEXT NOT NULL,
+  game_date TEXT NOT NULL,
+  game_time TEXT NOT NULL,
+  skill TEXT NOT NULL DEFAULT 'Casual',
+  seed_players INTEGER NOT NULL DEFAULT 0,
+  capacity INTEGER NOT NULL DEFAULT 10,
+  host_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  status TEXT NOT NULL DEFAULT 'open',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE vanta_play_games
+ADD COLUMN IF NOT EXISTS seed_players INTEGER NOT NULL DEFAULT 0;
+
+CREATE TABLE IF NOT EXISTS vanta_play_participants (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  game_id UUID NOT NULL REFERENCES vanta_play_games(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  status TEXT NOT NULL DEFAULT 'joined',
+  joined_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(game_id, user_id)
+);
 
     CREATE TABLE IF NOT EXISTS world_settings (
       id               SERIAL PRIMARY KEY,
@@ -607,6 +633,59 @@ CREATE INDEX IF NOT EXISTS passport_achievement_unlocks_passport_id_idx
       updated_at            TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
   `);
+
+await pool.query(`
+  INSERT INTO vanta_play_games (
+    sport,
+    city,
+    venue,
+    game_date,
+    game_time,
+    skill,
+    seed_players,
+    capacity
+  )
+  SELECT *
+  FROM (
+    VALUES
+      ('Football', 'Johannesburg', 'Zoo Lake Sports Club', 'Saturday', '16:00', 'Casual', 8, 12),
+      ('Basketball', 'Johannesburg', 'Wits Basketball Courts', 'Friday', '18:30', 'Competitive', 5, 6),
+      ('Padel', 'Pretoria', 'Pretoria East Padel', 'Sunday', '10:00', 'Intermediate', 3, 4),
+      ('Running', 'Cape Town', 'Sea Point Promenade', 'Saturday', '07:00', 'All levels', 14, 25)
+  ) AS seed_games(
+    sport,
+    city,
+    venue,
+    game_date,
+    game_time,
+    skill,
+    seed_players,
+    capacity
+  )
+  WHERE NOT EXISTS (
+    SELECT 1
+    FROM vanta_play_games
+    WHERE vanta_play_games.venue = seed_games.venue
+      AND vanta_play_games.sport = seed_games.sport
+  );
+`);
+
+await pool.query(`
+  UPDATE vanta_play_games
+  SET seed_players = CASE
+    WHEN venue = 'Zoo Lake Sports Club' THEN 8
+    WHEN venue = 'Wits Basketball Courts' THEN 5
+    WHEN venue = 'Pretoria East Padel' THEN 3
+    WHEN venue = 'Sea Point Promenade' THEN 14
+    ELSE seed_players
+  END
+  WHERE venue IN (
+    'Zoo Lake Sports Club',
+    'Wits Basketball Courts',
+    'Pretoria East Padel',
+    'Sea Point Promenade'
+  );
+`);
 
   await pool.query(`
   INSERT INTO passport_achievements (

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "wouter";
-import { useUser } from "@/hooks/use-user";
+import { getUserToken, useUser } from "@/hooks/use-user";
 
 type PassportData = {
   id: string;
@@ -59,11 +59,23 @@ export default function Passport() {
       try {
         setPassportLoading(true);
         setPassportError("");
+     const token = getUserToken();
 
+     const authHeaders: Record<string, string> = {};
+
+if (token) {
+  authHeaders["X-User-Token"] = token;
+}
         const [passportRes, eventsRes, achievementsRes] = await Promise.all([
-  fetch("/api/passport"),
-  fetch("/api/passport/events"),
-  fetch("/api/passport/achievements"),
+  fetch("/api/passport", {
+  headers: authHeaders,
+}),
+fetch("/api/passport/events", {
+  headers: authHeaders,
+}),
+fetch("/api/passport/achievements", {
+  headers: authHeaders,
+}),
 ]);
 
 if (!passportRes.ok) {

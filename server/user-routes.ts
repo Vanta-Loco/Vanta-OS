@@ -387,6 +387,237 @@ app.get("/api/passport/achievements", requireUser, async (req: Request, res: Res
   }
 });
 
+// ─── Vanta Play ──────────────────────────────────────────────────────────
+
+// Public game list
+app.get("/api/play/games", async (_req: Request, res: Response) => {
+  try {
+    const result = await pool.query(`
+      SELECT
+        g.id,
+        g.sport,
+        g.city,
+        g.venue,
+        g.game_date AS date,
+        g.game_time AS time,
+        g.skill,
+        g.capacity,
+        g.status,
+        g.host_user_id,
+        g.created_at,
+        g.seed_players +
+          COUNT(p.id) FILTER (WHERE p.status = 'joined')::int AS players
+      FROM vanta_play_games g
+      LEFT JOIN vanta_play_participants p
+        ON p.game_id = g.id
+      WHERE g.status = 'open'
+      GROUP BY g.id
+      ORDER BY g.created_at ASC
+    `);
+
+    res.json(result.rows);
+  } catch (e: any) {
+    console.error("Vanta Play games error:", e);
+    res.status(500).json({ error: "Unable to load games" });
+  }
+});
+
+
+// Host a real game
+app.post("/api/play/games", requireUser, async (req: Request, res: Response) => {
+  try {
+    const { userId } = (req as any).currentUser;
+
+    const {
+      sport,
+      city,
+      venue,
+      date,
+      time,
+      skill = "Casual",
+      capacity,
+    } = req.body;
+
+    if (!sport || !city || !venue || !date || !time || !capacity) {
+      return res.status(400).json({ error: "Missing required game fields" });
+    }
+
+    const result = await pool.query(
+      `
+      INSERT INTO vanta_play_games (
+        sport,
+        city,
+        venue,
+        game_date,
+        game_time,
+        skill,
+        capacity,
+        host_user_id
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      RETURNING
+        id,
+        sport,
+        city,
+        venue,
+        game_date AS date,
+        game_time AS time,
+        skill,
+        capacity,
+        status,
+        host_user_id,
+        created_at
+      `,
+      [
+        sport,
+        city,
+        venue,
+        date,
+        time,
+        skill,
+        Number(capacity),
+        userId,
+      ],
+    );
+
+    res.status(201).json({
+      ...result.rows[0],
+      players: 0,
+    });
+  } catch (e: any) {
+    console.error("Vanta Play host error:", e);
+    res.status(500).json({ error: "Unable to host game" });
+  }
+});
+
+
+// Join a real game
+app.post(
+  "/api/play/games/:id/join",
+  requireUser,
+  async (req: Request, res: Response) => {
+    const client = await pool.connect();
+
+    try {
+      const { userId } = (req as any).currentUser;
+
+      await client.query("BEGIN");
+
+      const gameResult = await client.query(
+        `
+        SELECT
+          g.*,
+          g.seed_players +
+            COUNT(p.id) FILTER (WHERE p.status = 'joined')::int AS player_count
+        FROM vanta_play_games g
+        LEFT JOIN vanta_play_participants p
+          ON p.game_id = g.id
+        WHERE g.id = $1
+        GROUP BY g.id
+        LIMIT 1
+        `,
+        [req.params.id],
+      );
+
+      const game = gameResult.rows[0];
+
+      if (!game) {
+        await client.query("ROLLBACK");
+        return res.status(404).json({ error: "Game not found" });
+      }
+
+      if (game.status !== "open") {
+        await client.query("ROLLBACK");
+        return res.status(400).json({ error: "Game is not open" });
+      }
+
+      if (Number(game.player_count) >= Number(game.capacity)) {
+        await client.query("ROLLBACK");
+        return res.status(409).json({ error: "Game is full" });
+      }
+
+      const joinResult = await client.query(
+        `
+        INSERT INTO vanta_play_participants (
+          game_id,
+          user_id,
+          status
+        )
+        VALUES ($1, $2, 'joined')
+        ON CONFLICT (game_id, user_id) DO NOTHING
+        RETURNING *
+        `,
+        [game.id, userId],
+      );
+
+      const newlyJoined = Boolean(joinResult.rows[0]);
+
+      await client.query("COMMIT");
+
+      let passportResult = null;
+
+      if (newlyJoined) {
+        passportResult = await recordPassportEvent({
+          userId,
+          app: "vanta_play",
+          eventType: "game_joined",
+          title: `Joined ${game.sport} game`,
+          detail: `${game.venue} · ${game.city}`,
+          xp: 0,
+          metadata: {
+            gameId: game.id,
+            sport: game.sport,
+            city: game.city,
+            venue: game.venue,
+            date: game.game_date,
+            time: game.game_time,
+            skill: game.skill,
+          },
+        });
+      }
+
+      res.json({
+        joined: true,
+        newlyJoined,
+        gameId: game.id,
+        passport: passportResult,
+      });
+    } catch (e: any) {
+      await client.query("ROLLBACK");
+      console.error("Vanta Play join error:", e);
+      res.status(500).json({ error: "Unable to join game" });
+    } finally {
+      client.release();
+    }
+  },
+);
+
+
+// Leave a real game
+app.delete(
+  "/api/play/games/:id/join",
+  requireUser,
+  async (req: Request, res: Response) => {
+    try {
+      const { userId } = (req as any).currentUser;
+
+      await pool.query(
+        `
+        DELETE FROM vanta_play_participants
+        WHERE game_id = $1
+          AND user_id = $2
+        `,
+        [req.params.id, userId],
+      );
+
+      res.json({ joined: false });
+    } catch (e: any) {
+      console.error("Vanta Play leave error:", e);
+      res.status(500).json({ error: "Unable to leave game" });
+    }
+  },
+);
+
   // ── Update own profile ────────────────────────────────────────────
   app.patch("/api/profile", requireUser, async (req: Request, res: Response) => {
     try {

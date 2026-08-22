@@ -1,8 +1,10 @@
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Link } from "wouter";
+import { useToast } from "@/hooks/use-toast";
+import { getUserToken } from "@/hooks/use-user";
 
 type Game = {
-  id: number;
+  id: string;
   sport: string;
   city: string;
   venue: string;
@@ -37,7 +39,7 @@ const cities = [
 
 const starterGames: Game[] = [
   {
-    id: 1,
+    id: "seed-football",
     sport: "Football",
     city: "Johannesburg",
     venue: "Zoo Lake Sports Club",
@@ -48,7 +50,7 @@ const starterGames: Game[] = [
     capacity: 12,
   },
   {
-    id: 2,
+    id: "seed-basketball",
     sport: "Basketball",
     city: "Johannesburg",
     venue: "Wits Basketball Courts",
@@ -59,7 +61,7 @@ const starterGames: Game[] = [
     capacity: 6,
   },
   {
-    id: 3,
+    id: "seed-padel",
     sport: "Padel",
     city: "Pretoria",
     venue: "Pretoria East Padel",
@@ -70,7 +72,7 @@ const starterGames: Game[] = [
     capacity: 4,
   },
   {
-    id: 4,
+    id: "seed-running",
     sport: "Running",
     city: "Cape Town",
     venue: "Sea Point Promenade",
@@ -86,8 +88,29 @@ export default function VantaPlay() {
   const [selectedCity, setSelectedCity] = useState("Johannesburg");
   const [selectedSport, setSelectedSport] = useState("All Sports");
   const [games, setGames] = useState<Game[]>(starterGames);
-  const [joinedGames, setJoinedGames] = useState<number[]>([]);
+  const [joinedGames, setJoinedGames] = useState<string[]>([]);
   const [showHostForm, setShowHostForm] = useState(false);
+
+  const { toast } = useToast();
+  useEffect(() => {
+  async function loadGames() {
+    try {
+      const response = await fetch("/api/play/games");
+
+      if (!response.ok) {
+        console.error("Unable to load Vanta Play games");
+        return;
+      }
+
+      const data: Game[] = await response.json();
+      setGames(data);
+    } catch (error) {
+      console.error("Vanta Play load error:", error);
+    }
+  }
+
+  loadGames();
+}, []);
 
   const filteredGames = useMemo(() => {
     return games.filter((game) => {
@@ -99,8 +122,26 @@ export default function VantaPlay() {
     });
   }, [games, selectedCity, selectedSport]);
 
-  async function joinGame(gameId: number) {
-    if (joinedGames.includes(gameId)) {
+  async function joinGame(gameId: string) {
+  const selectedGame = games.find((game) => game.id === gameId);
+
+  if (!selectedGame) return;
+
+  // LEAVE GAME
+  if (joinedGames.includes(gameId)) {
+    try {
+      const token = getUserToken();
+
+const response = await fetch(`/api/play/games/${gameId}/join`, {
+  method: "DELETE",
+  headers: token ? { "X-User-Token": token } : {},
+});
+
+      if (!response.ok) {
+        console.error("Unable to leave game");
+        return;
+      }
+
       setJoinedGames((current) =>
         current.filter((joinedId) => joinedId !== gameId),
       );
@@ -112,57 +153,68 @@ export default function VantaPlay() {
             : game,
         ),
       );
-
-      return;
+    } catch (error) {
+      console.error("Vanta Play leave error:", error);
     }
 
-    const selectedGame = games.find((game) => game.id === gameId);
+    return;
+  }
 
-    if (!selectedGame || selectedGame.players >= selectedGame.capacity) {
+  if (selectedGame.players >= selectedGame.capacity) {
+    return;
+  }
+
+  // JOIN GAME
+  try {
+    const token = getUserToken();
+
+const response = await fetch(`/api/play/games/${gameId}/join`, {
+  method: "POST",
+  headers: token ? { "X-User-Token": token } : {},
+});
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      toast({
+        title: "Unable to join game",
+        description: data.error || "Try again.",
+      });
       return;
     }
 
     setJoinedGames((current) => [...current, gameId]);
 
-    setGames((current) =>
-      current.map((game) =>
-        game.id === gameId
-          ? { ...game, players: game.players + 1 }
-          : game,
-      ),
-    );
-  try {
-  const response = await fetch("/api/passport/event", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      app: "vanta_play",
-      eventType: "game_joined",
-      title: `Joined ${selectedGame.sport} game`,
-      detail: `${selectedGame.venue} · ${selectedGame.city}`,
-      xp: 0,
-      metadata: {
-        gameId: selectedGame.id,
-        sport: selectedGame.sport,
-        city: selectedGame.city,
-        venue: selectedGame.venue,
-        date: selectedGame.date,
-        time: selectedGame.time,
-        skill: selectedGame.skill,
-      },
-    }),
-  });
+    if (data.newlyJoined) {
+      setGames((current) =>
+        current.map((game) =>
+          game.id === gameId
+            ? { ...game, players: game.players + 1 }
+            : game,
+        ),
+      );
+    }
 
-  if (!response.ok) {
-    console.error("Unable to record Passport game join");
+    const passport = data.passport;
+
+    if (passport?.achievement) {
+      toast({
+        title: "ACHIEVEMENT UNLOCKED",
+        description: `${passport.achievement.title} · +${passport.xpAdded} Passport XP`,
+      });
+    }
+
+    if (passport?.leveledUp) {
+      toast({
+        title: "PASSPORT LEVEL UP",
+        description: `Level ${String(passport.newLevel).padStart(2, "0")} reached`,
+      });
+    }
+  } catch (error) {
+    console.error("Vanta Play join error:", error);
   }
-} catch (error) {
-  console.error("Passport event error:", error);
 }
-  }
-  function hostGame(event: FormEvent<HTMLFormElement>) {
+  async function hostGame(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const form = new FormData(event.currentTarget);
@@ -174,23 +226,47 @@ export default function VantaPlay() {
     const skill = String(form.get("skill"));
     const capacity = Number(form.get("capacity"));
 
-    const newGame: Game = {
-      id: Date.now(),
+    try {
+  const response = await fetch("/api/play/games", {
+    method: "POST",
+    headers: {
+  "Content-Type": "application/json",
+  ...(getUserToken() ? { "X-User-Token": getUserToken()! } : {}),
+},
+    body: JSON.stringify({
       sport,
       city,
       venue,
       date,
       time,
       skill,
-      players: 1,
       capacity,
-    };
+    }),
+  });
 
-    setGames((current) => [newGame, ...current]);
-    setSelectedCity(city);
-    setSelectedSport("All Sports");
-    setShowHostForm(false);
-    event.currentTarget.reset();
+  const data = await response.json();
+
+  if (!response.ok) {
+    toast({
+      title: "Unable to host game",
+      description: data.error || "Try again.",
+    });
+    return;
+  }
+
+  setGames((current) => [data, ...current]);
+  setSelectedCity(city);
+  setSelectedSport("All Sports");
+  setShowHostForm(false);
+  event.currentTarget.reset();
+
+  toast({
+    title: "GAME CREATED",
+    description: `${sport} · ${venue}`,
+  });
+} catch (error) {
+  console.error("Vanta Play host error:", error);
+}
   }
 
   return (
