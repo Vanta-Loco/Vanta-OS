@@ -467,6 +467,61 @@ async function seedEcosystem() {
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS passport_events (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  passport_id UUID NOT NULL REFERENCES user_passports(id) ON DELETE CASCADE,
+
+  app TEXT NOT NULL,
+  event_type TEXT NOT NULL,
+  title TEXT NOT NULL,
+  detail TEXT NOT NULL DEFAULT '',
+
+  xp_awarded INTEGER NOT NULL DEFAULT 0,
+  metadata JSONB NOT NULL DEFAULT '{}',
+
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS passport_events_passport_id_idx
+  ON passport_events(passport_id);
+
+CREATE INDEX IF NOT EXISTS passport_events_created_at_idx
+  ON passport_events(created_at DESC);
+
+
+CREATE TABLE IF NOT EXISTS passport_achievements (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+  slug TEXT NOT NULL UNIQUE,
+  title TEXT NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
+
+  app TEXT NOT NULL DEFAULT 'vanta',
+  category TEXT NOT NULL DEFAULT 'general',
+  rarity TEXT NOT NULL DEFAULT 'common',
+
+  xp_reward INTEGER NOT NULL DEFAULT 0,
+  icon_key TEXT NOT NULL DEFAULT '',
+
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+
+CREATE TABLE IF NOT EXISTS passport_achievement_unlocks (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+  passport_id UUID NOT NULL REFERENCES user_passports(id) ON DELETE CASCADE,
+  achievement_id UUID NOT NULL REFERENCES passport_achievements(id) ON DELETE CASCADE,
+
+  progress INTEGER NOT NULL DEFAULT 100,
+  unlocked_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+  UNIQUE(passport_id, achievement_id)
+);
+
+CREATE INDEX IF NOT EXISTS passport_achievement_unlocks_passport_id_idx
+  ON passport_achievement_unlocks(passport_id);
+
     CREATE TABLE IF NOT EXISTS world_settings (
       id               SERIAL PRIMARY KEY,
       status           TEXT NOT NULL DEFAULT 'active',
@@ -552,6 +607,52 @@ async function seedEcosystem() {
       updated_at            TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
   `);
+
+  await pool.query(`
+  INSERT INTO passport_achievements (
+    slug,
+    title,
+    description,
+    app,
+    category,
+    rarity,
+    xp_reward,
+    icon_key
+  )
+  VALUES
+    (
+      'first-boot',
+      'First Boot',
+      'Enter Vanta OS for the first time.',
+      'vanta_os',
+      'system',
+      'common',
+      10,
+      'boot'
+    ),
+    (
+      'game-on',
+      'Game On',
+      'Join your first Vanta Play game.',
+      'vanta_play',
+      'sport',
+      'common',
+      25,
+      'play'
+    ),
+    (
+      'explorer',
+      'Explorer',
+      'Enter your first Vanta World.',
+      'vanta_world',
+      'worlds',
+      'common',
+      15,
+      'world'
+    )
+  ON CONFLICT (slug) DO NOTHING;
+`);
+
   console.log("✓ Ecosystem tables ready");
 
   // ── Seed first dev log ──────────────────────────────────────────

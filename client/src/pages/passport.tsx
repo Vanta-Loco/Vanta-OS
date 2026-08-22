@@ -13,13 +13,40 @@ type PassportData = {
   updated_at: string;
 };
 
+type PassportEvent = {
+  id: string;
+  app: string;
+  event_type: string;
+  title: string;
+  detail: string;
+  xp_awarded: number;
+  metadata: Record<string, unknown>;
+  created_at: string;
+};
+
+type PassportAchievement = {
+  id: string;
+  slug: string;
+  title: string;
+  description: string;
+  app: string;
+  category: string;
+  rarity: string;
+  xp_reward: number;
+  icon_key: string;
+  unlocked: boolean;
+  unlocked_at: string | null;
+  progress: number;
+};
+
 export default function Passport() {
   const { user, isAuthenticated, isLoading } = useUser();
 
   const [passport, setPassport] = useState<PassportData | null>(null);
   const [passportLoading, setPassportLoading] = useState(true);
   const [passportError, setPassportError] = useState("");
-
+  const [events, setEvents] = useState<PassportEvent[]>([]);
+  const [achievements, setAchievements] = useState<PassportAchievement[]>([]);
   useEffect(() => {
     if (isLoading) return;
 
@@ -33,14 +60,30 @@ export default function Passport() {
         setPassportLoading(true);
         setPassportError("");
 
-        const res = await fetch("/api/passport");
+        const [passportRes, eventsRes, achievementsRes] = await Promise.all([
+  fetch("/api/passport"),
+  fetch("/api/passport/events"),
+  fetch("/api/passport/achievements"),
+]);
 
-        if (!res.ok) {
-          throw new Error("Could not load Passport");
-        }
+if (!passportRes.ok) {
+  throw new Error("Could not load Passport");
+}
 
-        const data: PassportData = await res.json();
-        setPassport(data);
+const passportData: PassportData = await passportRes.json();
+setPassport(passportData);
+
+if (eventsRes.ok) {
+  const eventsData: PassportEvent[] = await eventsRes.json();
+  setEvents(eventsData);
+}
+
+if (achievementsRes.ok) {
+  const achievementsData: PassportAchievement[] =
+    await achievementsRes.json();
+
+  setAchievements(achievementsData);
+}
       } catch (error) {
         console.error(error);
         setPassportError("Passport unavailable");
@@ -111,7 +154,6 @@ export default function Passport() {
 }
 
   return (
- 
     <main className="min-h-screen bg-background text-foreground">
       <section className="mx-auto max-w-6xl px-5 py-14 md:py-20">
 
@@ -139,7 +181,7 @@ export default function Passport() {
           Games. Music. Sport. Culture. Worlds. Community. Your activity,
           achievements and identity travel with you across Vanta.
         </p>
-
+        </section>
         {/* PASSPORT CARD */}
 
 <section className="mt-14 rounded-2xl border border-border bg-card p-6 md:p-8">
@@ -224,70 +266,73 @@ export default function Passport() {
           <h2 className="mt-3 text-3xl font-medium">
             Your Vanta
           </h2>
+        </section>
 
-{/* APP RECORDS */}
+        {/* APP RECORDS */}
 
-<section className="mt-16">
-  <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">
-    App Records
-  </p>
+        <section className="mt-16">
+          <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">
+            App Records
+          </p>
 
-  <h2 className="mt-3 text-3xl font-medium">
-    Activity across Vanta
-  </h2>
+          <h2 className="mt-3 text-3xl font-medium">
+            Activity across Vanta
+          </h2>
 
-  <div className="mt-7 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-    {[
-      {
-        title: "Vanta Play",
-        stat: "12 Games",
-        detail: "7 reputation · 3 current streak",
-      },
-      {
-        title: "Vanta Games",
-        stat: "23 Achievements",
-        detail: "4 rare unlocks · 2 games completed",
-      },
-      {
-        title: "Worlds",
-        stat: "4 Zones",
-        detail: "9 discoveries · 2 hidden locations",
-      },
-      {
-        title: "Stonerism",
-        stat: "7 Contributions",
-        detail: "Reviews, articles and community activity",
-      },
-      {
-        title: "Music",
-        stat: "5 Milestones",
-        detail: "Releases, listening and creator activity",
-      },
-      {
-        title: "Wireline",
-        stat: "3 Circles",
-        detail: "Community participation and connections",
-      },
-    ].map((record) => (
-      <article
-        key={record.title}
-        className="rounded-xl border border-border bg-card p-5"
-      >
-        <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-          {record.title}
-        </p>
+          {events.length === 0 ? (
+    <div className="mt-7 rounded-xl border border-dashed border-border p-8">
+      <h3 className="text-lg font-medium">
+        No Passport activity yet
+      </h3>
 
-        <p className="mt-4 text-2xl font-semibold">
-          {record.stat}
-        </p>
+      <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+        Explore Vanta, join a game, enter a World, contribute to Stonerism or
+        unlock an achievement to begin your record.
+      </p>
+    </div>
+  ) : (
+    <div className="mt-7 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      {Object.entries(
+        events.reduce<Record<string, PassportEvent[]>>((groups, event) => {
+          const key = event.app;
 
-        <p className="mt-2 text-sm leading-6 text-muted-foreground">
-          {record.detail}
-        </p>
-      </article>
-    ))}
-  </div>
+          if (!groups[key]) {
+            groups[key] = [];
+          }
+
+          groups[key].push(event);
+          return groups;
+        }, {})
+      ).map(([app, appEvents]) => {
+        const totalXp = appEvents.reduce(
+          (sum, event) => sum + Number(event.xp_awarded || 0),
+          0
+        );
+
+        return (
+          <article
+            key={app}
+            className="rounded-xl border border-border bg-card p-5"
+          >
+            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+              {app.split("_").join(" ")}
+            </p>
+
+            <p className="mt-4 text-2xl font-semibold">
+              {appEvents.length}{" "}
+              {appEvents.length === 1 ? "Activity" : "Activities"}
+            </p>
+
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              {totalXp} Passport XP earned
+            </p>
+          </article>
+        );
+      })}
+    </div>
+  )}
 </section>
+    
 
 {/* ACHIEVEMENT CABINET */}
 
@@ -296,377 +341,95 @@ export default function Passport() {
     Achievement Cabinet
   </p>
 
-  <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
-    <div>
-      <h2 className="text-3xl font-medium">
-        Your collection
-      </h2>
+    
+    <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
+  <div>
+    <h2 className="text-3xl font-medium">
+      Your Collection
+    </h2>
 
-      <p className="mt-2 text-sm text-muted-foreground">
-        Achievements earned across the Vanta ecosystem.
-      </p>
-    </div>
-
-    <p className="text-sm text-muted-foreground">
-      6 / 48 unlocked
+    <p className="mt-2 text-sm text-muted-foreground">
+      Achievements earned across the Vanta ecosystem.
     </p>
   </div>
 
-  <div className="mt-7 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
-    {[
-      {
-        mark: "01",
-        title: "First Boot",
-        source: "Vanta OS",
-        rarity: "Common",
-      },
-      {
-        mark: "VP",
-        title: "Game On",
-        source: "Vanta Play",
-        rarity: "Common",
-      },
-      {
-        mark: "VW",
-        title: "Explorer",
-        source: "Vanta World",
-        rarity: "Uncommon",
-      },
-      {
-        mark: "VG",
-        title: "First Trophy",
-        source: "Vanta Games",
-        rarity: "Uncommon",
-      },
-      {
-        mark: "ST",
-        title: "Contributor",
-        source: "Stonerism",
-        rarity: "Rare",
-      },
-      {
-        mark: "??",
-        title: "Unknown",
-        source: "Hidden",
-        rarity: "Locked",
-      },
-    ].map((achievement) => (
+  <p className="text-sm text-muted-foreground">
+    {achievements.filter((achievement) => achievement.unlocked).length} /{" "}
+    {achievements.length} unlocked
+  </p>
+</div>
+
+{achievements.length === 0 ? (
+  <div className="mt-7 rounded-xl border border-dashed border-border p-8">
+    <h3 className="text-lg font-medium">
+      No achievements available yet
+    </h3>
+
+    <p className="mt-2 text-sm text-muted-foreground">
+      Passport achievements will appear here as they become available.
+    </p>
+  </div>
+) : (
+  <div className="mt-7 grid grid-cols-2 gap-4 md:grid-cols-3">
+    {achievements.map((achievement) => (
       <article
-        key={achievement.title}
-        className="rounded-xl border border-border bg-card p-4"
+        key={achievement.id}
+        className={`rounded-xl border border-border bg-card p-4 ${
+          achievement.unlocked ? "" : "opacity-50"
+        }`}
       >
         <div className="flex h-12 w-12 items-center justify-center rounded-full border border-border text-sm font-semibold">
-          {achievement.mark}
+          {achievement.unlocked
+            ? achievement.icon_key?.slice(0, 2).toUpperCase() || "VA"
+            : "??"}
         </div>
 
         <h3 className="mt-5 font-medium">
-          {achievement.title}
+          {achievement.unlocked ? achievement.title : "Locked"}
         </h3>
 
         <p className="mt-1 text-xs text-muted-foreground">
-          {achievement.source}
+          {achievement.app.split("_").join(" ")}
         </p>
 
-        <p className="mt-4 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-          {achievement.rarity}
+        <p className="mt-3 text-sm leading-6 text-muted-foreground">
+          {achievement.unlocked
+            ? achievement.description
+            : "Complete this achievement to reveal it."}
         </p>
+
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+            {achievement.rarity}
+          </p>
+
+          <p className="text-xs text-muted-foreground">
+            +{achievement.xp_reward} XP
+          </p>
+        </div>
       </article>
     ))}
   </div>
+)}
 </section>
 
 {/* RECENT ACTIVITY */}
 
-<section className="mt-16">
-  <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">
-    Recent Activity
-  </p>
-
-  <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
-    <div>
-      <h2 className="text-3xl font-medium">
-        Passport history
-      </h2>
-
-      <p className="mt-2 text-sm text-muted-foreground">
-        Recent activity recorded across Vanta.
-      </p>
-    </div>
-
-    <button
-      type="button"
-      className="rounded-md border border-border px-4 py-2 text-sm"
-    >
-      View Full History
-    </button>
-  </div>
-
-  <div className="mt-7 overflow-hidden rounded-xl border border-border bg-card">
-    {[
-      {
-        app: "Vanta Play",
-        action: "Joined Friday Night Basketball",
-        detail: "Wanderers Club · Johannesburg",
-        time: "Today",
-      },
-      {
-        app: "Vanta Games",
-        action: "Unlocked First Trophy",
-        detail: "Achievement added to Passport",
-        time: "Yesterday",
-      },
-      {
-        app: "Vanta World",
-        action: "Entered District",
-        detail: "New location added to exploration record",
-        time: "2 days ago",
-      },
-      {
-        app: "Stonerism",
-        action: "Made a community contribution",
-        detail: "Activity recorded in culture profile",
-        time: "3 days ago",
-      },
-      {
-        app: "Music",
-        action: "Reached a new milestone",
-        detail: "Creator activity added to Passport",
-        time: "4 days ago",
-      },
-    ].map((activity, index) => (
-      <div
-        key={`${activity.app}-${activity.action}`}
-        className={`flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between ${
-          index !== 4 ? "border-b border-border" : ""
-        }`}
-      >
-        <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-            {activity.app}
-          </p>
-
-          <h3 className="mt-2 text-sm font-medium">
-            {activity.action}
-          </h3>
-
-          <p className="mt-1 text-xs text-muted-foreground">
-            {activity.detail}
-          </p>
-        </div>
-
-        <p className="text-xs text-muted-foreground">
-          {activity.time}
-        </p>
-      </div>
-    ))}
-  </div>
-</section>
-
-          <div className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-
-            {[
-              ["Gaming", "Achievements, games and discoveries"],
-              ["Play", "Sport, matches and reputation"],
-              ["Worlds", "Exploration and world achievements"],
-              ["Stonerism", "Culture, reviews and contributions"],
-              ["Music", "Releases, listening and creator activity"],
-              ["Wireline", "Community and connections"],
-            ].map(([title, description]) => (
-              <article
-                key={title}
-                className="rounded-xl border border-border bg-card p-5"
-              >
-                <h3 className="text-lg font-medium">
-                  {title}
-                </h3>
-
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  {description}
-                </p>
-
-                <p className="mt-5 text-xs uppercase tracking-[0.2em] text-muted-foreground">
-                  Connected
-                </p>
-              </article>
-            ))}
-
-          </div>
-        </section>
 
         {/* ACHIEVEMENTS */}
 
-        <section className="mt-16">
-          <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">
-            Achievements
-          </p>
-
-          <h2 className="mt-3 text-3xl font-medium">
-            Passport milestones
-          </h2>
-
-          <div className="mt-7 grid gap-4 md:grid-cols-3">
-
-            <article className="rounded-xl border border-border p-5">
-              <p className="text-2xl">🎮</p>
-              <h3 className="mt-4 font-medium">First Boot</h3>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Enter Vanta OS for the first time.
-              </p>
-            </article>
-
-            <article className="rounded-xl border border-border p-5">
-              <p className="text-2xl">🏀</p>
-              <h3 className="mt-4 font-medium">Game On</h3>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Join your first Vanta Play game.
-              </p>
-            </article>
-
-            <article className="rounded-xl border border-border p-5">
-              <p className="text-2xl">🌍</p>
-              <h3 className="mt-4 font-medium">Explorer</h3>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Enter your first Vanta World.
-              </p>
-            </article>
-
-          </div>
-        </section>
+        
 
             {/* JOURNEY / RECENT ACTIVITY */}
-    <section className="mt-16">
-      <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">
-        Journey
-      </p>
-
-      <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h2 className="text-3xl font-medium">
-            Recent activity
-          </h2>
-
-          <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-            Your activity across the Vanta ecosystem travels with your Passport.
-          </p>
-        </div>
-
-        <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-          Passport Log
-        </p>
-      </div>
-
-      <div className="mt-7 space-y-3">
-
-        {/* VANTA PLAY */}
-        <article className="flex gap-4 rounded-xl border border-border p-5">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-border">
-            VP
-          </div>
-
-          <div className="flex-1">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <h3 className="font-medium">
-                Joined Friday Night Basketball
-              </h3>
-
-              <span className="text-xs text-muted-foreground">
-                Vanta Play
-              </span>
-            </div>
-
-            <p className="mt-1 text-sm text-muted-foreground">
-              Wanderers Club · Johannesburg
-            </p>
-
-            <p className="mt-3 text-xs uppercase tracking-[0.2em] text-muted-foreground">
-              +25 Passport XP
-            </p>
-          </div>
-        </article>
+    
 
         {/* VANTA WORLD */}
-        <article className="flex gap-4 rounded-xl border border-border p-5">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-border">
-            VW
-          </div>
-
-          <div className="flex-1">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <h3 className="font-medium">
-                Entered Vanta World
-              </h3>
-
-              <span className="text-xs text-muted-foreground">
-                Worlds
-              </span>
-            </div>
-
-            <p className="mt-1 text-sm text-muted-foreground">
-              First world session recorded.
-            </p>
-
-            <p className="mt-3 text-xs uppercase tracking-[0.2em] text-muted-foreground">
-              +10 Passport XP
-            </p>
-          </div>
-        </article>
+        
 
         {/* STONERISM */}
-        <article className="flex gap-4 rounded-xl border border-border p-5">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-border">
-            ST
-          </div>
-
-          <div className="flex-1">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <h3 className="font-medium">
-                Explored Stonerism
-              </h3>
-
-              <span className="text-xs text-muted-foreground">
-                Stonerism
-              </span>
-            </div>
-
-            <p className="mt-1 text-sm text-muted-foreground">
-              Discovered another corner of the Vanta ecosystem.
-            </p>
-
-            <p className="mt-3 text-xs uppercase tracking-[0.2em] text-muted-foreground">
-              +5 Passport XP
-            </p>
-          </div>
-        </article>
-
+        
         {/* VANTA GAMES */}
-        <article className="flex gap-4 rounded-xl border border-border p-5">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-border">
-            VG
-          </div>
-
-          <div className="flex-1">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <h3 className="font-medium">
-                Achievement unlocked
-              </h3>
-
-              <span className="text-xs text-muted-foreground">
-                Vanta Games
-              </span>
-            </div>
-
-            <p className="mt-1 text-sm text-muted-foreground">
-              First Steps · Enter the city for the first time.
-            </p>
-
-            <p className="mt-3 text-xs uppercase tracking-[0.2em] text-muted-foreground">
-              +15 Passport XP
-            </p>
-          </div>
-        </article>
-
-      </div>
-    </section>
+        
 
         <Link href="/">
           <a className="mt-12 inline-block text-sm underline underline-offset-4">
@@ -674,7 +437,7 @@ export default function Passport() {
           </a>
         </Link>
 
-      </section>
+
     </main>
   );
 }

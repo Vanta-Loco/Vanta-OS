@@ -7,6 +7,7 @@ import {
   getRequestUser, requireUser,
   RESERVED_USERNAMES,
 } from "./user-auth";
+import { recordPassportEvent } from "./passport-service";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -268,6 +269,121 @@ app.get("/api/passport", requireUser, async (req: Request, res: Response) => {
   } catch (e: any) {
     console.error("Passport error:", e);
     res.status(500).json({ error: "Unable to load Passport" });
+  }
+});
+
+// ─── Passport Events ─────────────────────────────────────────────────────
+app.get("/api/passport/events", requireUser, async (req: Request, res: Response) => {
+  try {
+    const { userId } = (req as any).currentUser;
+
+    const result = await pool.query(
+      `
+      SELECT
+        e.id,
+        e.app,
+        e.event_type,
+        e.title,
+        e.detail,
+        e.xp_awarded,
+        e.metadata,
+        e.created_at
+      FROM passport_events e
+      JOIN user_passports p ON p.id = e.passport_id
+      WHERE p.user_id = $1
+      ORDER BY e.created_at DESC
+      LIMIT 100
+      `,
+      [userId]
+    );
+
+    res.json(result.rows);
+  } catch (e: any) {
+    console.error("Passport events error:", e);
+    res.status(500).json({ error: "Unable to load Passport activity" });
+  }
+});
+
+app.post(
+  "/api/passport/event",
+  requireUser,
+  async (req: Request, res: Response) => {
+    try {
+      const { userId } = (req as any).currentUser;
+      const {
+        app: eventApp,
+        eventType,
+        title,
+        detail,
+        xp = 0,
+        metadata = {},
+      } = req.body;
+
+      if (!eventApp || !eventType || !title) {
+        return res.status(400).json({
+          error: "app, eventType and title are required",
+        });
+      }
+
+      const result = await recordPassportEvent({
+        userId,
+        app: eventApp,
+        eventType,
+        title,
+        detail,
+        xp,
+        metadata,
+      });
+
+      res.json(result);
+    } catch (e: any) {
+      console.error("Passport event error:", e);
+      res.status(500).json({
+        error: "Unable to record Passport event",
+      });
+    }
+  }
+);
+
+
+// ─── Passport Achievements ───────────────────────────────────────────────
+app.get("/api/passport/achievements", requireUser, async (req: Request, res: Response) => {
+  try {
+    const { userId } = (req as any).currentUser;
+
+    const result = await pool.query(
+      `
+      SELECT
+        a.id,
+        a.slug,
+        a.title,
+        a.description,
+        a.app,
+        a.category,
+        a.rarity,
+        a.xp_reward,
+        a.icon_key,
+        CASE WHEN u.id IS NOT NULL THEN true ELSE false END AS unlocked,
+        u.unlocked_at,
+        COALESCE(u.progress, 0) AS progress
+      FROM passport_achievements a
+      LEFT JOIN user_passports p
+        ON p.user_id = $1
+      LEFT JOIN passport_achievement_unlocks u
+        ON u.passport_id = p.id
+        AND u.achievement_id = a.id
+      ORDER BY
+        CASE WHEN u.id IS NOT NULL THEN 0 ELSE 1 END,
+        u.unlocked_at DESC NULLS LAST,
+        a.created_at ASC
+      `,
+      [userId]
+    );
+
+    res.json(result.rows);
+  } catch (e: any) {
+    console.error("Passport achievements error:", e);
+    res.status(500).json({ error: "Unable to load Passport achievements" });
   }
 });
 

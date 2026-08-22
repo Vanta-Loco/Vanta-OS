@@ -99,7 +99,7 @@ export default function VantaPlay() {
     });
   }, [games, selectedCity, selectedSport]);
 
-  function joinGame(gameId: number) {
+  async function joinGame(gameId: number) {
     if (joinedGames.includes(gameId)) {
       setJoinedGames((current) =>
         current.filter((joinedId) => joinedId !== gameId),
@@ -131,8 +131,37 @@ export default function VantaPlay() {
           : game,
       ),
     );
-  }
+  try {
+  const response = await fetch("/api/passport/event", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      app: "vanta_play",
+      eventType: "game_joined",
+      title: `Joined ${selectedGame.sport} game`,
+      detail: `${selectedGame.venue} · ${selectedGame.city}`,
+      xp: 0,
+      metadata: {
+        gameId: selectedGame.id,
+        sport: selectedGame.sport,
+        city: selectedGame.city,
+        venue: selectedGame.venue,
+        date: selectedGame.date,
+        time: selectedGame.time,
+        skill: selectedGame.skill,
+      },
+    }),
+  });
 
+  if (!response.ok) {
+    console.error("Unable to record Passport game join");
+  }
+} catch (error) {
+  console.error("Passport event error:", error);
+}
+  }
   function hostGame(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
