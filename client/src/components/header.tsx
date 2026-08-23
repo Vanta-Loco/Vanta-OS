@@ -9,7 +9,7 @@ import { useUser } from "@/hooks/use-user";
 import {
   PenSquare, Search, LayoutDashboard, LogOut, LockKeyhole,
   Terminal, ChevronDown, Menu, X,
-  MapPin, Database, Radio, Coins, Mountain, Skull, Leaf,
+  MapPin, Database, Radio, Coins, Mountain, Skull, Leaf, Users,
   Grid3x3, User, Settings, BookOpen, Clock, Trophy,
 } from "lucide-react";
 import {
@@ -29,6 +29,7 @@ const navLinks = [
 const osLinks = [
   { href: "/world",      label: "District",         desc: "Vanta City map",       Icon: MapPin    },
   { href: "/play",       label: "Play",             desc: "Pickup sports, competitions and community activity", Icon: Trophy},
+  { href: "/rooms",      label: "Rooms",            desc: "Creative spaces and community rooms", Icon: Users},
   { href: "/passport",   label: "Passport",         description: "Identity, achievements and activity across Vanta", Icon: User,},
   { href: "/search",     label: "Black Index",       desc: "Archive search",       Icon: Database  },
   { href: "/wireline",   label: "Wireline",          desc: "Dispatch relay",       Icon: Radio     },

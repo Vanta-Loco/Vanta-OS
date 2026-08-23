@@ -1,0 +1,137 @@
+Implement the next Rooms visual/product pass across the existing Vanta Cold / Vanta OS project.
+Do not rebuild the app.
+Do not change Passport, Vanta Play, XP/achievement logic, startup flow, auth architecture, Vault, Releases, or unrelated features.
+Preserve all existing working Rooms backend/API behavior, including:
+/rooms
+/rooms/:id
+join / leave
+members
+feed posts
+owner protection
+existing token auth
+Main goal
+Turn Rooms into a real Vanta app inside Vanta OS and upgrade the Room detail pages so they feel like actual spaces, not just lightly decorated panels.
+Part 1 — Make Rooms a proper app in Vanta OS
+Add Rooms into the existing Vanta navigation system:
+Add Rooms to the app launcher / OS launcher
+Add Rooms to the main navigation/header if appropriate
+Keep desktop and mobile navigation behavior consistent with existing patterns
+Do not remove or break existing app entries
+Rooms should feel like a first-class app alongside Passport, Play, Worlds, etc.
+Part 2 — Improve the /rooms discovery page
+Keep the existing backend-driven room discovery behavior, but improve the page presentation.
+Requirements:
+Preserve real data from GET /api/rooms
+Preserve category filters
+Preserve room creation flow
+Preserve guest login redirects for protected actions
+Improve the layout so it feels like a proper Vanta app landing page
+Add a stronger hero/introduction section for Rooms
+Make room cards more visually expressive and premium
+Each room card should preview the mood of the room category
+Part 3 — Upgrade /rooms/:id into immersive visual environments
+Keep all existing functionality:
+room identity
+join / leave
+members count
+feed
+members tab
+work tab
+listings tab
+text posting for joined members
+But visually transform the room page so the space feels like a real environment.
+Important:
+The decorative visuals must stay behind the functional UI and must not block clicking, typing, scrolling, or navigation.
+Use reusable category-based scene rendering logic.
+Fashion Room visual direction
+When the room category is Fashion, render a proper warehouse / showroom environment behind the UI.
+Target mood:
+industrial
+stylish
+dark and premium
+underground fashion energy
+Include environmental cues such as:
+concrete or polished cement floor feel
+tall steel-frame warehouse windows
+garment rack silhouettes
+hanging clothing forms
+standing mirror
+mannequins
+crates or styling boxes
+worktable / fitting area
+subtle lighting glow
+stronger depth, shadow, and dimensionality than the current line-art treatment
+This should feel like a real fashion room / warehouse studio, not abstract placeholder decoration.
+Music Room visual direction
+When the room category is Music, render a proper bedroom producer / artist room environment behind the UI.
+Target mood:
+late-night
+emotional
+underground
+bedroom studio
+Vanta / shoegaze / Y2K mood
+Include environmental cues such as:
+bed silhouette or bedroom corner
+producer desk
+monitor or DAW screen glow
+studio speakers
+MIDI keyboard or small controller
+CRT or old computer/TV accent
+posters or wall decor silhouettes
+cable details
+headphones / mic / studio equipment hints
+moody dim lighting with subtle blue/purple glow
+more depth and rendered presence than the current simple decorative lines
+This should feel like a real artist/producer room.
+Visual / Media Rooms
+For Visual and Media rooms, improve the environment quality so they also feel intentional and spatial, even if they remain simpler than Fashion and Music.
+Possible direction:
+Visual = creator studio / design space
+Media = editorial / archive / broadcast-inspired room
+UI / layout requirements
+Keep the page readable
+Keep text contrast strong
+Preserve all existing tabs and functionality
+The environment should enhance the room, not overpower the content
+Ensure good desktop presentation first, then responsive adjustments for tablet/mobile
+Simplify or reduce decorative elements on smaller screens when necessary
+Do not block the feed composer or tab interactions
+Feed area refinement
+Improve the feed section layout so it feels more intentional:
+clearer composer area for joined members
+clearer empty state for non-members
+cleaner spacing between room hero area, tabs, composer, and posts
+make the page feel premium and deliberate
+Do not change posting logic, only improve UX and visual presentation.
+Preserve functionality
+Do not break:
+room creation
+join / leave
+owner cannot leave own room
+room members list
+room feed persistence
+guest browse behavior
+protected actions redirecting to login
+global Vanta header/app launcher
+all existing routes outside Rooms
+Files likely involved
+Only modify what is necessary, likely including:
+client/src/App.tsx
+client/src/components/header.tsx
+client/src/components/app-launcher.tsx
+client/src/pages/rooms.tsx
+client/src/pages/room-detail.tsx
+(or whatever the actual Rooms page filenames are)
+Do not modify Passport XP logic, Vanta Play logic, or unrelated backend features.
+Verification
+After implementation:
+run type checks
+run build if available
+verify /rooms
+verify /rooms/:id
+verify Rooms is visible from the app launcher / OS
+verify Fashion Room shows warehouse/showroom mood
+verify Music Room shows bedroom studio mood
+verify feed still works
+verify join / leave still works
+verify mobile does not break badly

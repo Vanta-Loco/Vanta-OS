@@ -15,52 +15,54 @@ type Room = {
 type Post = { id: string; body: string; created_at: string; username: string; display_name?: string };
 type Member = { id: string; username: string; display_name?: string; owner: boolean };
 
-type RoomTheme = "warehouse" | "studio" | "default";
+type RoomTheme = "warehouse" | "studio" | "creator" | "archive";
 
 function getRoomTheme(room: Room): RoomTheme {
   if (room.category === "Fashion" || room.name.toLowerCase() === "fashion") return "warehouse";
   if (room.category === "Music" || room.name.toLowerCase() === "music") return "studio";
-  return "default";
+  if (room.category === "Visual") return "creator";
+  return "archive";
 }
 
 function EnvironmentDecor({ theme }: { theme: RoomTheme }) {
-  if (theme === "default") return null;
   if (theme === "warehouse") {
     return (
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden opacity-70">
-        <div className="absolute inset-0 bg-[linear-gradient(90deg,transparent_0,transparent_49%,rgba(255,255,255,.035)_50%,transparent_51%),linear-gradient(rgba(255,255,255,.025)_1px,transparent_1px)] bg-[size:100%_100%,100%_64px]" />
-        <div className="absolute -top-10 left-[7%] h-44 w-24 border-x border-white/10 bg-white/[0.025] rotate-[-3deg] md:h-64 md:w-40" />
-        <div className="absolute -top-8 left-[22%] h-40 w-20 border-x border-white/10 bg-white/[0.02] rotate-[2deg] md:h-60 md:w-32" />
-        <div className="absolute right-[8%] top-[18%] hidden h-52 w-28 border border-white/15 bg-white/[0.035] shadow-[0_0_50px_rgba(255,255,255,.04)] md:block">
-          <div className="absolute inset-3 border border-white/10" />
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_10%,rgba(168,145,112,.14),transparent_48%),linear-gradient(180deg,rgba(255,255,255,.025),transparent_45%,rgba(0,0,0,.22))]" />
+        <div className="absolute inset-x-0 bottom-0 h-[28%] bg-[linear-gradient(105deg,transparent_0%,rgba(255,255,255,.06)_50%,transparent_100%)] [clip-path:polygon(0_35%,100%_0,100%_100%,0_100%)]" />
+        <div className="absolute left-[6%] top-[13%] h-52 w-36 border border-white/15 bg-white/[0.035] shadow-[inset_0_0_35px_rgba(255,255,255,.04)] md:h-72 md:w-56">
+          <div className="absolute inset-y-0 left-1/3 w-px bg-white/15" /><div className="absolute inset-y-0 left-2/3 w-px bg-white/15" />
+          <div className="absolute inset-x-0 top-1/2 h-px bg-white/15" />
         </div>
-        <div className="absolute bottom-[9%] left-[4%] hidden h-20 w-52 border-y-2 border-white/10 md:block">
-          <div className="absolute left-6 top-[-22px] h-6 w-1 bg-white/20" />
-          <div className="absolute left-24 top-[-22px] h-6 w-1 bg-white/20" />
-          <div className="absolute left-40 top-[-22px] h-6 w-1 bg-white/20" />
+        <div className="absolute bottom-[12%] left-[8%] h-20 w-48 border-y-2 border-white/15 md:h-28 md:w-72">
+          <div className="absolute left-[16%] top-[-38px] h-10 w-1 bg-white/20 md:h-16" /><div className="absolute left-[43%] top-[-38px] h-10 w-1 bg-white/20 md:h-16" /><div className="absolute left-[70%] top-[-38px] h-10 w-1 bg-white/20 md:h-16" />
+          <div className="absolute left-[11%] top-[-25px] h-8 w-9 rotate-[-12deg] border-b border-white/20 md:h-12 md:w-14" /><div className="absolute left-[37%] top-[-23px] h-9 w-11 rotate-[8deg] border-b border-white/20 md:h-14 md:w-16" />
         </div>
-        <div className="absolute bottom-[7%] right-[6%] h-12 w-20 border border-white/10 bg-white/[0.04] md:h-20 md:w-32">
-          <div className="absolute -top-3 left-2 h-3 w-16 border border-white/10 bg-white/[0.04] md:w-28" />
-          <div className="absolute bottom-2 left-2 h-1 w-12 bg-white/10 md:w-24" />
+        <div className="absolute right-[9%] top-[30%] hidden h-56 w-28 border border-white/20 bg-white/[0.035] shadow-[0_18px_50px_rgba(0,0,0,.25)] md:block"><div className="absolute inset-3 border border-white/10" /></div>
+        <div className="absolute bottom-[10%] right-[7%] h-16 w-24 border border-white/15 bg-white/[0.06] md:h-24 md:w-36">
+          <div className="absolute -top-5 left-3 h-5 w-20 border border-white/15 bg-white/[0.05] md:w-32" /><div className="absolute bottom-4 left-3 h-1 w-14 bg-amber-100/20 md:w-24" />
         </div>
       </div>
     );
   }
-  return (
+  if (theme === "studio") return (
     <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden opacity-70">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_76%_18%,rgba(104,143,180,.16),transparent_27%),radial-gradient(circle_at_18%_70%,rgba(139,76,91,.1),transparent_25%)]" />
-      <div className="absolute right-[7%] top-[12%] h-28 w-44 border border-cyan-100/10 bg-slate-950/50 shadow-[0_0_70px_rgba(72,137,183,.12)] md:h-48 md:w-72">
-        <div className="absolute inset-3 border border-cyan-100/10 bg-cyan-200/[0.025]" />
-        <div className="absolute left-5 top-5 h-1 w-16 bg-cyan-200/20 md:w-28" />
-        <div className="absolute bottom-5 right-5 h-1 w-10 bg-pink-200/20" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_78%_22%,rgba(105,135,210,.22),transparent_32%),radial-gradient(circle_at_20%_72%,rgba(150,72,142,.15),transparent_28%)]" />
+      <div className="absolute right-[8%] top-[15%] h-32 w-52 border border-cyan-100/15 bg-slate-950/70 shadow-[0_0_80px_rgba(72,137,183,.18)] md:h-52 md:w-80">
+        <div className="absolute inset-3 border border-cyan-100/10 bg-cyan-200/[0.035]" /><div className="absolute left-6 top-6 h-1 w-24 bg-cyan-200/30 md:w-40" /><div className="absolute left-6 top-10 h-px w-16 bg-purple-200/20 md:w-28" />
       </div>
-      <div className="absolute bottom-[12%] left-[8%] h-12 w-64 border-y border-white/10 bg-white/[0.025] md:h-20 md:w-96">
-        <div className="absolute left-[18%] top-[-18px] h-5 w-1 bg-white/15" />
-        <div className="absolute left-[42%] top-[-18px] h-5 w-1 bg-white/15" />
-        <div className="absolute left-[66%] top-[-18px] h-5 w-1 bg-white/15" />
+      <div className="absolute bottom-[12%] left-[7%] h-16 w-72 border-y border-white/15 bg-white/[0.035] md:h-24 md:w-[28rem]">
+        <div className="absolute left-[18%] top-[-28px] h-7 w-2 bg-white/20 md:h-10" /><div className="absolute left-[42%] top-[-28px] h-7 w-2 bg-white/20 md:h-10" /><div className="absolute left-[66%] top-[-28px] h-7 w-2 bg-white/20 md:h-10" />
+        <div className="absolute left-[22%] top-[-10px] h-2 w-20 border border-white/20 md:w-32" />
       </div>
-      <div className="absolute bottom-[8%] right-[12%] hidden h-24 w-16 rounded-full border border-white/10 md:block" />
-      <div className="absolute bottom-[5%] right-[7%] h-px w-48 rotate-[12deg] bg-white/15 md:w-80" />
+      <div className="absolute bottom-[8%] right-[12%] hidden h-24 w-16 rounded-full border border-white/15 md:block" /><div className="absolute bottom-[5%] right-[7%] h-px w-48 rotate-[12deg] bg-white/20 md:w-80" />
+    </div>
+  );
+  return (
+    <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden opacity-60">
+      <div className={`absolute inset-0 ${theme === "creator" ? "bg-[radial-gradient(circle_at_22%_18%,rgba(48,160,180,.16),transparent_30%),linear-gradient(135deg,transparent,rgba(255,255,255,.025))]" : "bg-[radial-gradient(circle_at_75%_15%,rgba(191,139,68,.14),transparent_30%),linear-gradient(120deg,transparent,rgba(255,255,255,.025))]"}`} />
+      <div className="absolute left-[8%] top-[18%] h-40 w-28 border border-white/12 bg-white/[0.025] md:h-64 md:w-44"><div className="absolute inset-4 border border-white/10" /><div className="absolute -right-6 top-1/2 w-14 h-px bg-white/15" /></div>
+      <div className="absolute right-[8%] bottom-[12%] h-20 w-64 border-y border-white/12 bg-white/[0.025] md:h-28 md:w-96"><div className="absolute left-8 top-[-26px] h-7 w-1 bg-white/15" /><div className="absolute left-28 top-[-26px] h-7 w-1 bg-white/15" /></div>
     </div>
   );
 }
@@ -133,7 +135,7 @@ export default function RoomDetail() {
         <EnvironmentDecor theme={theme} />
         <div className="relative z-10">
         <Link href="/rooms"><Button variant="ghost" size="sm" className="gap-2 mb-8 -ml-3"><ArrowLeft className="w-4 h-4" /> All Rooms</Button></Link>
-        <div className="border-b border-border pb-8">
+        <div className="border-b border-border pb-8 bg-background/35 backdrop-blur-[2px]">
           <div className="flex flex-wrap justify-between gap-6 items-start">
             <div>
               <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/50 mb-3">{room.category} · {room.visibility === "private" ? "Private" : "Public"}</p>
@@ -147,10 +149,10 @@ export default function RoomDetail() {
           </div>
           <div className="flex gap-5 mt-6 text-xs text-muted-foreground"><span className="flex gap-1 items-center"><Users className="w-3.5 h-3.5" /> {room.member_count} members</span>{room.visibility === "private" && <span className="flex gap-1 items-center"><Lock className="w-3.5 h-3.5" /> Invite only</span>}</div>
         </div>
-        <div className="flex gap-1 border-b border-border mt-8 mb-8 overflow-x-auto">{tabs.map(item => <Button key={item} variant="ghost" onClick={() => setTab(item)} className={`rounded-none border-b-2 ${tab === item ? "border-primary text-foreground" : "border-transparent text-muted-foreground"}`}>{item}</Button>)}</div>
+        <div className="flex gap-1 border-b border-border mt-8 mb-10 overflow-x-auto bg-background/20">{tabs.map(item => <Button key={item} variant="ghost" onClick={() => setTab(item)} className={`rounded-none border-b-2 ${tab === item ? "border-primary text-foreground" : "border-transparent text-muted-foreground"}`}>{item}</Button>)}</div>
         {tab === "Feed" && <div className="max-w-2xl">
-          {room.joined && <form onSubmit={publish} className="flex gap-3 mb-8"><Textarea value={body} onChange={e => setBody(e.target.value)} placeholder="Add a signal to the Room…" maxLength={2000} className="min-h-12" /><Button type="submit" size="icon" aria-label="Publish post" disabled={!body.trim()}><Send className="w-4 h-4" /></Button></form>}
-          {!room.joined && <p className="text-xs text-muted-foreground border border-border rounded-lg p-4 mb-5">Join this Room to publish to the Feed.</p>}
+          {room.joined && <form onSubmit={publish} className="mb-9 rounded-xl border border-border bg-background/60 p-4 shadow-lg shadow-black/5"><p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/50 mb-3">Room signal</p><div className="flex gap-3"><Textarea value={body} onChange={e => setBody(e.target.value)} placeholder="Add a signal to the Room…" maxLength={2000} className="min-h-12 bg-background/50" /><Button type="submit" size="icon" aria-label="Publish post" disabled={!body.trim()}><Send className="w-4 h-4" /></Button></div></form>}
+          {!room.joined && <div className="rounded-xl border border-dashed border-border bg-background/50 p-6 mb-7"><p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/50 mb-2">Read-only access</p><p className="text-sm text-muted-foreground">Join this Room to publish to the Feed.</p><Button onClick={() => changeMembership("join")} variant="outline" size="sm" className="mt-4">Join Room</Button></div>}
           {posts.map(post => <article key={post.id} className="border-b border-border py-5"><p className="text-sm whitespace-pre-wrap leading-relaxed">{post.body}</p><p className="text-[10px] font-mono text-muted-foreground/50 mt-3">@{post.username} · {new Date(post.created_at).toLocaleDateString()}</p></article>)}
           {!posts.length && <p className="text-sm text-muted-foreground py-10">No signals yet. Be the first to post.</p>}
         </div>}
