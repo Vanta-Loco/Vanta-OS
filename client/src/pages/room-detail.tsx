@@ -21,7 +21,7 @@ type RoomTheme = "warehouse" | "studio" | "default";
 
 function getRoomTheme(room: Room): RoomTheme {
   if (room.category === "Fashion" && !room.owner_user_id) return "warehouse";
-  if (room.category === "Music" || room.name.toLowerCase() === "music") return "studio";
+  if (room.category === "Music" && !room.owner_user_id) return "studio";
   return "default";
 }
 
