@@ -1,0 +1,97 @@
+Vanta Rooms — Stage 4C: Music Bedroom Studio Environment ONLY
+Continue in Free Mode. Do not switch to Power.
+The Fashion Room rendered environment is complete and working.
+Work ONLY on the visual presentation of the official Music Room.
+Do not modify:
+Fashion Room
+Visual Room
+Media Room
+Rooms backend/API/database
+authentication
+Passport
+XP/achievements
+Vanta Play
+navigation/launcher
+Marketplace
+Vault/Releases
+startup flow
+Critical visual rule
+Do not build the Music Room from CSS rectangles, line-art furniture, abstract outlines, or wireframes.
+Use a proper rendered environmental background asset, just like the Fashion warehouse implementation.
+The functional Room interface should sit over the rendered environment as a readable Vanta HUD.
+Music Room concept
+Create a late-night bedroom producer / underground artist studio.
+It should feel like somebody actually lives and makes music there.
+Think:
+small messy bedroom studio
+early-2000s / Y2K atmosphere
+underground rap / shoegaze / alternative music energy
+intimate rather than expensive
+dark, emotional and lived-in
+Include environmental cues such as:
+bed or mattress visible somewhere in the room
+producer desk
+computer monitor with DAW-like glow
+pair of studio monitors
+MIDI keyboard/controller
+microphone and stand
+headphones
+cables running across desk/floor
+CRT television or old computer monitor
+posters / flyers / taped artwork
+CDs, records or physical media
+small speakers
+clothes or creative clutter
+low practical lighting
+subtle blue/purple Vanta glow
+dirty green/grey shadows where appropriate
+Do not make it look like:
+a luxury recording studio
+a commercial studio control room
+a futuristic spaceship
+a clean influencer bedroom
+a generic gaming setup
+It should feel like an underground artist made records here at 3 AM.
+Composition
+Give the rendered environment real depth.
+The room should be visible behind the existing interface rather than hidden under large opaque panels.
+Use dark gradients/translucent panels only where needed for readability.
+Preserve:
+Music Room title
+description
+Vanta Official identity
+member count
+Join / Leave / Owner state
+All Rooms
+Feed
+Members
+Work
+Listings
+text composer/posts
+Responsive
+Desktop should feel immersive.
+On mobile:
+intelligently crop the rendered bedroom
+preserve important visual cues
+keep Feed and controls readable
+reduce unnecessary decorative overlays
+Architecture
+Follow the same isolated environment-asset architecture used for Fashion.
+Create a separate Music environment asset, for example:
+attached_assets/generated_images/music_bedroom_studio_environment.png
+Map it only to the official Music Room.
+Do not modify the Fashion mapping.
+Verification
+Run:
+npm run check
+npm run build
+git diff --check
+Verify:
+Music clearly looks like a bedroom/producer studio
+Fashion warehouse remains unchanged
+Feed still works
+Join/Leave still works
+global navigation still works
+mobile remains usable
+Stop immediately after completing the Music environment.
+Do not begin Visual, Media, Marketplace or audio uploads.

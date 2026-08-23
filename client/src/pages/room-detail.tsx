@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { getUserToken, useUser } from "@/hooks/use-user";
 import { useToast } from "@/hooks/use-toast";
 import fashionWarehouseImage from "@assets/generated_images/fashion_warehouse_environment.png";
+import musicBedroomStudioImage from "@assets/generated_images/music_bedroom_studio_environment.png";
 
 type Room = {
   id: string; name: string; description: string; category: string;
@@ -36,20 +37,10 @@ function EnvironmentDecor({ theme }: { theme: RoomTheme }) {
     );
   }
   return (
-    <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden opacity-70">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_76%_18%,rgba(104,143,180,.16),transparent_27%),radial-gradient(circle_at_18%_70%,rgba(139,76,91,.1),transparent_25%)]" />
-      <div className="absolute right-[7%] top-[12%] h-28 w-44 border border-cyan-100/10 bg-slate-950/50 shadow-[0_0_70px_rgba(72,137,183,.12)] md:h-48 md:w-72">
-        <div className="absolute inset-3 border border-cyan-100/10 bg-cyan-200/[0.025]" />
-        <div className="absolute left-5 top-5 h-1 w-16 bg-cyan-200/20 md:w-28" />
-        <div className="absolute bottom-5 right-5 h-1 w-10 bg-pink-200/20" />
-      </div>
-      <div className="absolute bottom-[12%] left-[8%] h-12 w-64 border-y border-white/10 bg-white/[0.025] md:h-20 md:w-96">
-        <div className="absolute left-[18%] top-[-18px] h-5 w-1 bg-white/15" />
-        <div className="absolute left-[42%] top-[-18px] h-5 w-1 bg-white/15" />
-        <div className="absolute left-[66%] top-[-18px] h-5 w-1 bg-white/15" />
-      </div>
-      <div className="absolute bottom-[8%] right-[12%] hidden h-24 w-16 rounded-full border border-white/10 md:block" />
-      <div className="absolute bottom-[5%] right-[7%] h-px w-48 rotate-[12deg] bg-white/15 md:w-80" />
+    <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+      <img src={musicBedroomStudioImage} alt="" className="absolute inset-0 h-full w-full object-cover object-center opacity-75" />
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(7,8,14,.78)_0%,rgba(7,8,14,.3)_36%,rgba(7,8,14,.68)_100%)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(7,8,14,.5),transparent_48%,rgba(41,19,66,.24))]" />
     </div>
   );
 }
