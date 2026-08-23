@@ -1,0 +1,76 @@
+Vanta Rooms — Stage 4B: Fashion Warehouse Environment ONLY
+Continue in Free Mode. Do not switch to Power.
+Rooms is now registered as a first-class Vanta OS app. Do not modify the launcher, header, navigation, backend, database, authentication, Passport, Play, XP, achievements, Marketplace, startup flow, or any other Room category.
+Work ONLY on the visual presentation of the official Fashion Room at /rooms/:id.
+Critical visual rule
+Do not recreate the warehouse using CSS boxes, borders, line-art furniture, geometric outlines, or abstract diagrams.
+The current Fashion Room already does this and it does not look like a real environment.
+The new Fashion Room should use a proper rendered environmental background image/asset representing an actual fashion warehouse/studio.
+The functional Vanta Room interface should then be layered cleanly over that environment.
+Environment direction
+The background should feel like a real underground fashion warehouse in Johannesburg / global underground fashion culture:
+large dark industrial warehouse
+concrete floor
+exposed ceiling / industrial architecture
+large steel-frame windows
+garment racks with dark clothing
+tailoring/work table
+mannequins
+standing mirror
+crates / boxes
+pinned moodboards / contact sheets
+photography backdrop or shoot area
+subtle clothing production details
+moody low-key lighting
+black, charcoal and dirty-neutral palette
+restrained Vanta purple accent lighting
+gritty editorial/Y2K atmosphere
+It should feel like designers, stylists, models and photographers actually occupy the space.
+Do not make it look like:
+an online clothing store
+luxury retail
+a generic office
+a wireframe
+a blueprint
+a collection of CSS rectangles
+Page composition
+Make the environmental image occupy the Room hero/background area with strong depth.
+Apply a dark overlay / gradient only where necessary for text readability.
+Preserve the existing:
+Room title
+description
+Vanta Official label
+member count
+Join / Leave / Owner state
+All Rooms
+Feed
+Members
+Work
+Listings
+Feed composer/posts
+The functional UI should feel like a Vanta HUD/interface sitting inside the warehouse, rather than covering the whole environment with opaque panels.
+Prefer translucent / dark glass panels where appropriate so the warehouse remains visible.
+Responsive behavior
+Desktop should prioritize the immersive warehouse scene.
+On mobile:
+preserve readability
+crop the scene intelligently
+reduce unnecessary overlays
+do not let visual elements interfere with navigation or posting
+Asset architecture
+Keep the Fashion environment asset isolated so we can later create separate assets for:
+Music bedroom studio
+Visual creator studio
+Media editorial room
+Do not modify those Rooms during this task.
+Do not add database fields for the environment.
+Use a frontend category/official-room mapping.
+Important
+If the project does not currently contain a suitable rendered warehouse asset, do not fall back to CSS line-art again.
+Instead, create the frontend architecture/location for a proper Fashion warehouse background asset and clearly report the exact asset filename/path required.
+Stop after the Fashion Room implementation.
+Run:
+npm run check
+npm run build
+git diff --check
+Do not begin the Music Room.

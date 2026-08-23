@@ -6,11 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { getUserToken, useUser } from "@/hooks/use-user";
 import { useToast } from "@/hooks/use-toast";
+import fashionWarehouseImage from "@assets/generated_images/fashion_warehouse_environment.png";
 
 type Room = {
   id: string; name: string; description: string; category: string;
   visibility: "public" | "private"; member_count: number; joined: boolean;
-  is_owner: boolean; owner_username?: string; owner_display_name?: string;
+  is_owner: boolean; owner_user_id?: string | null; owner_username?: string; owner_display_name?: string;
 };
 type Post = { id: string; body: string; created_at: string; username: string; display_name?: string };
 type Member = { id: string; username: string; display_name?: string; owner: boolean };
@@ -18,7 +19,7 @@ type Member = { id: string; username: string; display_name?: string; owner: bool
 type RoomTheme = "warehouse" | "studio" | "default";
 
 function getRoomTheme(room: Room): RoomTheme {
-  if (room.category === "Fashion" || room.name.toLowerCase() === "fashion") return "warehouse";
+  if (room.category === "Fashion" && !room.owner_user_id) return "warehouse";
   if (room.category === "Music" || room.name.toLowerCase() === "music") return "studio";
   return "default";
 }
@@ -27,22 +28,10 @@ function EnvironmentDecor({ theme }: { theme: RoomTheme }) {
   if (theme === "default") return null;
   if (theme === "warehouse") {
     return (
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden opacity-70">
-        <div className="absolute inset-0 bg-[linear-gradient(90deg,transparent_0,transparent_49%,rgba(255,255,255,.035)_50%,transparent_51%),linear-gradient(rgba(255,255,255,.025)_1px,transparent_1px)] bg-[size:100%_100%,100%_64px]" />
-        <div className="absolute -top-10 left-[7%] h-44 w-24 border-x border-white/10 bg-white/[0.025] rotate-[-3deg] md:h-64 md:w-40" />
-        <div className="absolute -top-8 left-[22%] h-40 w-20 border-x border-white/10 bg-white/[0.02] rotate-[2deg] md:h-60 md:w-32" />
-        <div className="absolute right-[8%] top-[18%] hidden h-52 w-28 border border-white/15 bg-white/[0.035] shadow-[0_0_50px_rgba(255,255,255,.04)] md:block">
-          <div className="absolute inset-3 border border-white/10" />
-        </div>
-        <div className="absolute bottom-[9%] left-[4%] hidden h-20 w-52 border-y-2 border-white/10 md:block">
-          <div className="absolute left-6 top-[-22px] h-6 w-1 bg-white/20" />
-          <div className="absolute left-24 top-[-22px] h-6 w-1 bg-white/20" />
-          <div className="absolute left-40 top-[-22px] h-6 w-1 bg-white/20" />
-        </div>
-        <div className="absolute bottom-[7%] right-[6%] h-12 w-20 border border-white/10 bg-white/[0.04] md:h-20 md:w-32">
-          <div className="absolute -top-3 left-2 h-3 w-16 border border-white/10 bg-white/[0.04] md:w-28" />
-          <div className="absolute bottom-2 left-2 h-1 w-12 bg-white/10 md:w-24" />
-        </div>
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+        <img src={fashionWarehouseImage} alt="" className="absolute inset-0 h-full w-full object-cover object-center opacity-75 md:object-center" />
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(8,8,10,.78)_0%,rgba(8,8,10,.35)_34%,rgba(8,8,10,.62)_100%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(8,8,10,.48),transparent_48%,rgba(30,12,44,.2))]" />
       </div>
     );
   }
