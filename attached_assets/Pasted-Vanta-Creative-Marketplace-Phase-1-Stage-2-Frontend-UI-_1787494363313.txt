@@ -1,0 +1,134 @@
+Vanta Creative Marketplace — Phase 1, Stage 2: Frontend UI ONLY
+Continue in Free Mode. Do not switch to Power.
+Marketplace backend foundation is complete and verified.
+Do not modify Marketplace database schema or redesign existing Marketplace API routes during this stage.
+Do not modify authentication, Passport, XP, achievements, Vanta Play, Rooms backend, Room environments, Vault, Releases, World, startup flow, or unrelated systems.
+Use the existing useUser() / getUserToken() / X-User-Token system exactly as it currently works.
+1. Build /marketplace
+Create a first-class Vanta Creative Marketplace page.
+Load real data from:
+GET /api/marketplace
+Marketplace should feel like underground creative classifieds / collaboration, not Fiverr or a corporate freelance website.
+Show:
+Listing title
+Category
+Creator username
+Price / negotiable / contact
+Delivery mode
+City where available
+Associated Room where available
+Categories
+Use the categories returned by the backend:
+Beats
+Recording
+Mixing & Mastering
+Artwork
+Photography
+Video
+Styling
+Modeling
+Songwriting
+Fashion Design
+Web / Development
+Other
+Add category filtering.
+Also provide simple filtering for:
+Remote
+In-person
+Both
+City where practical
+Do not build advanced search yet.
+2. Empty state
+There are currently no fake Marketplace listings.
+Preserve that.
+If there are no listings, display an intentional Vanta empty state such as:
+No listings on the board yet.
+Be the first Member to put something up.
+Do not seed fake creators or fake listings.
+3. Create Listing
+Authenticated Members should have a clear:
+Post Listing
+action.
+Guests attempting to post should go to the existing /login flow.
+Create a clean form supporting:
+Title
+Description
+Category
+Price type
+Fixed
+Negotiable
+Contact
+Price amount when appropriate
+Delivery mode
+Remote
+In-person
+Both
+City
+Optional Room association
+For Room association:
+Only present public Rooms the current Member has joined if that information can be obtained cleanly from the existing APIs.
+Do not let the frontend bypass backend Room membership validation.
+4. Listing detail
+Create:
+/marketplace/:id
+Show:
+Listing title
+Description
+Category
+Creator username
+Pricing
+Delivery mode
+City
+Associated Room
+Created date where available
+Add a strong creator/contact/collaboration CTA visually, but do not build DMs, bookings or payments yet.
+For Phase 1 the CTA can clearly communicate:
+Contact / collaboration coming next
+Do not create fake contact functionality.
+5. Own listing management
+If the signed-in Member owns the listing, provide:
+Edit Listing
+Close Listing
+Use the existing:
+PATCH /api/marketplace/:id
+DELETE /api/marketplace/:id
+A Member must never see management actions for another Member’s listing.
+After closing, remove it from normal active Marketplace browsing.
+6. Vanta visual direction
+Marketplace should feel like:
+underground classifieds
+creative bulletin board
+music/fashion/media culture
+early internet/Y2K influence
+Vanta OS interface
+Avoid:
+Fiverr-style gig cards
+corporate SaaS marketplace design
+generic e-commerce storefront
+Think more:
+flyers pinned to a digital board + creative directory + underground service listings
+Preserve readability and mobile usability.
+7. Scope
+Prefer creating isolated frontend files such as:
+Marketplace discovery page
+Marketplace listing detail page
+Modify App.tsx only as necessary for route registration.
+Do not add Marketplace to navigation/app launcher yet. That will be Stage 3.
+Do not integrate Marketplace into Room Listings tabs yet. That will be Stage 4.
+8. Verification
+Run:
+npm run check
+npm run build
+git diff --check
+Provide manual testing steps for:
+guest browse
+guest Post Listing redirects to login
+signed-in Member creates listing
+new listing appears in Marketplace
+listing detail opens
+owner can edit
+owner can close
+refresh preserves listing
+optional Room association works
+Stop after Marketplace frontend works.
+Do not begin Marketplace navigation or Room integration.
