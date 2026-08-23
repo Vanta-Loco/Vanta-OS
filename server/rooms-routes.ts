@@ -1,8 +1,24 @@
 import type { Express, Request, Response } from "express";
 import { pool } from "./db";
 import { getRequestUser, requireUser } from "./user-auth";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
 
 const CATEGORIES = ["Music", "Visual", "Fashion", "Media"] as const;
+const uploadsDir = path.join(process.cwd(), "uploads");
+if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+const roomAudioUpload = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, callback) => callback(null, uploadsDir),
+    filename: (_req, file, callback) => callback(null, `room-${Date.now()}-${Math.random().toString(36).slice(2)}${path.extname(file.originalname).toLowerCase()}`),
+  }),
+  limits: { fileSize: 50 * 1024 * 1024 },
+  fileFilter: (_req, file, callback) => {
+    const allowed = ["audio/mpeg", "audio/mp3", "audio/wav", "audio/x-wav", "audio/m4a", "audio/x-m4a", "audio/mp4"];
+    callback(null, allowed.includes(file.mimetype) || /\.(mp3|wav|m4a)$/i.test(file.originalname));
+  },
+});
 
 function clean(value: unknown, max = 500): string {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
@@ -172,7 +188,7 @@ export function registerRoomsRoutes(app: Express) {
       );
       if (!access.rows[0]) return res.status(404).json({ error: "Room not found" });
       const result = await pool.query(
-        `SELECT p.id, p.body, p.created_at, u.username, u.display_name, up.avatar_url
+        `SELECT p.id, p.body, p.audio_url, p.audio_filename, p.created_at, u.username, u.display_name, up.avatar_url
          FROM room_posts p JOIN users u ON u.id=p.user_id
          LEFT JOIN user_profiles up ON up.user_id=u.id
          WHERE p.room_id=$1 ORDER BY p.created_at DESC`,
@@ -185,20 +201,24 @@ export function registerRoomsRoutes(app: Express) {
     }
   });
 
-  app.post("/api/rooms/:id/posts", requireUser, async (req: Request, res: Response) => {
+  app.post("/api/rooms/:id/posts", requireUser, roomAudioUpload.single("audio"), async (req: Request, res: Response) => {
     const user = (req as any).currentUser as { userId: string };
     const body = clean(req.body?.body, 2000);
-    if (!body) return res.status(400).json({ error: "Post cannot be empty" });
+    const audio = req.file;
+    if (!body && !audio) return res.status(400).json({ error: "Post needs text or an audio file" });
     try {
       const result = await pool.query(
-        `INSERT INTO room_posts (room_id, user_id, body)
-         SELECT $1, $2, $3 WHERE EXISTS (
+        `INSERT INTO room_posts (room_id, user_id, body, audio_url, audio_filename)
+         SELECT $1, $2, $3, $4, $5 WHERE EXISTS (
            SELECT 1 FROM room_memberships WHERE room_id=$1 AND user_id=$2
          )
-         RETURNING id, body, created_at`,
-        [req.params.id, user.userId, body],
+         RETURNING id, body, audio_url, audio_filename, created_at`,
+        [req.params.id, user.userId, body, audio ? `/uploads/${audio.filename}` : null, audio?.originalname || null],
       );
-      if (!result.rows[0]) return res.status(403).json({ error: "Join this Room to post" });
+      if (!result.rows[0]) {
+        if (audio) fs.unlink(path.join(uploadsDir, audio.filename), () => {});
+        return res.status(403).json({ error: "Join this Room to post" });
+      }
       const author = await pool.query("SELECT username, display_name FROM users WHERE id=$1", [user.userId]);
       res.status(201).json({ ...result.rows[0], ...author.rows[0] });
     } catch (error) {

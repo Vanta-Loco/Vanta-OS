@@ -1,0 +1,50 @@
+Vanta Rooms — Functional Completion
+Continue in Free Mode. Do not switch to Power.
+Rooms currently has an existing All Rooms control on individual Room pages. Preserve it. Do not create another Back to Rooms control.
+Fix only the remaining functionality below.
+1. Add real Leave Room
+For a signed-in Member who has joined a Room and is not its owner, show a clearly separate:
+Leave Room
+action.
+This must:
+use the existing Rooms leave API
+ask for confirmation
+remove the Member's real database membership
+update the UI immediately
+remain correct after refresh
+After leaving a public Room, the user may continue viewing it but cannot publish until joining again.
+Room owners must never see a Leave Room option.
+Preserve the existing All Rooms button, which only navigates back to /rooms.
+2. Restore access to the rest of Vanta OS
+/rooms and /rooms/:id must not feel like an isolated application with no way back into Vanta.
+Inspect how normal Vanta pages expose the existing global header, navigation, or app launcher.
+Reuse that existing navigation pattern on Rooms pages where necessary so a Member can navigate from Rooms back to destinations such as Passport, Play, Music, World, etc.
+Do not create a second navigation system.
+Do not redesign the existing global header or mobile navigation.
+All Rooms should continue to mean only “return to the Rooms directory.”
+3. Fix Feed membership detection
+A real joined Member currently may still see:
+Be a member in order to publish to Feed
+Fix the joined-state hydration on /rooms/:id.
+Joined Members must see the Feed composer.
+Non-members must still be required to join before posting.
+Guests may read public feeds but must sign in and join before posting.
+4. Add Room Feed audio attachments
+Joined Members should be able to post:
+text
+one audio file
+text + one audio file
+Supported:
+MP3
+WAV
+M4A
+First inspect the existing Vanta Music/Vault upload and persistent file-storage implementation.
+Reuse the existing storage architecture if available.
+Do not invent a separate temporary/local-only audio storage system.
+If there is no suitable persistent storage mechanism, stop before implementing uploads and report what storage architecture currently exists.
+Audio Feed posts should show the username, timestamp, optional text, filename/title, and a playable audio control.
+Audio must remain available after refresh.
+Do not build waveform editing, playlists, comments-on-timestamps, realtime streaming, or Marketplace functionality yet.
+Preserve
+Do not modify Passport, Passport XP, achievements, Vanta Play, startup flow, authentication architecture, or unrelated apps.
+Run TypeScript checking when finished and stop after these fixes.
