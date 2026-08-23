@@ -27,7 +27,6 @@ const LIVE_APPS: AppEntry[] = [
   { label: "Profiles",     href: "/dashboard",   icon: Radio,    desc: "Your identity"       },
   { label: "Dev Logs",     href: "/devlogs",     icon: BookOpen, desc: "Build journal"       },
   { label: "Early Access", href: "/early-access",icon: Clock,    desc: "Upcoming apps"       },
-  { label: "Rooms",        href: "/rooms",        icon: Globe2,   desc: "Creative spaces"     },
 ];
 
 const UPCOMING_APPS: AppEntry[] = [

@@ -828,12 +828,20 @@ async function seedRooms() {
     CREATE INDEX IF NOT EXISTS room_posts_room_created_idx ON room_posts(room_id, created_at DESC);
   `);
   await pool.query(`
+    UPDATE rooms SET name='Music', slug='music'
+      WHERE slug='after-hours' AND owner_user_id IS NULL;
+    UPDATE rooms SET name='Visual', slug='visual'
+      WHERE slug='visual-department' AND owner_user_id IS NULL;
+    UPDATE rooms SET name='Fashion', slug='fashion'
+      WHERE slug='the-fitting-room' AND owner_user_id IS NULL;
+    UPDATE rooms SET name='Media', slug='media'
+      WHERE slug='signal-room' AND owner_user_id IS NULL;
     INSERT INTO rooms (name, slug, description, category, visibility)
     VALUES
-      ('After Hours', 'after-hours', 'Late-night listening, unfinished ideas, and the sounds between releases.', 'Music', 'public'),
-      ('Visual Department', 'visual-department', 'A working room for frames, references, and visual language.', 'Visual', 'public'),
-      ('The Fitting Room', 'the-fitting-room', 'Style, silhouettes, and the details that make an entrance.', 'Fashion', 'public'),
-      ('Signal Room', 'signal-room', 'A shared channel for films, clips, broadcasts, and media culture.', 'Media', 'public')
+      ('Music', 'music', 'A room for listening, unfinished ideas, and the sounds between releases.', 'Music', 'public'),
+      ('Fashion', 'fashion', 'A room for style, silhouettes, and the details that make an entrance.', 'Fashion', 'public'),
+      ('Visual', 'visual', 'A room for frames, references, and visual language.', 'Visual', 'public'),
+      ('Media', 'media', 'A room for films, clips, broadcasts, and media culture.', 'Media', 'public')
     ON CONFLICT (slug) DO NOTHING;
   `);
   console.log("✓ Rooms tables ready");
