@@ -15,6 +15,56 @@ type Room = {
 type Post = { id: string; body: string; created_at: string; username: string; display_name?: string };
 type Member = { id: string; username: string; display_name?: string; owner: boolean };
 
+type RoomTheme = "warehouse" | "studio" | "default";
+
+function getRoomTheme(room: Room): RoomTheme {
+  if (room.category === "Fashion" || room.name.toLowerCase() === "fashion") return "warehouse";
+  if (room.category === "Music" || room.name.toLowerCase() === "music") return "studio";
+  return "default";
+}
+
+function EnvironmentDecor({ theme }: { theme: RoomTheme }) {
+  if (theme === "default") return null;
+  if (theme === "warehouse") {
+    return (
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden opacity-70">
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,transparent_0,transparent_49%,rgba(255,255,255,.035)_50%,transparent_51%),linear-gradient(rgba(255,255,255,.025)_1px,transparent_1px)] bg-[size:100%_100%,100%_64px]" />
+        <div className="absolute -top-10 left-[7%] h-44 w-24 border-x border-white/10 bg-white/[0.025] rotate-[-3deg] md:h-64 md:w-40" />
+        <div className="absolute -top-8 left-[22%] h-40 w-20 border-x border-white/10 bg-white/[0.02] rotate-[2deg] md:h-60 md:w-32" />
+        <div className="absolute right-[8%] top-[18%] hidden h-52 w-28 border border-white/15 bg-white/[0.035] shadow-[0_0_50px_rgba(255,255,255,.04)] md:block">
+          <div className="absolute inset-3 border border-white/10" />
+        </div>
+        <div className="absolute bottom-[9%] left-[4%] hidden h-20 w-52 border-y-2 border-white/10 md:block">
+          <div className="absolute left-6 top-[-22px] h-6 w-1 bg-white/20" />
+          <div className="absolute left-24 top-[-22px] h-6 w-1 bg-white/20" />
+          <div className="absolute left-40 top-[-22px] h-6 w-1 bg-white/20" />
+        </div>
+        <div className="absolute bottom-[7%] right-[6%] h-12 w-20 border border-white/10 bg-white/[0.04] md:h-20 md:w-32">
+          <div className="absolute -top-3 left-2 h-3 w-16 border border-white/10 bg-white/[0.04] md:w-28" />
+          <div className="absolute bottom-2 left-2 h-1 w-12 bg-white/10 md:w-24" />
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden opacity-70">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_76%_18%,rgba(104,143,180,.16),transparent_27%),radial-gradient(circle_at_18%_70%,rgba(139,76,91,.1),transparent_25%)]" />
+      <div className="absolute right-[7%] top-[12%] h-28 w-44 border border-cyan-100/10 bg-slate-950/50 shadow-[0_0_70px_rgba(72,137,183,.12)] md:h-48 md:w-72">
+        <div className="absolute inset-3 border border-cyan-100/10 bg-cyan-200/[0.025]" />
+        <div className="absolute left-5 top-5 h-1 w-16 bg-cyan-200/20 md:w-28" />
+        <div className="absolute bottom-5 right-5 h-1 w-10 bg-pink-200/20" />
+      </div>
+      <div className="absolute bottom-[12%] left-[8%] h-12 w-64 border-y border-white/10 bg-white/[0.025] md:h-20 md:w-96">
+        <div className="absolute left-[18%] top-[-18px] h-5 w-1 bg-white/15" />
+        <div className="absolute left-[42%] top-[-18px] h-5 w-1 bg-white/15" />
+        <div className="absolute left-[66%] top-[-18px] h-5 w-1 bg-white/15" />
+      </div>
+      <div className="absolute bottom-[8%] right-[12%] hidden h-24 w-16 rounded-full border border-white/10 md:block" />
+      <div className="absolute bottom-[5%] right-[7%] h-px w-48 rotate-[12deg] bg-white/15 md:w-80" />
+    </div>
+  );
+}
+
 export default function RoomDetail() {
   const [, params] = useRoute("/rooms/:id");
   const [, navigate] = useLocation();
@@ -74,11 +124,14 @@ export default function RoomDetail() {
 
   const tabs = ["Feed", "Members", "Work", "Listings"];
   const ownerLabel = room.owner_username ? `@${room.owner_username}` : "Vanta Official";
+  const theme = getRoomTheme(room);
 
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="max-w-5xl mx-auto px-6 lg:px-8 pt-28 pb-20">
+      <main className={`relative isolate max-w-5xl mx-auto overflow-hidden px-6 lg:px-8 pt-28 pb-20 ${theme === "warehouse" ? "bg-stone-950/30" : theme === "studio" ? "bg-slate-950/20" : ""}`}>
+        <EnvironmentDecor theme={theme} />
+        <div className="relative z-10">
         <Link href="/rooms"><Button variant="ghost" size="sm" className="gap-2 mb-8 -ml-3"><ArrowLeft className="w-4 h-4" /> All Rooms</Button></Link>
         <div className="border-b border-border pb-8">
           <div className="flex flex-wrap justify-between gap-6 items-start">
@@ -104,6 +157,7 @@ export default function RoomDetail() {
         {tab === "Members" && <div className="grid sm:grid-cols-2 gap-3 max-w-2xl">{members.map(member => <Link href={`/profile/${member.username}`} key={member.id}><div className="border border-border rounded-lg p-4 flex justify-between"><span className="text-sm">@{member.username}</span>{member.owner && <span className="text-[10px] uppercase tracking-widest text-muted-foreground">Owner</span>}</div></Link>)}</div>}
         {tab === "Work" && <EmptyState title="Work sharing coming soon." description="This Phase 1 space is ready for conversation. Work tools will arrive in a later phase." />}
         {tab === "Listings" && <EmptyState title="Creative Marketplace listings coming soon." description="Listings are not part of Rooms Phase 1." />}
+        </div>
       </main>
     </div>
   );

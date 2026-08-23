@@ -1,0 +1,78 @@
+Vanta Rooms — Stage 4: Visual Environment Pass
+Continue in Free Mode. Do not switch to Power.
+The current Rooms system is stable and working:
+Room discovery
+Room detail pages
+Join/Leave
+Persistent membership
+Text Feed posts
+Feed persistence
+Members
+Work placeholder
+Listings placeholder
+Global Vanta navigation
+Do not modify any backend, database, API, authentication, Passport, XP, achievements, Vanta Play, Vault, Releases, Marketplace, startup flow, or Room functionality during this task.
+This task is frontend visual styling only.
+Core visual concept
+Vanta Rooms should feel like entering an actual creative space rather than opening a generic community page.
+Preserve the existing Feed / Members / Work / Listings functionality, but visually frame official Rooms as environments.
+For this first pass, focus only on the official Fashion and Music Rooms.
+Fashion Room — industrial warehouse
+Give the official Fashion Room a visual identity inspired by an underground fashion warehouse / creative production space.
+Visual cues can include:
+concrete / industrial surfaces
+garment rack silhouettes
+stacked boxes / crates
+large mirrors
+cutting/work tables
+pinned moodboards / contact sheets
+photo backdrop / flash-studio feeling
+warehouse windows or loading-bay influence
+subtle distressed textures
+It should feel like designers, stylists, models and photographers actually work there.
+Do not make it look like an e-commerce store.
+Music Room — bedroom producer studio
+Give the official Music Room a different environment inspired by a messy late-night bedroom studio / underground producer room.
+Visual cues:
+studio monitors
+computer / CRT glow
+MIDI keyboard
+microphone
+cables
+posters
+CDs / records
+speakers
+dim practical lighting
+early-2000s/Y2K bedroom-studio influence
+It should feel personal, lived-in and creative rather than like a professional commercial recording studio.
+Important interaction rule
+The environments are visual framing around the existing functional interface.
+Feed, Members, Work and Listings must remain fully readable and usable.
+Do not turn these pages into a 3D experience yet.
+Do not make decorative elements block clicks, scrolling, forms or mobile navigation.
+Architecture
+Prefer a reusable Room visual-theme system rather than hardcoding an entirely separate page for each Room.
+For example, official Rooms may have environment/theme metadata or frontend theme mapping such as:
+Fashion → warehouse
+Music → studio
+Keep Visual and Media Rooms on the current/default visual treatment for now.
+Do not add database fields unless absolutely required. Prefer frontend mapping for this demo visual pass.
+Responsive behavior
+Desktop should feel immersive.
+Mobile should simplify decorative environment elements so the interface remains clean and readable.
+Preserve the existing Vanta header/app launcher.
+Do not use fake functionality
+Decorative items do not need to be clickable yet.
+Do not fake audio playback, uploaded work, Marketplace listings, Member avatars, or conversations.
+Verification
+Run TypeScript checking and production build.
+Verify:
+Fashion Room clearly feels like a warehouse environment
+Music Room clearly feels like a bedroom/producer studio
+Feed still posts normally
+Join/Leave still works
+Members still display
+Work and Listings still work as placeholders
+global navigation remains usable
+mobile layout remains readable
+Stop after the visual pass. Do not begin Marketplace.
