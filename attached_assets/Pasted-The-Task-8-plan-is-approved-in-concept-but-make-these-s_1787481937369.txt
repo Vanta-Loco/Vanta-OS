@@ -1,0 +1,38 @@
+The Task #8 plan is approved in concept, but make these scope corrections before implementation:
+1. Do not modify working identity/progression files
+The following files may be inspected for reference but MUST NOT be modified during Rooms Phase 1:
+client/src/pages/vanta-play.tsx
+client/src/pages/passport.tsx
+server/passport-service.ts
+server/user-auth.ts
+client/src/hooks/use-user.ts
+Use the existing auth APIs/helpers as they currently exist. Do not refactor authentication.
+Rooms implementation should preferably be isolated to:
+new Rooms frontend page/component files
+Rooms API code
+server/seed.ts for minimum schema/seeding
+client/src/App.tsx only for routes
+header/app launcher only if a Rooms link is actually required
+2. Do not create Marketplace schema yet
+Remove “future optional Room-linked listings” from the database implementation scope.
+Rooms only needs:
+Rooms
+Room memberships
+Room posts
+Give Rooms stable IDs so a future Marketplace table can reference room_id, but do not create Marketplace tables, listing columns, listing constraints, or Marketplace relationships during this task.
+3. Seeded Rooms are official Vanta Rooms
+The four seeded demo Rooms must not require fake Member owners.
+Treat them as official/system-created Vanta Rooms with a nullable Member owner where necessary.
+In the UI they may be identified as Vanta or Official Room, but do not create a fake user account to own them.
+Real Member-created Rooms must always have a real owner_user_id, and the creator automatically becomes the first member.
+Official seeded Rooms should be joinable by real Members.
+4. Define private Room behavior for Phase 1
+Because invitations and advanced permissions are out of scope:
+Public Rooms can appear in discovery and be joined normally.
+Private Member-created Rooms should not appear in public discovery.
+Their owner/members may access them.
+Do not build invitations, join requests, access codes, or moderation yet.
+If allowing additional Members into private Rooms cannot be done cleanly without adding an invitation system, keep private Rooms owner-only for Phase 1 rather than inventing incomplete permissions.
+5. Preserve the rest of the approved Task #8 plan
+Feed, Members, Work, Listings placeholder, persistent membership, Room creation, member counts, category filtering, guest browsing, guest login redirects, owner leave protection, and TypeScript verification should remain exactly as planned.
+Do not touch Passport XP, achievements, Vanta Play, startup, or unrelated applications.

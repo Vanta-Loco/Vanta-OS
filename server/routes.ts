@@ -14,6 +14,7 @@ import {
   clearAdminToken,
 } from "./admin-auth";
 import { registerUserRoutes } from "./user-routes";
+import { registerRoomsRoutes } from "./rooms-routes";
 
 declare module "express-session" {
   interface SessionData {
@@ -52,6 +53,7 @@ const upload = multer({
 export async function registerRoutes(app: Express): Promise<Server> {
   // ── User / Profile / DevLogs / Waitlist routes ───────────────────
   registerUserRoutes(app);
+  registerRoomsRoutes(app);
 
   // ── Admin Auth ───────────────────────────────────────────────────
   app.get("/api/admin/me", (req, res) => {

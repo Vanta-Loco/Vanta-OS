@@ -22,6 +22,8 @@ import ReleasesEdit from "@/pages/releases-edit";
 import Worlds from "@/pages/worlds";
 import VantaPlay from "@/pages/vanta-play";
 import Passport from "@/pages/passport";
+import Rooms from "@/pages/rooms";
+import RoomDetail from "@/pages/room-detail";
 import Enter from "@/pages/enter";
 import AdminLogin from "@/pages/admin-login";
 import AdminDashboard from "@/pages/admin";
@@ -120,6 +122,8 @@ function Router() {
       <Route path="/world" component={World} />
       <Route path="/play" component={VantaPlay} />
       <Route path="/passport" component={Passport} />
+      <Route path="/rooms" component={Rooms} />
+      <Route path="/rooms/:id" component={RoomDetail} />
       <Route path="/wireline" component={Wireline} />
       <Route path="/fract" component={Fract} />
       <Route path="/himalayas" component={Himalayas} />

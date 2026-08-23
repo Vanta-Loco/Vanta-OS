@@ -27,11 +27,11 @@ const LIVE_APPS: AppEntry[] = [
   { label: "Profiles",     href: "/dashboard",   icon: Radio,    desc: "Your identity"       },
   { label: "Dev Logs",     href: "/devlogs",     icon: BookOpen, desc: "Build journal"       },
   { label: "Early Access", href: "/early-access",icon: Clock,    desc: "Upcoming apps"       },
+  { label: "Rooms",        href: "/rooms",        icon: Globe2,   desc: "Creative spaces"     },
 ];
 
 const UPCOMING_APPS: AppEntry[] = [
   { label: "Wireline",     href: "/early-access/wireline",   icon: Lock, desc: "Communications", locked: true },
-  { label: "Rooms",        href: "/early-access/rooms",      icon: Lock, desc: "Community spaces", locked: true },
   { label: "Voice",        href: "/early-access/voice",      icon: Lock, desc: "Live audio", locked: true },
   { label: "Studio",       href: "/early-access/studio",     icon: Lock, desc: "Creator tools", locked: true },
   { label: "Market",       href: "/early-access",            icon: Lock, desc: "Coming soon", locked: true },

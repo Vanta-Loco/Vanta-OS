@@ -89,6 +89,7 @@ export async function seedDatabase() {
 
   await seedStonerism();
   await seedEcosystem();
+  await seedRooms();
 }
 
 async function seedStonerism() {
@@ -795,4 +796,45 @@ await pool.query(`
     }
     console.log("✓ App teasers seeded");
   }
+}
+
+async function seedRooms() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS rooms (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      name TEXT NOT NULL,
+      slug TEXT NOT NULL UNIQUE,
+      description TEXT NOT NULL DEFAULT '',
+      category TEXT NOT NULL CHECK (category IN ('Music','Visual','Fashion','Media')),
+      visibility TEXT NOT NULL DEFAULT 'public' CHECK (visibility IN ('public','private')),
+      owner_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS room_memberships (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      room_id UUID NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+      user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      joined_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE(room_id, user_id)
+    );
+    CREATE TABLE IF NOT EXISTS room_posts (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      room_id UUID NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+      user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      body TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS room_memberships_room_idx ON room_memberships(room_id);
+    CREATE INDEX IF NOT EXISTS room_posts_room_created_idx ON room_posts(room_id, created_at DESC);
+  `);
+  await pool.query(`
+    INSERT INTO rooms (name, slug, description, category, visibility)
+    VALUES
+      ('After Hours', 'after-hours', 'Late-night listening, unfinished ideas, and the sounds between releases.', 'Music', 'public'),
+      ('Visual Department', 'visual-department', 'A working room for frames, references, and visual language.', 'Visual', 'public'),
+      ('The Fitting Room', 'the-fitting-room', 'Style, silhouettes, and the details that make an entrance.', 'Fashion', 'public'),
+      ('Signal Room', 'signal-room', 'A shared channel for films, clips, broadcasts, and media culture.', 'Media', 'public')
+    ON CONFLICT (slug) DO NOTHING;
+  `);
+  console.log("✓ Rooms tables ready");
 }
