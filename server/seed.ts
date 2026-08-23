@@ -822,8 +822,14 @@ async function seedRooms() {
       room_id UUID NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
       user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       body TEXT NOT NULL,
+      audio_url TEXT,
+      audio_filename TEXT,
+      audio_mime_type TEXT,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
+    ALTER TABLE room_posts ADD COLUMN IF NOT EXISTS audio_url TEXT;
+    ALTER TABLE room_posts ADD COLUMN IF NOT EXISTS audio_filename TEXT;
+    ALTER TABLE room_posts ADD COLUMN IF NOT EXISTS audio_mime_type TEXT;
     CREATE INDEX IF NOT EXISTS room_memberships_room_idx ON room_memberships(room_id);
     CREATE INDEX IF NOT EXISTS room_posts_room_created_idx ON room_posts(room_id, created_at DESC);
   `);

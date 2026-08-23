@@ -1,0 +1,85 @@
+Vanta Rooms — Stage 2.2: Room Feed Audio Attachments
+Continue in Free Mode. Do not switch to Power.
+The existing Rooms Feed text posting, membership, Leave Room, navigation, Passport, Vanta Play, Vault and Releases are working.
+Add audio attachments specifically to Room Feed posts.
+Do not modify the existing Admin-only /api/upload authorization and do not change Vault or Release upload behavior.
+Storage
+Reuse the project's existing Multer /uploads/ filesystem storage pattern and existing /uploads/... static serving.
+This is acceptable for the current Alpha/demo.
+Do not introduce external cloud storage during this task.
+Room-specific upload architecture
+Prefer a dedicated authenticated Room-post audio endpoint rather than opening the generic Admin uploader to Members.
+For example:
+POST /api/rooms/:id/posts/audio
+It should:
+use existing X-User-Token Member authentication
+verify the Room exists
+verify the Member is actually joined to the Room
+accept one audio file
+optionally accept accompanying post text
+save the audio using the existing uploads directory/naming conventions
+create the Room post and attachment together
+Non-members must not be able to upload audio to a Room.
+Supported formats
+Accept:
+.mp3
+.wav
+.m4a
+Validate both extension and appropriate audio MIME types.
+Add a sensible Alpha upload-size limit rather than accepting unlimited file sizes.
+Database
+Make only the smallest additive change needed to room_posts, such as nullable:
+audio_url
+audio_filename
+audio_mime_type
+Existing text-only posts must continue working unchanged.
+Do not redesign Rooms tables.
+Feed composer
+A joined Member should be able to create:
+text-only post
+audio-only post
+text + audio post
+Add an obvious Attach Audio control to the existing Feed composer.
+Show the selected filename before publishing.
+Do not build drag-and-drop, waveform editing, playlists or multiple-file uploads yet.
+Feed playback
+Audio posts should display:
+username
+timestamp
+optional text
+audio filename
+native playable audio control
+Audio must still play after refreshing the Room.
+Keep the current Vanta visual language.
+Failure safety
+If an uploaded file is written successfully but the Room post database insert fails, clean up the orphaned uploaded file where practical.
+Return clear errors for:
+unsupported format
+oversized file
+unauthenticated Member
+non-member
+Preserve
+Do not modify:
+generic Admin /api/upload permissions
+Vault
+Releases
+Passport
+Passport XP
+achievements
+Vanta Play
+authentication architecture
+startup
+Marketplace
+Verify
+Run TypeScript checking and production build.
+Then manually/automatically verify:
+text-only post still works
+MP3 post works
+WAV post works
+M4A post works
+text + audio works
+audio survives refresh
+audio plays from Feed
+non-member cannot upload
+guest cannot upload
+Stop after Room Feed audio works.
