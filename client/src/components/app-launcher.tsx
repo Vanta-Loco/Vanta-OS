@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { Link } from "wouter";
 import {
   Home, FileText, Disc3, Package, Globe2, Leaf, Database,
-  Radio, BookOpen, Clock, Lock, X, Users,
+  Radio, BookOpen, Clock, Lock, X, Users, ShoppingBag,
 } from "lucide-react";
 
 interface AppEntry {
@@ -23,6 +23,7 @@ const LIVE_APPS: AppEntry[] = [
   { label: "Vault",        href: "/vault",       icon: Package,  desc: "Restricted archive"  },
   { label: "World",        href: "/world",       icon: Globe2,   desc: "City alpha"          },
   { label: "Rooms",        href: "/rooms",       icon: Users,    desc: "Creative spaces"     },
+  { label: "Marketplace", href: "/marketplace", icon: ShoppingBag, desc: "Creative services & collaboration" },
   { label: "Stonerism",    href: "/stonerism",   icon: Leaf,     desc: "Cannabis culture"    },
   { label: "Black Index",  href: "/search",      icon: Database, desc: "Search archive"      },
   { label: "Profiles",     href: "/dashboard",   icon: Radio,    desc: "Your identity"       },
