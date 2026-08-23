@@ -90,6 +90,7 @@ export async function seedDatabase() {
   await seedStonerism();
   await seedEcosystem();
   await seedRooms();
+  await seedMarketplace();
 }
 
 async function seedStonerism() {
@@ -845,4 +846,32 @@ async function seedRooms() {
     ON CONFLICT (slug) DO NOTHING;
   `);
   console.log("✓ Rooms tables ready");
+}
+
+async function seedMarketplace() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS marketplace_listings (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      creator_user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      room_id UUID REFERENCES rooms(id) ON DELETE SET NULL,
+      title TEXT NOT NULL,
+      description TEXT NOT NULL,
+      category TEXT NOT NULL,
+      price_amount NUMERIC(12,2),
+      currency TEXT NOT NULL DEFAULT 'ZAR',
+      price_type TEXT NOT NULL CHECK (price_type IN ('fixed','negotiable','contact')),
+      city TEXT,
+      delivery_mode TEXT NOT NULL CHECK (delivery_mode IN ('remote','in_person','both')),
+      status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active','paused','closed')),
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS marketplace_listings_active_idx
+      ON marketplace_listings(status, created_at DESC);
+    CREATE INDEX IF NOT EXISTS marketplace_listings_creator_idx
+      ON marketplace_listings(creator_user_id);
+    CREATE INDEX IF NOT EXISTS marketplace_listings_room_idx
+      ON marketplace_listings(room_id);
+  `);
+  console.log("✓ Marketplace tables ready");
 }
