@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
-import { ArrowRight, Camera, Disc3, Lock, Plus, Radio, Sparkles, Users, Waves } from "lucide-react";
+import { ArrowRight, Lock, Plus, Users, Waves } from "lucide-react";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
@@ -21,12 +21,6 @@ type Room = {
 };
 
 const categories = ["All", "Music", "Visual", "Fashion", "Media"];
-const categoryMood: Record<string, { Icon: typeof Radio; label: string; className: string }> = {
-  Music: { Icon: Radio, label: "late-night studio", className: "from-indigo-950 via-slate-950 to-purple-950" },
-  Visual: { Icon: Camera, label: "creator workspace", className: "from-cyan-950 via-slate-950 to-slate-900" },
-  Fashion: { Icon: Sparkles, label: "warehouse showroom", className: "from-stone-800 via-stone-950 to-neutral-950" },
-  Media: { Icon: Disc3, label: "editorial archive", className: "from-amber-950 via-zinc-950 to-slate-950" },
-};
 
 export default function Rooms() {
   const [, navigate] = useLocation();
@@ -76,14 +70,13 @@ export default function Rooms() {
       <main className="flex-1 pt-20">
         <section className="border-b border-border">
           <div className="max-w-7xl mx-auto px-6 lg:px-8 py-16 md:py-20">
-            <p className="text-[10px] font-mono uppercase tracking-[0.3em] text-primary/70 mb-4">VANTA OS · APP 07 · ROOMS</p>
+            <p className="text-[10px] font-mono uppercase tracking-[0.3em] text-muted-foreground/50 mb-4">VANTA OS · ROOMS</p>
             <div className="flex flex-wrap items-end justify-between gap-6">
               <div>
-                <h1 className="text-4xl md:text-6xl font-display font-bold tracking-tight">Rooms<span className="text-primary">.</span></h1>
+                <h1 className="text-4xl md:text-6xl font-display font-bold tracking-tight">Rooms</h1>
                 <p className="mt-4 max-w-xl text-muted-foreground leading-relaxed">
-                  Persistent creative spaces for the people, references, and ideas moving through Vanta.
+                  Persistent spaces for the people, references, and ideas moving through Vanta.
                 </p>
-                <div className="flex items-center gap-3 mt-6 text-[10px] font-mono uppercase tracking-widest text-muted-foreground/50"><span className="inline-block w-8 h-px bg-primary/60" /> Open environments · {rooms.length || "—"} active spaces</div>
               </div>
               <Button onClick={() => isAuthenticated ? setShowCreate(open => !open) : navigate("/login")} className="gap-2">
                 <Plus className="w-4 h-4" /> Create a Room
@@ -115,20 +108,9 @@ export default function Rooms() {
           </div>
           {loading ? <p className="py-16 text-center text-sm text-muted-foreground">Scanning public Rooms…</p> : (
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {rooms.map(room => {
-                const mood = categoryMood[room.category] || categoryMood.Visual;
-                const MoodIcon = mood.Icon;
-                return (
+              {rooms.map(room => (
                 <Link key={room.id} href={`/rooms/${room.id}`}>
-                  <article className="h-full overflow-hidden border border-border rounded-xl hover:border-primary/50 hover:-translate-y-0.5 transition-all cursor-pointer group bg-card/50">
-                    <div className={`relative h-28 bg-gradient-to-br ${mood.className} overflow-hidden p-5`}>
-                      <div className="absolute inset-0 opacity-20 bg-[linear-gradient(90deg,transparent_49%,white_50%,transparent_51%),linear-gradient(white_1px,transparent_1px)] bg-[size:100%_100%,100%_22px]" />
-                      <div className="absolute -right-3 -bottom-8 w-32 h-32 rounded-full border border-white/15" />
-                      <MoodIcon className="relative w-7 h-7 text-white/70" />
-                      <span className="absolute bottom-4 left-5 text-[10px] font-mono uppercase tracking-widest text-white/55">{mood.label}</span>
-                      {room.visibility === "private" && <Lock className="absolute right-5 top-5 w-3.5 h-3.5 text-white/55" />}
-                    </div>
-                    <div className="p-5">
+                  <article className="h-full border border-border rounded-xl p-5 hover:border-primary/50 hover:bg-muted/20 transition-all cursor-pointer group">
                     <div className="flex justify-between items-start mb-4">
                       <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/50">{room.category}</span>
                       {room.visibility === "private" ? <Lock className="w-3.5 h-3.5 text-muted-foreground/50" /> : <Waves className="w-3.5 h-3.5 text-muted-foreground/50" />}
@@ -140,10 +122,9 @@ export default function Rooms() {
                       <span className="flex items-center gap-2">{room.owner_user_id ? "Member-led" : "Official"} <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" /></span>
                     </div>
                     {room.joined && <p className="mt-3 text-[10px] uppercase tracking-widest text-primary">Joined</p>}
-                    </div>
                   </article>
                 </Link>
-              )})}
+              ))}
             </div>
           )}
           {!loading && !rooms.length && <p className="py-16 text-center text-sm text-muted-foreground">No public Rooms in this category yet.</p>}
