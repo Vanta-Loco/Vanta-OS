@@ -193,6 +193,11 @@ if (achievementsRes.ok) {
           Games. Music. Sport. Culture. Worlds. Community. Your activity,
           achievements and identity travel with you across Vanta.
         </p>
+        {passportError && (
+          <div className="mt-6 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+            {passportError}. Please refresh and try again.
+          </div>
+        )}
         </section>
         {/* PASSPORT CARD */}
 
@@ -213,12 +218,9 @@ if (achievementsRes.ok) {
         </div>
       </div>
 
-      <button
-        type="button"
-        className="mt-4 rounded-md border border-border px-4 py-2 text-sm font-medium"
-      >
-        Customize Character
-      </button>
+      <p className="mt-4 text-xs uppercase tracking-[0.2em] text-muted-foreground">
+        Character customization · Coming Soon
+      </p>
 
       <h2 className="mt-5 text-3xl font-semibold">
   {user?.display_name || "Vanta Member"}
@@ -236,7 +238,6 @@ if (achievementsRes.ok) {
   </p>
 )}
 
-<Link href="/profile/edit"></Link>
       <p className="mt-4 text-sm text-muted-foreground">
         Passport ID · {passportLoading
   ? "Loading..."

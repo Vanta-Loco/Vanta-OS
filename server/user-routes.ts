@@ -389,9 +389,20 @@ app.get("/api/passport/achievements", requireUser, async (req: Request, res: Res
 
 // ─── Vanta Play ──────────────────────────────────────────────────────────
 
-// Public game list
-app.get("/api/play/games", async (_req: Request, res: Response) => {
+// Public game list. Guests can browse; Members also receive their joined state.
+app.get("/api/play/games", async (req: Request, res: Response) => {
   try {
+    const currentUser = getRequestUser(req);
+    const joinedSelect = currentUser
+      ? `EXISTS (
+           SELECT 1
+           FROM vanta_play_participants joined_participant
+           WHERE joined_participant.game_id = g.id
+             AND joined_participant.user_id = $1
+             AND joined_participant.status = 'joined'
+         ) AS joined`
+      : "false AS joined";
+
     const result = await pool.query(`
       SELECT
         g.id,
@@ -405,6 +416,7 @@ app.get("/api/play/games", async (_req: Request, res: Response) => {
         g.status,
         g.host_user_id,
         g.created_at,
+        ${joinedSelect},
         g.seed_players +
           COUNT(p.id) FILTER (WHERE p.status = 'joined')::int AS players
       FROM vanta_play_games g
@@ -413,7 +425,7 @@ app.get("/api/play/games", async (_req: Request, res: Response) => {
       WHERE g.status = 'open'
       GROUP BY g.id
       ORDER BY g.created_at ASC
-    `);
+    `, currentUser ? [currentUser.userId] : []);
 
     res.json(result.rows);
   } catch (e: any) {

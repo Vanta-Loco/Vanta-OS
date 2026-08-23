@@ -1,0 +1,47 @@
+mplement a small demo-readiness pass only. Do not expand scope beyond the items below.
+CRITICAL PRESERVATION RULES
+Do not rebuild or replace the application.
+Do not change the working authentication architecture, Passport XP calculations, Passport achievement rules, Vanta Play participant persistence, database schema unless absolutely necessary, Vanta OS startup sequence, World, Stonerism, music, releases, Vault, admin, or existing routes.
+The following flow is confirmed working and MUST remain working:
+New Member registration → Passport → Vanta Play → Join Game → Game On achievement → +25 Passport XP → progression persists
+1. Fix Vanta Play joined-state persistence
+Currently a Member can successfully join a database-backed game, but after refreshing the page the React joinedGames state resets and the game may look joinable again.
+Fix this using the existing database participant records.
+Prefer extending the existing game-loading response so that, when a valid X-User-Token is present, each game can indicate whether the current Member has joined it.
+The public game list must still remain viewable by guests.
+Do not award XP again on refresh and do not change the existing Passport achievement logic.
+After loading games, initialize the frontend joined state from the real backend result.
+A joined game should display the existing Leave Game state after refresh.
+2. Remove misleading fake Vanta Play stats
+Do not display fake Member statistics such as:
+12 Games Played
+7 Reputation
+96% Attendance
+If those values are not backed by real Member data yet, hide those stat cards or replace them with a clearly intentional early-access state.
+Do not invent new statistics.
+If there is a hardcoded featured game, derive the featured presentation from an actual game returned by /api/play/games instead of maintaining a separate fake game.
+Preserve the current Vanta Play visual design.
+3. Clean up unfinished Passport controls
+On Passport:
+Remove or visibly disable the non-functional Customize Character action.
+Remove the empty/non-functional profile-edit link.
+If disabled, label unfinished functionality clearly as Coming Soon rather than letting it look broken.
+Render the existing Passport error state visibly if Passport loading fails.
+Do not redesign Passport.
+Do not modify XP or achievements.
+4. Improve guest Join Game behavior
+If a visitor is not authenticated, do not wait for the Join Game API to return Login required.
+Use the existing useUser authentication state.
+Present a clear Sign In to Join action or direct them to the existing login page.
+Authenticated Members should retain the existing Join Game behavior.
+5. Verification
+After implementing only these changes:
+Run TypeScript checking.
+Verify a fresh Member can still register.
+Verify Passport loads.
+Verify joining a game still unlocks Game On and awards 25 XP only once.
+Refresh Vanta Play and verify the game still shows as joined.
+Verify leaving the game still works.
+Verify guests can still browse Play.
+Do not modify the boot sequence, navigation system, mobile layouts, unrelated routes, or other Vanta apps during this task.
+Before making changes, briefly state which existing files you intend to modify. Then implement the task.

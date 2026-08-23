@@ -1,7 +1,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
-import { getUserToken } from "@/hooks/use-user";
+import { getUserToken, useUser } from "@/hooks/use-user";
 
 type Game = {
   id: string;
@@ -13,6 +13,7 @@ type Game = {
   skill: string;
   players: number;
   capacity: number;
+  joined?: boolean;
 };
 
 const sports = [
@@ -37,65 +38,24 @@ const cities = [
   "Bloemfontein",
 ];
 
-const starterGames: Game[] = [
-  {
-    id: "seed-football",
-    sport: "Football",
-    city: "Johannesburg",
-    venue: "Zoo Lake Sports Club",
-    date: "Saturday",
-    time: "16:00",
-    skill: "Casual",
-    players: 8,
-    capacity: 12,
-  },
-  {
-    id: "seed-basketball",
-    sport: "Basketball",
-    city: "Johannesburg",
-    venue: "Wits Basketball Courts",
-    date: "Friday",
-    time: "18:30",
-    skill: "Competitive",
-    players: 5,
-    capacity: 6,
-  },
-  {
-    id: "seed-padel",
-    sport: "Padel",
-    city: "Pretoria",
-    venue: "Pretoria East Padel",
-    date: "Sunday",
-    time: "10:00",
-    skill: "Intermediate",
-    players: 3,
-    capacity: 4,
-  },
-  {
-    id: "seed-running",
-    sport: "Running",
-    city: "Cape Town",
-    venue: "Sea Point Promenade",
-    date: "Saturday",
-    time: "07:00",
-    skill: "All levels",
-    players: 14,
-    capacity: 25,
-  },
-];
-
 export default function VantaPlay() {
+  const [, navigate] = useLocation();
   const [selectedCity, setSelectedCity] = useState("Johannesburg");
   const [selectedSport, setSelectedSport] = useState("All Sports");
-  const [games, setGames] = useState<Game[]>(starterGames);
+  const [games, setGames] = useState<Game[]>([]);
   const [joinedGames, setJoinedGames] = useState<string[]>([]);
   const [showHostForm, setShowHostForm] = useState(false);
+  const [gamesLoading, setGamesLoading] = useState(true);
 
   const { toast } = useToast();
+  const { isAuthenticated } = useUser();
   useEffect(() => {
   async function loadGames() {
     try {
-      const response = await fetch("/api/play/games");
+      const token = getUserToken();
+      const response = await fetch("/api/play/games", {
+        headers: token ? { "X-User-Token": token } : {},
+      });
 
       if (!response.ok) {
         console.error("Unable to load Vanta Play games");
@@ -104,8 +64,11 @@ export default function VantaPlay() {
 
       const data: Game[] = await response.json();
       setGames(data);
+      setJoinedGames(data.filter((game) => game.joined).map((game) => game.id));
     } catch (error) {
       console.error("Vanta Play load error:", error);
+    } finally {
+      setGamesLoading(false);
     }
   }
 
@@ -122,7 +85,14 @@ export default function VantaPlay() {
     });
   }, [games, selectedCity, selectedSport]);
 
+  const featuredGame = games[0];
+
   async function joinGame(gameId: string) {
+  if (!isAuthenticated) {
+    navigate("/login");
+    return;
+  }
+
   const selectedGame = games.find((game) => game.id === gameId);
 
   if (!selectedGame) return;
@@ -314,69 +284,66 @@ const response = await fetch(`/api/play/games/${gameId}/join`, {
           </button>
         </div>
 
-<section className="mt-12 rounded-2xl border border-border bg-card p-6 md:p-8">
+ {gamesLoading ? (
+   <section className="mt-12 rounded-2xl border border-border bg-card p-6 md:p-8">
+     <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">
+       Featured Game
+     </p>
+     <p className="mt-4 text-sm text-muted-foreground">Loading live games…</p>
+   </section>
+ ) : featuredGame ? (
+ <section className="mt-12 rounded-2xl border border-border bg-card p-6 md:p-8">
   <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
     <div>
       <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">
-        🔥 Featured Game
+         🔥 Featured Game · Live
       </p>
 
       <h2 className="mt-3 text-3xl font-semibold">
-        Friday Night Basketball
+         {featuredGame.venue}
       </h2>
 
       <p className="mt-2 text-muted-foreground">
-        Wanderers Club • Johannesburg
+         {featuredGame.city}
       </p>
 
       <div className="mt-4 flex flex-wrap gap-2">
         <span className="rounded-full border border-border px-3 py-1 text-xs">
-          🏀 Basketball
+           {featuredGame.sport}
         </span>
 
         <span className="rounded-full border border-border px-3 py-1 text-xs">
-          Friday
+           {featuredGame.date}
         </span>
 
         <span className="rounded-full border border-border px-3 py-1 text-xs">
-          19:00
+           {featuredGame.time}
         </span>
 
         <span className="rounded-full border border-border px-3 py-1 text-xs">
-          Intermediate
+           {featuredGame.skill}
         </span>
 
         <span className="rounded-full border border-border px-3 py-1 text-xs">
-          8 / 10 Players
+           {featuredGame.players} / {featuredGame.capacity} Players
         </span>
       </div>
     </div>
 
     <button
       type="button"
+       onClick={() => isAuthenticated
+         ? joinGame(featuredGame.id)
+         : navigate("/login")}
       className="rounded-md bg-primary px-6 py-3 text-sm font-medium text-primary-foreground"
     >
-      Join Featured Game
+       {isAuthenticated
+         ? joinedGames.includes(featuredGame.id) ? "Leave Featured Game" : "Join Featured Game"
+         : "Sign In to Join"}
     </button>
   </div>
-</section>
-
-        <section className="mt-14 grid gap-4 md:grid-cols-4">
-          {[
-            ["12", "Games played"],
-            ["7", "Reputation"],
-            ["3", "Current streak"],
-            ["96%", "Attendance"],
-          ].map(([value, label]) => (
-            <article
-              key={label}
-              className="rounded-xl border border-border bg-card p-5"
-            >
-              <p className="text-3xl font-semibold">{value}</p>
-              <p className="mt-2 text-sm text-muted-foreground">{label}</p>
-            </article>
-          ))}
-        </section>
+ </section>
+ ) : null}
 
         {showHostForm && (
           <section className="mt-14 rounded-xl border border-border bg-card p-6 md:p-8">
@@ -516,8 +483,12 @@ const response = await fetch(`/api/play/games/${gameId}/join`, {
             </div>
           </div>
 
-          <div className="mt-8 grid gap-4">
-            {filteredGames.length === 0 ? (
+           <div className="mt-8 grid gap-4">
+             {gamesLoading ? (
+               <div className="rounded-xl border border-dashed border-border p-8">
+                 <p className="text-sm text-muted-foreground">Loading live games…</p>
+               </div>
+             ) : filteredGames.length === 0 ? (
               <div className="rounded-xl border border-dashed border-border p-8">
                 <h3 className="text-lg font-medium">No games found</h3>
                 <p className="mt-2 text-muted-foreground">
@@ -555,10 +526,12 @@ const response = await fetch(`/api/play/games/${gameId}/join`, {
                     <button
                       type="button"
                       disabled={full}
-                      onClick={() => joinGame(game.id)}
+                       onClick={() => isAuthenticated ? joinGame(game.id) : navigate("/login")}
                       className="rounded-md border border-border px-5 py-3 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      {joined ? "Leave Game" : full ? "Game Full" : "Join Game"}
+                       {isAuthenticated
+                         ? joined ? "Leave Game" : full ? "Game Full" : "Join Game"
+                         : "Sign In to Join"}
                     </button>
                   </article>
                 );
