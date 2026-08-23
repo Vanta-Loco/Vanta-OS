@@ -1,0 +1,200 @@
+Vanta Creative Marketplace — Phase 1, Stage 1: Backend Foundation ONLY
+Continue in Free Mode. Do not switch to Power.
+The existing Vanta system is stable and working, including:
+Authentication
+Passport
+Passport XP / achievements
+Vanta Play
+Vanta Rooms
+Room membership
+Room Feed posting
+Fashion warehouse environment
+Music bedroom studio environment
+Vault
+Releases
+World
+Vanta OS launcher/navigation
+Do not modify any of those systems during this task.
+This stage is backend/database/API only for the new Vanta Creative Marketplace.
+Do not build frontend Marketplace pages yet.
+CORE CONCEPT
+Vanta Marketplace is an underground creative-services marketplace for Members and creators.
+It should eventually allow artists, producers, designers, photographers, models, writers, engineers, stylists and developers to offer creative services inside the Vanta ecosystem.
+It should feel more like creative classifieds / community collaboration than Fiverr.
+Every listing must belong to a real Vanta Member.
+INITIAL CATEGORIES
+Support these categories:
+Beats
+Recording
+Mixing & Mastering
+Artwork
+Photography
+Video
+Styling
+Modeling
+Songwriting
+Fashion Design
+Web / Development
+Other
+Store categories in a way that can be expanded later without redesigning the system.
+Do not build a separate category-management admin system yet.
+MINIMUM DATABASE TABLE
+Create one additive Marketplace listings table using the existing PostgreSQL/schema pattern.
+Suggested fields:
+id — UUID primary key
+creator_user_id — real Vanta Member/user reference
+room_id — nullable reference to an existing Room
+title
+description
+category
+price_amount — nullable
+currency — default ZAR
+price_type
+city — nullable
+delivery_mode
+status
+created_at
+updated_at
+price_type
+Support:
+fixed
+negotiable
+contact
+If price_type = contact, price_amount may be null.
+delivery_mode
+Support:
+remote
+in_person
+both
+status
+Start with:
+active
+paused
+closed
+Public Marketplace browsing should only return active listings by default.
+ROOM ASSOCIATION
+A listing may optionally be associated with an existing Vanta Room.
+This is important because later the Room's Listings tab will display Marketplace listings connected to that Room.
+Do not modify the existing Rooms tables.
+Do not add Marketplace columns to rooms.
+The Marketplace listing should simply contain nullable:
+room_id
+referencing the existing Room.
+For Phase 1, only allow a Member to associate a listing with a public Room they are currently a member of.
+Do not build private-Room Marketplace behavior yet.
+AUTHENTICATION
+Use the existing:
+X-User-Token
+authentication system exactly as it currently exists.
+Do not modify:
+server/user-auth.ts
+frontend auth architecture
+login/register behavior
+Guests may browse Marketplace data.
+Creating or managing listings requires an authenticated Vanta Member.
+API ROUTES
+Add the minimum isolated Marketplace API routes.
+Browse listings
+GET /api/marketplace
+Public.
+Return active listings with useful creator information such as username.
+Support optional query filters where cleanly possible:
+category
+city
+delivery mode
+room ID
+Do not build complex search yet.
+Listing detail
+GET /api/marketplace/:id
+Public for active listings.
+Return:
+listing information
+creator username/identity information already safely available
+associated Room identity if present
+Do not expose private user information.
+Create listing
+POST /api/marketplace
+Authenticated Member only.
+Validate:
+title
+description
+category
+price type
+delivery mode
+optional price
+optional city
+optional Room association
+If a room_id is provided:
+Room must exist
+Room must be public
+creator must currently be a member of that Room
+Update own listing
+PATCH /api/marketplace/:id
+Only the creator who owns the listing may edit it.
+Delete/close own listing
+Prefer:
+DELETE /api/marketplace/:id
+Rather than permanently destroying history, it may set the listing status to closed if that better matches the existing project patterns.
+Only the listing creator may perform this action.
+Do not add admin Marketplace moderation yet.
+SECURITY / DATA RULES
+A Member must never edit another Member's listing.
+A Member must never close another Member's listing.
+A Member must not associate a listing with a Room they have not joined.
+Guests cannot create listings.
+Do not trust creator_user_id from the browser; derive the creator from authenticated currentUser.
+Validate enum-like values server-side.
+Keep listing descriptions plain text for Phase 1.
+NO FAKE MARKETPLACE CONTENT
+Do not seed fake creators.
+Do not seed fake Marketplace listings.
+Marketplace may initially show an empty state until real Members create listings.
+The existing official Rooms should remain unchanged.
+FUTURE COMPATIBILITY
+Architect this foundation so later phases can add:
+creator profiles
+Certified Creator badges
+portfolios/work
+Room Listings integration
+contact/collaboration flow
+reputation
+reviews
+bookings
+payments
+But do not implement any of those now.
+HARD SCOPE LIMIT
+Do NOT modify:
+Passport
+passport-service.ts
+Passport XP
+achievements
+Vanta Play
+Rooms frontend
+Rooms environment visuals
+Room Feed
+navigation
+app launcher
+Vault
+Releases
+World
+startup sequence
+audio uploads
+Do not create Marketplace frontend pages during this stage.
+VERIFICATION
+Run:
+npm run check
+npm run build
+git diff --check
+Automatically verify public endpoints where possible.
+For authenticated endpoints, if Free Mode cannot obtain a valid Member token automatically, provide exact manual test steps instead of recommending Power Mode.
+Confirm:
+public Marketplace browse endpoint works
+empty Marketplace returns cleanly
+authenticated Member can create listing
+Member can edit own listing
+Member cannot edit another Member's listing
+Member can close own listing
+optional public Room association validates membership
+existing Rooms / Passport / Play code was not modified
+Stop after Marketplace Backend Foundation is complete.
+Do not begin Marketplace UI.
