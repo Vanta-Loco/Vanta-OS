@@ -64,6 +64,7 @@ export default function EditPost() {
   const [galleryLayouts, setGalleryLayouts] = useState<ImageLayout[]>([]);
   const [isFeatured, setIsFeatured] = useState(false);
   const [isUploadingMedia, setIsUploadingMedia] = useState(false);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
   const originalCoverImage = useRef("");
   const originalImages = useRef<string[]>([]);
   const originalImageLayouts = useRef<ImageLayout[]>([]);
@@ -166,12 +167,13 @@ export default function EditPost() {
   const handleGalleryImagesChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
+    const input = galleryInputRef.current ?? e.currentTarget;
+    input.value = "";
 
     const existingImages = form.getValues("images") || [];
     const remainingSlots = MAX_GALLERY_IMAGES - existingImages.length;
     if (remainingSlots <= 0) {
       toast({ title: "Gallery limit reached.", description: "A post can contain up to 4 gallery images." });
-      e.target.value = "";
       return;
     }
 
@@ -200,7 +202,6 @@ export default function EditPost() {
       toast({ title: "Gallery image upload failed.", variant: "destructive" });
     } finally {
       setIsUploadingMedia(false);
-      e.target.value = "";
     }
   };
 
@@ -585,10 +586,12 @@ export default function EditPost() {
                         </p>
                       </div>
                       <input
+                        ref={galleryInputRef}
                         type="file"
                         className="hidden"
                         accept="image/*"
                         multiple
+                        disabled={isUploadingMedia}
                         onChange={handleGalleryImagesChange}
                         data-testid="input-gallery-upload"
                       />
