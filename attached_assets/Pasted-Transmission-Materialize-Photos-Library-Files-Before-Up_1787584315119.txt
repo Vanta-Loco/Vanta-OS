@@ -1,0 +1,60 @@
+Transmission — Materialize Photos-Library Files Before Upload ONLY
+Continue in Free Mode. Do not switch to Power.
+The previous file-input lifecycle fix did not resolve the real Photos-library failure.
+Confirmed behavior:
+ordinary file-based JPG/PNG uploads work
+photos selected directly from the system Photos library still fail
+server receives POST /api/upload
+Busboy fails with Unexpected end of form
+Multer never completes
+Sharp is never reached
+Do not modify the server upload route, Multer, Busboy, Sharp, Express limits, Gallery state, PATCH behavior, or image formatting.
+Goal
+Before creating FormData, fully materialize each selected browser File into an in-memory File/Blob so the multipart request no longer depends on a lazy OS Photos-library/file-provider handle.
+For each selected file:
+Log development-only diagnostics before upload:
+file.name
+file.type
+file.size
+Read the selected file completely:
+const bytes = await file.arrayBuffer();
+Create a new memory-backed File:
+const uploadFile = new File(
+  [bytes],
+  file.name || "photo-upload",
+  {
+    type: file.type || "application/octet-stream",
+    lastModified: file.lastModified || Date.now(),
+  },
+);
+Create a fresh FormData.
+Append uploadFile under the existing file field.
+Upload that new materialized File to the existing /api/upload endpoint.
+Do not append the original Photos-provider-backed File after materialization.
+Important error handling
+If file.arrayBuffer() itself fails, report a specific frontend error such as:
+The selected photo could not be read from your photo library.
+Log the actual exception during development.
+If materialization succeeds but /api/upload still returns Unexpected end of form, report:
+original file size
+materialized File size
+MIME type
+upload HTTP status
+response body
+Do not make another speculative server change.
+Preserve
+Keep:
+sequential Gallery uploads
+4-image limit
+Add Images disabled during upload
+delayed input reset
+normalization through Sharp
+URL-only post PATCH
+cover image behavior
+Gallery formats/removal
+Do not modify unrelated Vanta systems.
+Run:
+npm run check
+npm run build
+git diff --check
+Then stop and give me one manual Photos-library test.

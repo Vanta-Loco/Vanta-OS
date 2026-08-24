@@ -38,9 +38,32 @@ const categories = [
 
 const MAX_GALLERY_IMAGES = 4;
 
-async function uploadFile(file: File): Promise<string> {
+async function uploadFile(file: File, materialize = false): Promise<string> {
+  let fileForUpload = file;
+  if (materialize) {
+    if (import.meta.env.DEV) {
+      console.debug("[gallery-upload] selected file", {
+        name: file.name,
+        type: file.type,
+        size: file.size,
+      });
+    }
+    try {
+      const bytes = await file.arrayBuffer();
+      fileForUpload = new File([bytes], file.name || "photo-upload", {
+        type: file.type || "application/octet-stream",
+        lastModified: file.lastModified || Date.now(),
+      });
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.debug("[gallery-upload] file materialization failed", error);
+      }
+      throw new Error("The selected photo could not be read from your photo library.");
+    }
+  }
+
   const formData = new FormData();
-  formData.append("file", file);
+  formData.append("file", fileForUpload);
   const token = getAdminToken();
   const response = await fetch("/api/upload", {
     method: "POST",
@@ -49,7 +72,15 @@ async function uploadFile(file: File): Promise<string> {
     headers: token ? { "X-Admin-Token": token } : undefined,
   });
   const result = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(result.error || "Upload failed.");
+  if (!response.ok) {
+    const responseBody = result.error || result.message || "Upload failed.";
+    if (materialize) {
+      throw new Error(
+        `${responseBody} (original size: ${file.size} bytes; materialized size: ${fileForUpload.size} bytes; MIME: ${fileForUpload.type || "(empty)"}; status: ${response.status})`,
+      );
+    }
+    throw new Error(responseBody);
+  }
   if (typeof result.url !== "string") throw new Error("Upload did not return an image URL.");
   return result.url as string;
 }
@@ -194,7 +225,7 @@ export default function EditPost() {
       let nextImages = [...existingImages];
       let nextLayouts = [...(form.getValues("imageLayouts") || [])];
       for (const file of filesToUpload) {
-        const url = await uploadFile(file);
+        const url = await uploadFile(file, true);
         nextImages = [...nextImages, url];
         nextLayouts = [...nextLayouts, "original"];
         setGalleryPreviews(nextImages);
