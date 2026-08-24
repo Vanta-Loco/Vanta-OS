@@ -327,19 +327,22 @@ export default function PostPage() {
                     : "grid-cols-2 md:grid-cols-3"
                 }`}
               >
-                {post.images.map((img, idx) => (
+                {post.images.map((img, idx) => {
+                  const layout = getImageLayout(post.imageLayouts?.[idx]);
+                  return (
                   <div
                     key={idx}
-                    className="relative aspect-square overflow-hidden rounded-lg"
+                    className={`relative overflow-hidden rounded-lg ${layout.value === "original" ? "max-h-[28rem]" : layout.className}`}
                   >
                     <img
                       src={img}
                       alt={`Gallery image ${idx + 1}`}
-                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                      className={`w-full ${layout.value === "original" ? "h-auto max-h-[28rem] object-contain" : "h-full object-cover"} hover:scale-105 transition-transform duration-300`}
                       data-testid={`img-gallery-${idx}`}
                     />
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}

@@ -42,6 +42,7 @@ export default function CreatePost() {
   const { isAuthenticated, isLoading: authLoading } = useAdmin();
   const [coverImagePreview, setCoverImagePreview] = useState<string>("");
   const [galleryPreviews, setGalleryPreviews] = useState<string[]>([]);
+  const [galleryLayouts, setGalleryLayouts] = useState<ImageLayout[]>([]);
   const [isFeatured, setIsFeatured] = useState(false);
 
   // Guard: redirect to login if not authenticated
@@ -60,6 +61,7 @@ export default function CreatePost() {
       coverImage: "",
       coverImagePosition: "50% 50%",
       images: [],
+      imageLayouts: [],
       category: "",
       readTime: "5 min read",
       featured: "false",
@@ -115,13 +117,26 @@ export default function CreatePost() {
     Promise.all(readers).then((dataUrls) => {
       setGalleryPreviews((prev) => [...prev, ...dataUrls]);
       form.setValue("images", [...(form.getValues("images") || []), ...dataUrls]);
+      const nextLayouts = [...(form.getValues("imageLayouts") || []), ...dataUrls.map(() => "original" as ImageLayout)];
+      setGalleryLayouts(nextLayouts);
+      form.setValue("imageLayouts", nextLayouts);
     });
   };
 
   const removeGalleryImage = (index: number) => {
     const newPreviews = galleryPreviews.filter((_, i) => i !== index);
+    const newLayouts = galleryLayouts.filter((_, i) => i !== index);
     setGalleryPreviews(newPreviews);
+    setGalleryLayouts(newLayouts);
     form.setValue("images", newPreviews);
+    form.setValue("imageLayouts", newLayouts);
+  };
+
+  const setGalleryImageLayout = (index: number, layout: ImageLayout) => {
+    const nextLayouts = [...galleryLayouts];
+    nextLayouts[index] = layout;
+    setGalleryLayouts(nextLayouts);
+    form.setValue("imageLayouts", nextLayouts);
   };
 
   const onSubmit = (data: InsertPost) => {
@@ -371,17 +386,18 @@ export default function CreatePost() {
 
                   {galleryPreviews.length > 0 && (
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                      {galleryPreviews.map((preview, idx) => (
-                        <div
-                          key={idx}
-                          className={`relative rounded-lg overflow-hidden ${getImageLayout(form.watch("imageLayout")).value === "original" ? "max-h-40" : getImageLayout(form.watch("imageLayout")).className}`}
-                        >
-                          <img
-                            src={preview}
-                            alt={`Gallery ${idx + 1}`}
-                            className={`w-full ${getImageLayout(form.watch("imageLayout")).value === "original" ? "h-auto max-h-40 object-contain" : "h-full object-cover"}`}
-                            data-testid={`img-gallery-preview-${idx}`}
-                          />
+                      {galleryPreviews.map((preview, idx) => {
+                        const layout = getImageLayout(galleryLayouts[idx]);
+                        return (
+                        <div key={idx} className="relative overflow-visible">
+                          <div className={`relative rounded-lg overflow-hidden ${layout.value === "original" ? "max-h-40" : layout.className}`}>
+                            <img
+                              src={preview}
+                              alt={`Gallery ${idx + 1}`}
+                              className={`w-full ${layout.value === "original" ? "h-auto max-h-40 object-contain" : "h-full object-cover"}`}
+                              data-testid={`img-gallery-preview-${idx}`}
+                            />
+                          </div>
                           <Button
                             type="button"
                             variant="destructive"
@@ -392,8 +408,15 @@ export default function CreatePost() {
                           >
                             <X className="w-4 h-4" />
                           </Button>
+                          <div className="mt-3">
+                            <ImageLayoutPicker
+                              value={layout.value}
+                              onChange={(value) => setGalleryImageLayout(idx, value)}
+                            />
+                          </div>
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </div>

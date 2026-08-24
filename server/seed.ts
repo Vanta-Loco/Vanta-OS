@@ -24,6 +24,7 @@ Let's create something unforgettable together.`,
       "/attached_assets/generated_images/Recording_session_behind_scenes_04ce1f60.png",
       "/attached_assets/generated_images/Artist_portrait_lifestyle_photo_4eb94ae9.png"
     ],
+    imageLayouts: ["original", "original"],
     category: "Music Production",
     readTime: "3 min read",
     featured: "true",
@@ -46,6 +47,7 @@ These are the moments that define Vanta Cold.`,
     coverImage: "/attached_assets/generated_images/Recording_session_behind_scenes_04ce1f60.png",
     coverImagePosition: "50% 50%",
     images: [],
+    imageLayouts: [],
     category: "Behind the Scenes",
     readTime: "4 min read",
     featured: "false",
@@ -68,6 +70,7 @@ Looking ahead, there's so much more to build. More music to create, more stories
     coverImage: "/attached_assets/generated_images/Urban_night_cityscape_mood_2c3c2c61.png",
     coverImagePosition: "50% 50%",
     images: [],
+    imageLayouts: [],
     category: "Creative Process",
     readTime: "5 min read",
     featured: "false",
@@ -79,6 +82,7 @@ Looking ahead, there's so much more to build. More music to create, more stories
 
 export async function seedDatabase() {
   await pool.query(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS image_layout TEXT NOT NULL DEFAULT 'original'`);
+  await pool.query(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS image_layouts TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[]`);
   const existingPosts = await storage.getAllPosts();
   
   if (existingPosts.length > 0) {

@@ -59,10 +59,12 @@ export default function EditPost() {
   const { isAuthenticated, isLoading: authLoading } = useAdmin();
   const [coverImagePreview, setCoverImagePreview] = useState<string>("");
   const [galleryPreviews, setGalleryPreviews] = useState<string[]>([]);
+  const [galleryLayouts, setGalleryLayouts] = useState<ImageLayout[]>([]);
   const [isFeatured, setIsFeatured] = useState(false);
   const [isUploadingMedia, setIsUploadingMedia] = useState(false);
   const originalCoverImage = useRef("");
   const originalImages = useRef<string[]>([]);
+  const originalImageLayouts = useRef<ImageLayout[]>([]);
 
   // Guard: redirect to login, preserving the edit URL so the user lands back here
   useEffect(() => {
@@ -95,6 +97,7 @@ export default function EditPost() {
 
   useEffect(() => {
     if (post) {
+      const imageLayouts = post.images.map((_, index) => getImageLayout(post.imageLayouts?.[index]).value);
       form.reset({
         title: post.title,
         excerpt: post.excerpt,
@@ -102,6 +105,7 @@ export default function EditPost() {
         coverImage: post.coverImage,
         coverImagePosition: post.coverImagePosition || "50% 50%",
         images: post.images,
+        imageLayouts,
         category: post.category,
         readTime: post.readTime,
         featured: post.featured,
@@ -110,8 +114,10 @@ export default function EditPost() {
       });
       setCoverImagePreview(post.coverImage);
       setGalleryPreviews(post.images);
+      setGalleryLayouts(imageLayouts);
       originalCoverImage.current = post.coverImage;
       originalImages.current = post.images;
+      originalImageLayouts.current = imageLayouts;
       setIsFeatured(post.featured === "true");
     }
   }, [post, form]);
@@ -163,8 +169,11 @@ export default function EditPost() {
     try {
       const urls = await Promise.all(files.map(uploadFile));
       const nextImages = [...(form.getValues("images") || []), ...urls];
+      const nextLayouts = [...(form.getValues("imageLayouts") || []), ...urls.map(() => "original" as ImageLayout)];
       setGalleryPreviews(nextImages);
+      setGalleryLayouts(nextLayouts);
       form.setValue("images", nextImages);
+      form.setValue("imageLayouts", nextLayouts);
     } catch {
       toast({ title: "Gallery image upload failed.", variant: "destructive" });
     } finally {
@@ -175,8 +184,18 @@ export default function EditPost() {
 
   const removeGalleryImage = (index: number) => {
     const newPreviews = galleryPreviews.filter((_, i) => i !== index);
+    const newLayouts = galleryLayouts.filter((_, i) => i !== index);
     setGalleryPreviews(newPreviews);
+    setGalleryLayouts(newLayouts);
     form.setValue("images", newPreviews);
+    form.setValue("imageLayouts", newLayouts);
+  };
+
+  const setGalleryImageLayout = (index: number, layout: ImageLayout) => {
+    const nextLayouts = [...galleryLayouts];
+    nextLayouts[index] = layout;
+    setGalleryLayouts(nextLayouts);
+    form.setValue("imageLayouts", nextLayouts);
   };
 
   const onSubmit = (data: InsertPost) => {
@@ -192,7 +211,14 @@ export default function EditPost() {
       imageLayout: data.imageLayout,
     };
     if (data.coverImage !== originalCoverImage.current) payload.coverImage = data.coverImage;
-    if (JSON.stringify(data.images || []) !== JSON.stringify(originalImages.current)) payload.images = data.images || [];
+    const imagesChanged = JSON.stringify(data.images || []) !== JSON.stringify(originalImages.current);
+    const imageLayoutsChanged = JSON.stringify(data.imageLayouts || []) !== JSON.stringify(originalImageLayouts.current);
+    if (imagesChanged) {
+      payload.images = data.images || [];
+      payload.imageLayouts = data.imageLayouts || [];
+    } else if (imageLayoutsChanged) {
+      payload.imageLayouts = data.imageLayouts || [];
+    }
     updatePost.mutate(payload);
   };
 
@@ -486,13 +512,15 @@ export default function EditPost() {
 
                   {galleryPreviews.length > 0 && (
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
-                      {galleryPreviews.map((preview, index) => (
-                        <div key={index} className={`relative group overflow-visible ${getImageLayout(form.watch("imageLayout")).value === "original" ? "max-h-40" : getImageLayout(form.watch("imageLayout")).className}`}>
-                          <div className="absolute inset-0 overflow-hidden rounded-md">
+                      {galleryPreviews.map((preview, index) => {
+                        const layout = getImageLayout(galleryLayouts[index]);
+                        return (
+                        <div key={index} className="relative group overflow-visible">
+                          <div className={`relative overflow-hidden rounded-md ${layout.value === "original" ? "max-h-40" : layout.className}`}>
                             <img
                               src={preview}
                               alt={`Gallery ${index + 1}`}
-                              className={`w-full ${getImageLayout(form.watch("imageLayout")).value === "original" ? "h-auto max-h-40 object-contain" : "h-full object-cover"}`}
+                              className={`w-full ${layout.value === "original" ? "h-auto max-h-40 object-contain" : "h-full object-cover"}`}
                               data-testid={`img-gallery-${index}`}
                             />
                           </div>
@@ -506,8 +534,15 @@ export default function EditPost() {
                           >
                             <X className="w-4 h-4" />
                           </Button>
+                          <div className="mt-3">
+                            <ImageLayoutPicker
+                              value={layout.value}
+                              onChange={(value) => setGalleryImageLayout(index, value)}
+                            />
+                          </div>
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
 
