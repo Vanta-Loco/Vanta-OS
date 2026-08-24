@@ -23,7 +23,7 @@ import { ArrowLeft, Upload, X, Loader2 } from "lucide-react";
 import { Link } from "wouter";
 import { insertPostSchema, type InsertPost } from "@shared/schema";
 import { CoverImagePositionPicker } from "@/components/cover-image-position-picker";
-import { ImageLayoutPicker, type ImageLayout } from "@/components/image-layout-picker";
+import { ImageLayoutPicker, type ImageLayout, getImageLayout } from "@/components/image-layout-picker";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
@@ -299,11 +299,11 @@ export default function CreatePost() {
                     </label>
                   ) : (
                     <div className="space-y-4">
-                      <div className="relative aspect-video rounded-lg overflow-hidden">
+                      <div className={`relative rounded-lg overflow-hidden ${getImageLayout(form.watch("imageLayout")).value === "original" ? "max-h-[28rem]" : getImageLayout(form.watch("imageLayout")).className}`}>
                         <img
                           src={coverImagePreview}
                           alt="Cover preview"
-                          className="w-full h-full object-cover"
+                          className={`w-full ${getImageLayout(form.watch("imageLayout")).value === "original" ? "h-auto max-h-[28rem] object-contain" : "h-full object-cover"}`}
                           style={{ objectPosition: form.watch("coverImagePosition") || "50% 50%" }}
                           data-testid="img-cover-preview"
                         />
@@ -329,7 +329,6 @@ export default function CreatePost() {
                       <ImageLayoutPicker
                         value={form.watch("imageLayout") || "original"}
                         onChange={(value: ImageLayout) => form.setValue("imageLayout", value)}
-                        preview={coverImagePreview}
                       />
                     </div>
                   )}
@@ -375,12 +374,12 @@ export default function CreatePost() {
                       {galleryPreviews.map((preview, idx) => (
                         <div
                           key={idx}
-                          className="relative aspect-square rounded-lg overflow-hidden"
+                          className={`relative rounded-lg overflow-hidden ${getImageLayout(form.watch("imageLayout")).value === "original" ? "max-h-40" : getImageLayout(form.watch("imageLayout")).className}`}
                         >
                           <img
                             src={preview}
                             alt={`Gallery ${idx + 1}`}
-                            className="w-full h-full object-cover"
+                            className={`w-full ${getImageLayout(form.watch("imageLayout")).value === "original" ? "h-auto max-h-40 object-contain" : "h-full object-cover"}`}
                             data-testid={`img-gallery-preview-${idx}`}
                           />
                           <Button

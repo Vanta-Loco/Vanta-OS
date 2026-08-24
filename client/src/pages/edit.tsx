@@ -353,13 +353,15 @@ export default function EditPost() {
                   {coverImagePreview ? (
                     <div className="space-y-4">
                       <div className="relative">
+                        <div className={`overflow-hidden rounded-md ${getImageLayout(form.watch("imageLayout")).value === "original" ? "max-h-[28rem]" : getImageLayout(form.watch("imageLayout")).className}`}>
                         <img
                           src={coverImagePreview}
                           alt="Cover preview"
-                          className="w-full h-64 object-cover rounded-md"
+                          className={`w-full ${getImageLayout(form.watch("imageLayout")).value === "original" ? "h-auto max-h-[28rem] object-contain" : "h-full object-cover"}`}
                           style={{ objectPosition: form.watch("coverImagePosition") || "50% 50%" }}
                           data-testid="img-cover-preview"
                         />
+                        </div>
                         <Button
                           type="button"
                           variant="destructive"
@@ -382,7 +384,6 @@ export default function EditPost() {
                       <ImageLayoutPicker
                         value={form.watch("imageLayout") || "original"}
                         onChange={(value: ImageLayout) => form.setValue("imageLayout", value)}
-                        preview={coverImagePreview}
                       />
                     </div>
                   ) : (
@@ -454,11 +455,11 @@ export default function EditPost() {
                   {galleryPreviews.length > 0 && (
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
                       {galleryPreviews.map((preview, index) => (
-                        <div key={index} className="relative group">
+                        <div key={index} className={`relative group overflow-hidden rounded-md ${getImageLayout(form.watch("imageLayout")).value === "original" ? "max-h-40" : getImageLayout(form.watch("imageLayout")).className}`}>
                           <img
                             src={preview}
                             alt={`Gallery ${index + 1}`}
-                            className="w-full h-32 object-cover rounded-md"
+                            className={`w-full ${getImageLayout(form.watch("imageLayout")).value === "original" ? "h-auto max-h-40 object-contain" : "h-full object-cover"}`}
                             data-testid={`img-gallery-${index}`}
                           />
                           <Button
