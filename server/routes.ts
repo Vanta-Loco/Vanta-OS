@@ -26,6 +26,7 @@ declare module "express-session" {
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import sharp from "sharp";
 
 const uploadsDir = path.join(process.cwd(), "uploads");
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
@@ -44,10 +45,11 @@ const upload = multer({
   fileFilter: (_req, file, cb) => {
     const allowed = [
       "image/jpeg", "image/jpg", "image/png", "image/webp",
+      "image/heic", "image/heif", "image/avif", "image/tiff", "image/gif",
       "audio/mpeg", "audio/mp3", "audio/wav", "audio/x-wav",
       "audio/x-m4a", "audio/mp4", "audio/aac",
     ];
-    cb(null, allowed.includes(file.mimetype));
+    cb(null, allowed.includes(file.mimetype) || file.mimetype.startsWith("image/") || file.mimetype === "application/octet-stream");
   },
 });
 
@@ -93,9 +95,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ── File Upload ──────────────────────────────────────────────────
-  app.post("/api/upload", requireAdmin, upload.single("file"), (req, res) => {
-    if (!req.file) return res.status(400).json({ error: "No file uploaded or file type not allowed" });
-    res.json({ url: `/uploads/${req.file.filename}` });
+  app.post("/api/upload", requireAdmin, (req, res, next) => {
+    upload.single("file")(req, res, async (error) => {
+      if (error) {
+        if (error instanceof multer.MulterError && error.code === "LIMIT_FILE_SIZE") {
+          return res.status(413).json({ error: "File is too large. Maximum size is 100MB." });
+        }
+        return res.status(415).json({ error: "This file type is not supported." });
+      }
+
+      try {
+        const file = req.file;
+        if (!file) return res.status(400).json({ error: "No file uploaded." });
+
+        const extension = path.extname(file.originalname).toLowerCase() || "(none)";
+        const isAudio = file.mimetype.startsWith("audio/");
+        const isImage = !isAudio;
+        console.info("[upload]", JSON.stringify({
+          filename: file.originalname,
+          extension,
+          mimeType: file.mimetype,
+          size: file.size,
+        }));
+
+        if (!isImage) {
+          console.info("[upload:complete]", JSON.stringify({
+            filename: file.originalname,
+            status: 200,
+            url: `/uploads/${file.filename}`,
+          }));
+          return res.json({ url: `/uploads/${file.filename}` });
+        }
+
+        const normalizedFilename = `${path.basename(file.filename, path.extname(file.filename))}.webp`;
+        const normalizedPath = path.join(uploadsDir, normalizedFilename);
+        const metadata = await sharp(file.path).metadata();
+        await sharp(file.path)
+          .rotate()
+          .webp({ quality: 85, alphaQuality: 100 })
+          .toFile(normalizedPath);
+
+        if (file.path !== normalizedPath) fs.unlinkSync(file.path);
+        const url = `/uploads/${normalizedFilename}`;
+        console.info("[upload:complete]", JSON.stringify({
+          filename: file.originalname,
+          detectedFormat: metadata.format,
+          status: 200,
+          url,
+        }));
+        return res.json({ url });
+      } catch (error) {
+        if (req.file?.path && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+        const message = error instanceof Error ? error.message : "";
+        console.error("[upload:image-processing-failed]", JSON.stringify({
+          filename: req.file?.originalname,
+          mimeType: req.file?.mimetype,
+          size: req.file?.size,
+          error: message,
+        }));
+        return res.status(415).json({
+          error: "This image format could not be processed. Try exporting it as JPEG, PNG, or WebP.",
+        });
+      }
+    });
   });
 
   // ── Admin Posts (all including drafts) ─────────────────────────

@@ -48,8 +48,9 @@ async function uploadFile(file: File): Promise<string> {
     credentials: "include",
     headers: token ? { "X-Admin-Token": token } : undefined,
   });
-  if (!response.ok) throw new Error("Upload failed");
-  const result = await response.json();
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result.error || "Upload failed.");
+  if (typeof result.url !== "string") throw new Error("Upload did not return an image URL.");
   return result.url as string;
 }
 
@@ -156,8 +157,12 @@ export default function EditPost() {
       const url = await uploadFile(file);
       setCoverImagePreview(url);
       form.setValue("coverImage", url, { shouldValidate: true });
-    } catch {
-      toast({ title: "Image upload failed.", variant: "destructive" });
+    } catch (error) {
+      toast({
+        title: "Image upload failed.",
+        description: error instanceof Error ? error.message : "Try exporting it as JPEG, PNG, or WebP.",
+        variant: "destructive",
+      });
     } finally {
       setIsUploadingMedia(false);
       e.target.value = "";
@@ -198,8 +203,12 @@ export default function EditPost() {
         form.setValue("images", nextImages);
         form.setValue("imageLayouts", nextLayouts);
       }
-    } catch {
-      toast({ title: "Gallery image upload failed.", variant: "destructive" });
+    } catch (error) {
+      toast({
+        title: "Gallery image upload failed.",
+        description: error instanceof Error ? error.message : "Try exporting it as JPEG, PNG, or WebP.",
+        variant: "destructive",
+      });
     } finally {
       setIsUploadingMedia(false);
     }
@@ -482,7 +491,7 @@ export default function EditPost() {
                       <input
                         type="file"
                         className="hidden"
-                        accept="image/*"
+                        accept="image/*,.heic,.heif,.avif"
                         onChange={handleCoverImageChange}
                         data-testid="input-cover-upload"
                       />

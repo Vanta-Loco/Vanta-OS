@@ -1,0 +1,85 @@
+Transmission — Cross-Platform Photo Upload Compatibility ONLY
+Continue in Free Mode. Do not switch to Power.
+Current Gallery uploading works for ordinary image files, but the upload path needs to reliably support photos selected from common photo libraries and devices across:
+macOS / Apple Photos
+iPhone / iOS
+Android / Google Photos / Gallery
+Windows Photos / File Explorer
+Linux desktop file pickers
+Do not implement an Apple-specific workaround.
+Build a cross-platform image ingestion/normalization layer using the existing /api/upload architecture.
+1. Inspect actual incoming files
+Before changing behavior, inspect/log enough development information to identify:
+filename
+extension
+MIME type
+file size
+upload response/status
+Support common photography/image sources including:
+JPEG / JPG
+PNG
+WebP
+HEIC
+HEIF
+AVIF where the existing image-processing stack can safely decode it
+If other ordinary camera/photo formats are already supported by the project's image library, preserve that compatibility.
+Do not trust the extension alone. Validate the actual file type/MIME as well.
+2. Normalize uploads server-side
+Do not depend on every browser being able to display the original source format.
+For formats that are not reliably browser-safe, such as HEIC/HEIF, decode them server-side and create a normalized browser-compatible version.
+Prefer:
+WebP when appropriate
+JPEG where WebP is not appropriate or supported by the existing processing path
+PNG transparency must not be accidentally destroyed. If transparency matters, preserve it using PNG/WebP rather than flattening it into JPEG.
+The Gallery should store/use the URL of the normalized browser-safe image.
+3. Image orientation
+Respect EXIF/camera orientation during normalization so phone photos do not appear sideways or upside-down.
+Use the existing image-processing library's auto-orientation support where available.
+4. Privacy-safe metadata
+For normalized public Gallery images, strip unnecessary EXIF metadata such as GPS/location information unless the application specifically needs it.
+Do not expose private camera/location metadata publicly.
+5. Image processing stack
+Inspect whether the project already uses sharp or another image-processing library.
+Reuse the existing stack.
+Verify whether the actual Replit environment can decode HEIC/HEIF and AVIF rather than assuming package documentation means the installed binary supports them.
+If HEIC/HEIF decoding is unavailable in the current environment, report the exact limitation and the smallest safe decoder addition required before implementing a workaround.
+Do not create an entirely separate upload service.
+6. File picker
+Keep the Gallery picker broadly compatible with operating-system photo/file pickers.
+Use an image accept configuration that allows ordinary images and does not unintentionally hide HEIC/HEIF files where the browser exposes them.
+Repeated selection must continue working up to the existing 4-image Gallery limit.
+7. Preserve the existing upload architecture
+Keep:
+file selection → POST /api/upload → server normalization if required → /uploads/... URL → Gallery state
+Do not:
+send base64 through post PATCH
+change the post PATCH architecture
+break sequential Gallery uploads
+break the 4-image limit
+change cover-format behavior
+change Gallery remove behavior
+modify unrelated Vanta systems
+8. Error handling
+If a selected photo truly cannot be decoded, return a useful message such as:
+This image format could not be processed. Try exporting it as JPEG, PNG, or WebP.
+Do not return only Upload failed.
+File-size and invalid-image errors should also be distinct.
+9. Verification
+Verify where practical with representative files:
+JPG
+PNG
+WebP
+HEIC/HEIF
+AVIF if supported
+Confirm each successful upload:
+appears immediately in Gallery
+has a browser-safe playback/display URL
+has correct orientation
+survives save + refresh
+works alongside up to 4 Gallery images
+Then run:
+npm run check
+npm run build
+git diff --check
+Stop after cross-platform photo ingestion works.
+Do not begin new Transmission features.
