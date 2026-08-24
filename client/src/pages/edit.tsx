@@ -101,7 +101,7 @@ export default function EditPost() {
   }, [post, form]);
 
   const updatePost = useMutation({
-    mutationFn: async (data: InsertPost) => {
+    mutationFn: async (data: Partial<InsertPost>) => {
       return await apiRequest("PATCH", `/api/posts/${postId}`, data);
     },
     onSuccess: () => {
