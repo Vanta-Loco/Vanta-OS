@@ -158,9 +158,19 @@ export default function EditPost() {
   };
 
   const onSubmit = (data: InsertPost) => {
-    const payload = { ...data, featured: isFeatured ? "true" : "false" };
-    if (data.coverImage === originalCoverImage.current) delete (payload as Partial<InsertPost>).coverImage;
-    if (JSON.stringify(data.images || []) === JSON.stringify(originalImages.current)) delete (payload as Partial<InsertPost>).images;
+    const payload: Partial<InsertPost> = {
+      title: data.title,
+      excerpt: data.excerpt,
+      content: data.content,
+      coverImagePosition: data.coverImagePosition,
+      category: data.category,
+      readTime: data.readTime,
+      featured: isFeatured ? "true" : "false",
+      musicUrl: data.musicUrl,
+      imageLayout: data.imageLayout,
+    };
+    if (data.coverImage !== originalCoverImage.current) payload.coverImage = data.coverImage;
+    if (JSON.stringify(data.images || []) !== JSON.stringify(originalImages.current)) payload.images = data.images || [];
     updatePost.mutate(payload);
   };
 
@@ -455,18 +465,20 @@ export default function EditPost() {
                   {galleryPreviews.length > 0 && (
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
                       {galleryPreviews.map((preview, index) => (
-                        <div key={index} className={`relative group overflow-hidden rounded-md ${getImageLayout(form.watch("imageLayout")).value === "original" ? "max-h-40" : getImageLayout(form.watch("imageLayout")).className}`}>
-                          <img
-                            src={preview}
-                            alt={`Gallery ${index + 1}`}
-                            className={`w-full ${getImageLayout(form.watch("imageLayout")).value === "original" ? "h-auto max-h-40 object-contain" : "h-full object-cover"}`}
-                            data-testid={`img-gallery-${index}`}
-                          />
+                        <div key={index} className={`relative group overflow-visible ${getImageLayout(form.watch("imageLayout")).value === "original" ? "max-h-40" : getImageLayout(form.watch("imageLayout")).className}`}>
+                          <div className="absolute inset-0 overflow-hidden rounded-md">
+                            <img
+                              src={preview}
+                              alt={`Gallery ${index + 1}`}
+                              className={`w-full ${getImageLayout(form.watch("imageLayout")).value === "original" ? "h-auto max-h-40 object-contain" : "h-full object-cover"}`}
+                              data-testid={`img-gallery-${index}`}
+                            />
+                          </div>
                           <Button
                             type="button"
                             variant="destructive"
                             size="icon"
-                            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                            className="absolute top-2 right-2 z-20 opacity-100 shadow-md"
                             onClick={() => removeGalleryImage(index)}
                             data-testid={`button-remove-gallery-${index}`}
                           >
