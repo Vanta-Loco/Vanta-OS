@@ -170,20 +170,19 @@ export default function EditPost() {
   };
 
   const handleGalleryImagesChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length === 0) return;
-    const input = galleryInputRef.current ?? e.currentTarget;
-    input.value = "";
+    const selectedFiles = Array.from(e.currentTarget.files ?? []);
+    if (selectedFiles.length === 0) return;
 
     const existingImages = form.getValues("images") || [];
     const remainingSlots = MAX_GALLERY_IMAGES - existingImages.length;
     if (remainingSlots <= 0) {
       toast({ title: "Gallery limit reached.", description: "A post can contain up to 4 gallery images." });
+      if (galleryInputRef.current) galleryInputRef.current.value = "";
       return;
     }
 
-    const filesToUpload = files.slice(0, remainingSlots);
-    if (filesToUpload.length < files.length) {
+    const filesToUpload = selectedFiles.slice(0, remainingSlots);
+    if (filesToUpload.length < selectedFiles.length) {
       toast({
         title: "Gallery limited to 4 images.",
         description: `Only ${remainingSlots} more image${remainingSlots === 1 ? "" : "s"} will be added.`,
@@ -211,6 +210,7 @@ export default function EditPost() {
       });
     } finally {
       setIsUploadingMedia(false);
+      if (galleryInputRef.current) galleryInputRef.current.value = "";
     }
   };
 
@@ -585,7 +585,8 @@ export default function EditPost() {
 
                   {galleryPreviews.length < MAX_GALLERY_IMAGES && (
                     <label
-                      className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-border rounded-md hover-elevate cursor-pointer"
+                      className={`flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-border rounded-md hover-elevate cursor-pointer ${isUploadingMedia ? "opacity-60 pointer-events-none" : ""}`}
+                      aria-disabled={isUploadingMedia}
                       data-testid="label-gallery-upload"
                     >
                       <div className="flex flex-col items-center justify-center pt-5 pb-6">
