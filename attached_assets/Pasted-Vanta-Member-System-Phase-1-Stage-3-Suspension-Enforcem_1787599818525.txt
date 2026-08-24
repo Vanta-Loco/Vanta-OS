@@ -1,0 +1,114 @@
+Vanta Member System — Phase 1, Stage 3: Suspension Enforcement ONLY
+Continue in Free Mode. Do not switch to Power.
+Member Management backend and Admin UI are complete.
+Existing account states:
+active
+suspended
+Admin can already change status through:
+PATCH /api/admin/users/:id/status
+This task is ONLY to make suspended status actually block authenticated Member activity across Vanta.
+Do not redesign Member Management or add new moderation features.
+1. Inspect existing auth first
+Inspect:
+server/user-auth.ts
+Member token issuance
+requireUser
+login/register routes
+existing active token storage
+Preserve the current X-User-Token architecture.
+Do not create JWTs, sessions, cookies or another authentication system during this stage.
+2. Central enforcement
+Enforce suspension at the shared Member-authentication middleware level, preferably through the existing requireUser.
+Do NOT manually add suspension checks separately to Play, Rooms, Marketplace, Creator, Passport, etc.
+The goal is:
+request with valid Member token
+→ identify Member
+→ check current users.account_status
+→ if active, continue
+→ if suspended, reject
+This must also block tokens that were issued before the Admin suspended the Member.
+In other words, suspension should take effect on the Member's next protected request without requiring them to log out first.
+3. Suspended response
+For a suspended Member attempting a protected Member action, return a clear response such as:
+HTTP 403
+{
+  "error": "Account suspended",
+  "code": "ACCOUNT_SUSPENDED"
+}
+Do not return Login required, because the Member may still possess a valid token.
+Do not expose internal moderation notes or sensitive Admin information.
+4. Login behavior
+Inspect the existing Member login route.
+If a suspended Member attempts to log in with otherwise valid credentials, reject the login cleanly rather than issuing a usable Member session.
+Return an appropriate 403 with the same safe suspended-account state.
+Do not change registration for normal new Members.
+Do not alter Admin login/authentication.
+5. Existing active tokens
+This is important:
+A Member who was already logged in before suspension must become blocked immediately on protected requests.
+Do not rely solely on status captured when the token was originally issued.
+The current database account_status must remain the source of truth.
+If requireUser currently operates synchronously and database checking requires asynchronous middleware, make the smallest safe change necessary and verify existing protected routes continue functioning.
+Do not refactor authentication beyond what suspension enforcement requires.
+6. Protected Vanta systems
+Because they already use requireUser, suspended Members should automatically be blocked from authenticated actions including:
+Passport authenticated endpoints
+Vanta Play join/leave/host
+Room create/join/leave/post
+Marketplace create/edit/close
+Creator Profile create/edit
+other existing Member-protected APIs
+Do not alter those individual systems unless one is verified to bypass requireUser.
+Public browsing should remain public.
+For example, a suspended account may still be able to view publicly accessible pages as a visitor, but cannot perform authenticated Member actions.
+7. Frontend behavior
+Do NOT do a broad frontend redesign.
+Existing API calls should receive the 403 ACCOUNT_SUSPENDED response.
+If there is one clean shared frontend auth/user hook where this state can be recognized, add only minimal handling so the Member can receive a useful message such as:
+This Vanta account is currently suspended.
+Do not build appeals, moderation notices, ban reasons or account-deletion flows yet.
+If central frontend handling would widen scope significantly, leave the API response correct and report where UI handling should be added in a later small stage.
+8. Reactivation
+When Admin changes:
+suspended → active
+the same Member should regain access on their next authenticated request if their existing token is still otherwise valid.
+Do not require creation of another account.
+If the existing token system makes re-login necessary after reactivation, report that clearly instead of redesigning auth.
+9. Preserve Admin
+Admin authentication must remain completely separate and unaffected.
+A suspended Vanta Member account must not interfere with the existing Admin authentication mechanism.
+Do not modify:
+Admin token behavior
+Creator certification
+Admin User Management API/UI
+passwords/password hashes
+Passport XP
+achievements
+Rooms data
+Marketplace data
+Play data
+Transmission
+Vault/Releases
+World
+startup
+10. Verification
+Run:
+npm run check
+npm run build
+git diff --check
+Then manually verify with a non-Admin test Member:
+Sign into the Member account.
+Confirm a protected action works while ACTIVE.
+Without logging that Member out, sign into Admin separately.
+Suspend the Member.
+Return to the still-open Member session.
+Try a protected action such as joining a Room or Play game.
+Confirm it returns the suspended-account state instead of succeeding.
+Refresh a protected Member page and confirm protected API access remains blocked.
+Attempt a new login as that suspended Member and confirm login is rejected.
+Reactivate the Member from Admin.
+Confirm Member access can be restored appropriately.
+Confirm an ordinary active Member still works normally.
+Do not test suspension using the only account you need for the demo if another test Member is available.
+Stop after suspension enforcement works.
+Do not begin bans, moderation notes, roles, appeals or deletion.

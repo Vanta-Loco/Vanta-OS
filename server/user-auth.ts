@@ -3,6 +3,7 @@
 // Survives process lifetime only — acceptable for Phase 1.
 import crypto from "crypto";
 import { promisify } from "util";
+import { pool } from "./db";
 
 const scryptAsync = promisify(crypto.scrypt);
 
@@ -44,15 +45,31 @@ export function getRequestUser(req: import("express").Request): { userId: string
   return getUserFromToken(header);
 }
 
-export function requireUser(
+export async function requireUser(
   req: import("express").Request,
   res: import("express").Response,
   next: import("express").NextFunction,
 ) {
   const user = getRequestUser(req);
   if (!user) return res.status(401).json({ error: "Login required" });
-  (req as any).currentUser = user;
-  next();
+  try {
+    const result = await pool.query(
+      "SELECT account_status FROM users WHERE id=$1 LIMIT 1",
+      [user.userId],
+    );
+    if (!result.rows[0]) return res.status(401).json({ error: "Login required" });
+    if (result.rows[0].account_status === "suspended") {
+      return res.status(403).json({
+        error: "Account suspended",
+        code: "ACCOUNT_SUSPENDED",
+      });
+    }
+    (req as any).currentUser = user;
+    return next();
+  } catch (error) {
+    console.error("[user-auth] status check:", error);
+    return res.status(500).json({ error: "Authentication unavailable" });
+  }
 }
 
 // Reserved usernames — cannot be registered

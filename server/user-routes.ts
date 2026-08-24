@@ -133,6 +133,12 @@ export function registerUserRoutes(app: Express) {
       const user = r.rows[0];
       const valid = await verifyPassword(password, user.password_hash);
       if (!valid) return res.status(401).json({ error: "Invalid email or password" });
+      if (user.account_status === "suspended") {
+        return res.status(403).json({
+          error: "Account suspended",
+          code: "ACCOUNT_SUSPENDED",
+        });
+      }
 
       await pool.query("UPDATE users SET last_login_at=NOW() WHERE id=$1", [user.id]);
 
