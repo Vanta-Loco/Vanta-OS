@@ -24,7 +24,7 @@ import { insertPostSchema, type InsertPost, type Post } from "@shared/schema";
 import { CoverImagePositionPicker } from "@/components/cover-image-position-picker";
 import { ImageLayoutPicker, type ImageLayout, getImageLayout } from "@/components/image-layout-picker";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest, getAdminToken, queryClient } from "@/lib/queryClient";
 import { useAdmin } from "@/hooks/use-admin";
 
 const categories = [
@@ -36,6 +36,21 @@ const categories = [
   "Release",
 ];
 
+async function uploadFile(file: File): Promise<string> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const token = getAdminToken();
+  const response = await fetch("/api/upload", {
+    method: "POST",
+    body: formData,
+    credentials: "include",
+    headers: token ? { "X-Admin-Token": token } : undefined,
+  });
+  if (!response.ok) throw new Error("Upload failed");
+  const result = await response.json();
+  return result.url as string;
+}
+
 export default function EditPost() {
   const [, params] = useRoute("/edit/:id");
   const postId = params?.id;
@@ -45,6 +60,7 @@ export default function EditPost() {
   const [coverImagePreview, setCoverImagePreview] = useState<string>("");
   const [galleryPreviews, setGalleryPreviews] = useState<string[]>([]);
   const [isFeatured, setIsFeatured] = useState(false);
+  const [isUploadingMedia, setIsUploadingMedia] = useState(false);
   const originalCoverImage = useRef("");
   const originalImages = useRef<string[]>([]);
 
@@ -122,33 +138,39 @@ export default function EditPost() {
     },
   });
 
-  const handleCoverImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCoverImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const dataUrl = reader.result as string;
-        setCoverImagePreview(dataUrl);
-        form.setValue("coverImage", dataUrl);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    setIsUploadingMedia(true);
+    try {
+      const url = await uploadFile(file);
+      setCoverImagePreview(url);
+      form.setValue("coverImage", url, { shouldValidate: true });
+    } catch {
+      toast({ title: "Image upload failed.", variant: "destructive" });
+    } finally {
+      setIsUploadingMedia(false);
+      e.target.value = "";
     }
   };
 
-  const handleGalleryImagesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleGalleryImagesChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    const readers = files.map((file) => {
-      return new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.readAsDataURL(file);
-      });
-    });
+    if (files.length === 0) return;
 
-    Promise.all(readers).then((dataUrls) => {
-      setGalleryPreviews((prev) => [...prev, ...dataUrls]);
-      form.setValue("images", [...(form.getValues("images") || []), ...dataUrls]);
-    });
+    setIsUploadingMedia(true);
+    try {
+      const urls = await Promise.all(files.map(uploadFile));
+      const nextImages = [...(form.getValues("images") || []), ...urls];
+      setGalleryPreviews(nextImages);
+      form.setValue("images", nextImages);
+    } catch {
+      toast({ title: "Gallery image upload failed.", variant: "destructive" });
+    } finally {
+      setIsUploadingMedia(false);
+      e.target.value = "";
+    }
   };
 
   const removeGalleryImage = (index: number) => {
@@ -520,7 +542,7 @@ export default function EditPost() {
               </Link>
               <Button
                 type="submit"
-                disabled={updatePost.isPending}
+                disabled={updatePost.isPending || isUploadingMedia}
                 data-testid="button-update"
               >
                 {updatePost.isPending ? (
