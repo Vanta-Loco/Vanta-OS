@@ -167,13 +167,17 @@ export default function EditPost() {
 
     setIsUploadingMedia(true);
     try {
-      const urls = await Promise.all(files.map(uploadFile));
-      const nextImages = [...(form.getValues("images") || []), ...urls];
-      const nextLayouts = [...(form.getValues("imageLayouts") || []), ...urls.map(() => "original" as ImageLayout)];
-      setGalleryPreviews(nextImages);
-      setGalleryLayouts(nextLayouts);
-      form.setValue("images", nextImages);
-      form.setValue("imageLayouts", nextLayouts);
+      let nextImages = [...(form.getValues("images") || [])];
+      let nextLayouts = [...(form.getValues("imageLayouts") || [])];
+      for (const file of files) {
+        const url = await uploadFile(file);
+        nextImages = [...nextImages, url];
+        nextLayouts = [...nextLayouts, "original"];
+        setGalleryPreviews(nextImages);
+        setGalleryLayouts(nextLayouts);
+        form.setValue("images", nextImages);
+        form.setValue("imageLayouts", nextLayouts);
+      }
     } catch {
       toast({ title: "Gallery image upload failed.", variant: "destructive" });
     } finally {

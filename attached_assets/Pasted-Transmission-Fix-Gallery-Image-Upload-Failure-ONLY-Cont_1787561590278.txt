@@ -1,0 +1,61 @@
+Transmission — Fix Gallery Image Upload Failure ONLY
+Continue in Free Mode. Do not switch to Power.
+Current manual testing:
+Text-only post updates now work.
+The cover-image update path has already been changed away from oversized base64 PATCH data.
+New gallery image uploads currently fail.
+Work ONLY on the gallery upload failure.
+Do not implement gallery image-format controls yet.
+Do not redesign the cover editor.
+Diagnose before changing code
+Reproduce one failed gallery upload and report:
+exact upload request URL
+HTTP method
+HTTP status
+response body/error
+server console error
+request content type
+uploaded form field name
+whether the Admin auth token/header is present
+MIME type and filename received by the server
+Compare this directly with the working cover-image upload path and the existing working Admin /api/upload implementation.
+Required behavior
+Newly selected gallery image files should:
+Upload through the existing Admin-authenticated upload mechanism.
+Return a persistent /uploads/... URL.
+Add that URL to the gallery form state.
+Send only the resulting URL(s) in the eventual post PATCH.
+Do not send gallery image files or base64 image data inside PATCH /api/posts/:id.
+Important
+Reuse the exact working upload request structure used for cover images wherever possible:
+same endpoint
+same auth mechanism
+same FormData conventions
+same accepted file handling
+If the gallery uploader currently uses a different form field name than /api/upload expects, fix that mismatch rather than creating another endpoint.
+If the upload succeeds but gallery state fails to update, fix only that state-handling problem.
+Preserve
+Do not change:
+working text edits
+cover upload behavior
+cover layout selector
+live cover slot
+existing gallery remove X
+existing gallery images
+public post rendering
+Do not modify Rooms, Marketplace, Passport, Play, Vault, Releases, World, navigation or authentication architecture.
+Verification
+After fixing:
+upload one JPG/PNG gallery image
+confirm upload returns success
+confirm /uploads/... URL is added to gallery state
+save the post
+reopen the post
+confirm the gallery image persists
+confirm existing gallery images remain
+confirm removing a gallery image still works
+Then run:
+npm run check
+npm run build
+git diff --check
+Stop after gallery uploading works. Do not begin gallery layout presets yet.
