@@ -90,7 +90,7 @@ export default function EditPost() {
         readTime: post.readTime,
         featured: post.featured,
         musicUrl: post.musicUrl ?? "",
-        imageLayout: post.imageLayout || "original",
+        imageLayout: getImageLayout(post.imageLayout).value,
       });
       setCoverImagePreview(post.coverImage);
       setGalleryPreviews(post.images);
