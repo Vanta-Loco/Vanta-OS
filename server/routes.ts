@@ -16,6 +16,7 @@ import {
 import { registerUserRoutes } from "./user-routes";
 import { registerRoomsRoutes } from "./rooms-routes";
 import { registerMarketplaceRoutes } from "./marketplace-routes";
+import { registerCreatorRoutes } from "./creator-routes";
 
 declare module "express-session" {
   interface SessionData {
@@ -58,6 +59,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerUserRoutes(app);
   registerRoomsRoutes(app);
   registerMarketplaceRoutes(app);
+  registerCreatorRoutes(app);
 
   // ── Admin Auth ───────────────────────────────────────────────────
   app.get("/api/admin/me", (req, res) => {

@@ -1,0 +1,189 @@
+Stage 4A — Creator backend foundation
+Send Replit this:
+Vanta Certified Creators — Phase 1, Stage 1: Backend Foundation ONLY
+Continue in Free Mode. Do not switch to Power.
+Existing Vanta systems are working and MUST remain unchanged:
+authentication
+Passport
+Passport XP and achievements
+Rooms
+Room environments
+Marketplace
+Room Marketplace integration
+Vanta Play
+Transmission
+Vault
+Releases
+World
+Vanta OS navigation/startup
+This task is ONLY the backend/database foundation for Creator Profiles + Certified Creator status.
+Do not build frontend pages yet.
+Core concept
+Every authenticated Vanta Member may create a Creator Profile.
+A Creator Profile represents their public creative identity across Vanta.
+Certified Creator is a separate Vanta-approved status.
+Members must NEVER be able to certify themselves.
+Certification should initially be controlled through the existing Admin system.
+Creator Profile data
+Add the minimum additive database structure needed for one Creator Profile per real Vanta user.
+Suggested fields:
+id — UUID
+user_id — unique reference to existing user
+display_name
+bio
+city — nullable
+country — nullable
+profile_image_url — nullable
+banner_image_url — nullable
+creator_type / primary discipline
+disciplines
+instagram_url — nullable
+website_url — nullable
+spotify_url — nullable
+soundcloud_url — nullable
+is_certified — default false
+certified_at — nullable
+created_at
+updated_at
+Keep this additive and minimal.
+Do not duplicate Passport identity fields unnecessarily.
+user_id is the connection between Passport identity and Creator identity.
+Disciplines
+Support expandable creator disciplines such as:
+Artist
+Producer
+Engineer
+Photographer
+Filmmaker
+Model
+Designer
+Stylist
+Writer
+Journalist / Media
+Curator
+Developer
+Fashion
+Other
+Allow a Creator to have more than one discipline.
+Do not build a category-management system yet.
+Certification
+is_certified must NEVER be writable through normal Member profile APIs.
+A Member cannot:
+set themselves certified
+change certified_at
+impersonate another Creator
+Certification should only be changed through an authenticated existing Admin route/action.
+Reuse the current Admin architecture.
+Do not create a second Admin authentication system.
+Public APIs
+Add isolated Creator API routes.
+Prefer a dedicated file such as:
+server/creator-routes.ts
+Public creator profile
+GET /api/creators/:username
+Return safe public data:
+username
+display name
+bio
+location where supplied
+profile/banner images
+disciplines
+public social links
+Certified Creator status
+created date where appropriate
+Do not expose email, password data, tokens or private Member information.
+Current Member creator profile
+GET /api/creator/me
+Authenticated Member only.
+Return their own creator-profile state.
+Create creator profile
+POST /api/creator
+Authenticated Member only.
+Derive user_id from currentUser.
+Never accept a browser-supplied user_id.
+Only one Creator Profile may exist per Member.
+Update own creator profile
+PATCH /api/creator
+Authenticated Member only.
+Member may update their allowed public fields.
+They MUST NOT be able to update:
+user_id
+is_certified
+certified_at
+Marketplace connection
+Do NOT modify Marketplace tables.
+A Creator's Marketplace listings can already be found through the existing listing creator_user_id.
+Architect the Creator API so the future profile page can retrieve/display that Creator's active Marketplace listings without changing Marketplace ownership.
+If an additional filtered Marketplace query is already supported cleanly, reuse it.
+Do not duplicate Marketplace listings into Creator tables.
+Rooms connection
+Do NOT modify Rooms tables.
+Creator Room membership should continue to come from the existing room_memberships table.
+Do not duplicate memberships into Creator Profiles.
+Work / Portfolio compatibility
+Do not build portfolio uploads yet.
+The Creator Profile should be designed so the next phase can add a Work section referencing:
+music
+images
+videos
+articles
+designs
+without redesigning creator identity.
+Do not create fake portfolio items.
+Admin certification API
+Use the existing Admin authentication system to add the smallest necessary certification action.
+For example:
+PATCH /api/admin/creators/:id/certification
+Body:
+{ "certified": true }
+or false.
+Only authenticated Admin may perform this.
+When certified:
+set is_certified = true
+set certified_at
+When certification is removed:
+set is_certified = false
+clear or appropriately update certification timestamp
+Do not build the Admin certification UI in this stage.
+No fake data
+Do not seed fake Creators.
+Do not create fake Certified accounts.
+Existing real Members may create their own profile during testing.
+Hard scope limit
+Do NOT modify:
+Passport schema or XP
+passport-service.ts
+achievements
+Vanta Play
+Rooms schema/frontends/environments
+Marketplace ownership/schema
+Transmission
+Vault
+Releases
+World
+navigation/app launcher
+startup
+authentication architecture
+Prefer primarily:
+additive creator-profile schema initialization
+new server/creator-routes.ts
+minimal route registration
+smallest Admin certification route addition
+Verification
+Run:
+npm run check
+npm run build
+git diff --check
+Verify public Creator lookup safely returns data.
+If authenticated Member/Admin testing requires real tokens, give me exact manual test steps rather than recommending Power.
+Confirm:
+Member can create one Creator Profile
+same Member cannot create duplicate profiles
+Member can edit own profile
+Member cannot certify themselves
+Member cannot edit another Creator
+Admin can certify Creator
+public API exposes certification status
+Marketplace / Rooms / Passport remain untouched
+Stop after Creator backend foundation.
+Do not build Creator Profile frontend yet.

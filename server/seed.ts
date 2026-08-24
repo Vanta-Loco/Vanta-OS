@@ -463,6 +463,29 @@ async function seedEcosystem() {
       updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
 
+    CREATE TABLE IF NOT EXISTS creator_profiles (
+      id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id           UUID NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+      display_name      TEXT NOT NULL DEFAULT '',
+      bio               TEXT NOT NULL DEFAULT '',
+      city              TEXT,
+      country           TEXT,
+      profile_image_url TEXT,
+      banner_image_url  TEXT,
+      creator_type      TEXT NOT NULL DEFAULT '',
+      disciplines      TEXT[] NOT NULL DEFAULT '{}',
+      instagram_url     TEXT,
+      website_url       TEXT,
+      spotify_url       TEXT,
+      soundcloud_url    TEXT,
+      is_certified      BOOLEAN NOT NULL DEFAULT false,
+      certified_at      TIMESTAMPTZ,
+      created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS creator_profiles_certified_idx
+      ON creator_profiles(is_certified);
+
     CREATE TABLE IF NOT EXISTS user_passports (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
