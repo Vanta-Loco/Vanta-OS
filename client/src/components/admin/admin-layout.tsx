@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   FileText, Disc3, Package, Leaf, Globe2, Search, Users,
-  BookOpen, Clock, Smartphone, Settings, LogOut, Menu, X,
+  BookOpen, Clock, Smartphone, Settings, LogOut, Menu, X, Sparkles,
   LayoutDashboard, Shield,
 } from "lucide-react";
 
@@ -36,6 +36,7 @@ const NAV: NavGroup[] = [
     group: "COMMUNITY",
     items: [
       { label: "Users",       href: "/admin/users",      icon: Users      },
+      { label: "Creators",    href: "/admin/creators",   icon: Sparkles   },
     ],
   },
   {

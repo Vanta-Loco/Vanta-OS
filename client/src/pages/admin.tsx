@@ -6,6 +6,7 @@ import { useAdmin } from "@/hooks/use-admin";
 import {
   FileText, Disc3, Package, Leaf, Globe2, Search, Users,
   BookOpen, Clock, Smartphone, Settings, ArrowRight,
+  Sparkles,
 } from "lucide-react";
 
 export default function Admin() {
@@ -44,6 +45,7 @@ const SECTIONS: Section[] = [
   { label: "App Teasers",   href: "/admin/apps",        icon: Smartphone, desc: "Manage upcoming app announcements",                 group: "Ecosystem" },
   { label: "Early Access",  href: "/admin/waitlists",   icon: Clock,      desc: "View and manage waitlist signups",                  group: "Ecosystem" },
   { label: "Users",         href: "/admin/users",       icon: Users,      desc: "User and profile management",                      group: "Community" },
+  { label: "Creators",      href: "/admin/creators",    icon: Sparkles,   desc: "Review and certify Vanta creators",                group: "Community" },
   { label: "Site Settings", href: "/admin/settings",    icon: Settings,   desc: "Edit About page and site-wide content",            group: "System"    },
 ];
 

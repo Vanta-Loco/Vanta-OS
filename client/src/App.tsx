@@ -35,6 +35,7 @@ import AdminVault from "@/pages/admin/vault";
 import AdminWorld from "@/pages/admin/world";
 import AdminBlackIndex from "@/pages/admin/black-index";
 import AdminUsers from "@/pages/admin/users";
+import AdminCreators from "@/pages/admin/creators";
 import AdminDevLogs from "@/pages/admin/devlogs";
 import AdminWaitlists from "@/pages/admin/waitlists";
 import AdminApps from "@/pages/admin/apps";
@@ -160,6 +161,7 @@ function Router() {
       <Route path="/admin/world" component={AdminWorld} />
       <Route path="/admin/black-index" component={AdminBlackIndex} />
       <Route path="/admin/users" component={AdminUsers} />
+      <Route path="/admin/creators" component={AdminCreators} />
       <Route path="/admin/devlogs" component={AdminDevLogs} />
       <Route path="/admin/waitlists" component={AdminWaitlists} />
       <Route path="/admin/apps" component={AdminApps} />

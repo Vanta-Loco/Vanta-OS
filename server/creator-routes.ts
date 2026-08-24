@@ -114,6 +114,22 @@ function validateFields(body: any, partial: boolean): { values?: Record<string, 
 }
 
 export function registerCreatorRoutes(app: Express) {
+  app.get("/api/admin/creators", requireAdmin, async (_req: Request, res: Response) => {
+    try {
+      const result = await pool.query(
+        `SELECT c.id, c.user_id, c.display_name, c.creator_type, c.disciplines,
+                c.is_certified, c.certified_at, c.created_at, u.username
+         FROM creator_profiles c
+         JOIN users u ON u.id=c.user_id
+         ORDER BY c.created_at DESC`,
+      );
+      return res.json(result.rows);
+    } catch (error) {
+      console.error("[creator-routes] admin list:", error);
+      return res.status(500).json({ error: "Failed to fetch creator profiles" });
+    }
+  });
+
   app.get("/api/creators/:username", async (req: Request, res: Response) => {
     try {
       const result = await pool.query(
