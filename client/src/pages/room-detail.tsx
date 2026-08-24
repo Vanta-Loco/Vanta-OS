@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useRoute } from "wouter";
-import { ArrowLeft, Lock, Send, Users, Wrench } from "lucide-react";
+import { ArrowLeft, Lock, Send, Users, Wrench, MapPin, Radio, ArrowRight } from "lucide-react";
 import { Header } from "@/components/header";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -16,6 +16,11 @@ type Room = {
 };
 type Post = { id: string; body: string; created_at: string; username: string; display_name?: string };
 type Member = { id: string; username: string; display_name?: string; owner: boolean };
+type MarketplaceListing = {
+  id: string; title: string; description: string; category: string;
+  creator_username: string; price_amount?: string | null; currency: string;
+  price_type: string; city?: string | null; delivery_mode: string;
+};
 
 type RoomTheme = "warehouse" | "studio" | "default";
 
@@ -53,6 +58,8 @@ export default function RoomDetail() {
   const [room, setRoom] = useState<Room | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
+  const [listings, setListings] = useState<MarketplaceListing[]>([]);
+  const [listingsLoading, setListingsLoading] = useState(false);
   const [tab, setTab] = useState("Feed");
   const [body, setBody] = useState("");
   const [loading, setLoading] = useState(true);
@@ -75,6 +82,24 @@ export default function RoomDetail() {
 
   useEffect(() => { loadRoom(); }, [params?.id]);
   const tokenHeaders = { "X-User-Token": getUserToken() || "" };
+
+  async function loadListings(roomId: string) {
+    setListingsLoading(true);
+    try {
+      const response = await fetch(`/api/marketplace?room_id=${encodeURIComponent(roomId)}`);
+      if (!response.ok) throw new Error();
+      const data = await response.json();
+      setListings(data.listings || []);
+    } catch {
+      toast({ title: "Could not load Room listings", description: "The Marketplace board could not be reached.", variant: "destructive" });
+    } finally {
+      setListingsLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    if (tab === "Listings" && room) loadListings(room.id);
+  }, [tab, room?.id]);
 
   async function changeMembership(action: "join" | "leave") {
     if (!isAuthenticated) return navigate("/login");
@@ -136,7 +161,11 @@ export default function RoomDetail() {
         </div>}
         {tab === "Members" && <div className="grid sm:grid-cols-2 gap-3 max-w-2xl">{members.map(member => <Link href={`/profile/${member.username}`} key={member.id}><div className="border border-border rounded-lg p-4 flex justify-between"><span className="text-sm">@{member.username}</span>{member.owner && <span className="text-[10px] uppercase tracking-widest text-muted-foreground">Owner</span>}</div></Link>)}</div>}
         {tab === "Work" && <EmptyState title="Work sharing coming soon." description="This Phase 1 space is ready for conversation. Work tools will arrive in a later phase." />}
-        {tab === "Listings" && <EmptyState title="Creative Marketplace listings coming soon." description="Listings are not part of Rooms Phase 1." />}
+         {tab === "Listings" && <RoomListings
+           listings={listings}
+           loading={listingsLoading}
+           canPost={room.joined}
+         />}
         </div>
       </main>
     </div>
@@ -145,4 +174,37 @@ export default function RoomDetail() {
 
 function EmptyState({ title, description }: { title: string; description: string }) {
   return <div className="border border-dashed border-border rounded-xl p-12 text-center max-w-2xl"><Wrench className="w-6 h-6 mx-auto text-muted-foreground/40 mb-4" /><h2 className="font-display text-lg">{title}</h2><p className="text-sm text-muted-foreground mt-2">{description}</p></div>;
+}
+
+function RoomListings({ listings, loading, canPost }: { listings: MarketplaceListing[]; loading: boolean; canPost: boolean }) {
+  const price = (listing: MarketplaceListing) =>
+    listing.price_type === "contact" ? "Contact for price" :
+      listing.price_type === "negotiable" ? (listing.price_amount ? `From ${listing.currency} ${listing.price_amount} · negotiable` : "Negotiable") :
+        `${listing.currency} ${listing.price_amount}`;
+  const delivery = (mode: string) => mode === "in_person" ? "In-person" : mode === "both" ? "Remote + in-person" : "Remote";
+
+  if (loading) return <p className="text-sm text-muted-foreground py-10">Scanning this Room’s board…</p>;
+  if (!listings.length) {
+    return <div className="border border-dashed border-border rounded-xl p-10 text-center max-w-2xl bg-black/20">
+      <Wrench className="w-6 h-6 mx-auto text-muted-foreground/40 mb-4" />
+      <h2 className="font-display text-lg">Nothing on the board yet.</h2>
+      <p className="text-sm text-muted-foreground mt-2">Marketplace listings connected to this Room will appear here.</p>
+      {canPost && <Link href="/marketplace"><Button variant="outline" className="mt-6">Post a Listing</Button></Link>}
+    </div>;
+  }
+  return <div className="grid sm:grid-cols-2 gap-4 max-w-3xl">
+    {listings.map(listing => <Link key={listing.id} href={`/marketplace/${listing.id}`}>
+      <article className="h-full border border-border rounded-xl p-5 bg-black/25 backdrop-blur-sm hover:border-primary/50 hover:-translate-y-0.5 transition-all group">
+        <div className="flex justify-between gap-3 text-[10px] font-mono uppercase tracking-widest text-muted-foreground/50"><span>{listing.category}</span><span>{listing.price_type === "fixed" ? "Fixed" : listing.price_type === "negotiable" ? "Negotiable" : "Contact"}</span></div>
+        <h2 className="font-display text-lg font-semibold mt-6 group-hover:text-primary transition-colors">{listing.title}</h2>
+        <p className="text-sm text-muted-foreground leading-relaxed mt-2 line-clamp-3">{listing.description}</p>
+        <div className="mt-6 space-y-2 text-xs text-muted-foreground/70">
+          <p className="text-foreground">@{listing.creator_username}</p>
+          <p className="flex items-center gap-2"><Radio className="w-3.5 h-3.5" /> {delivery(listing.delivery_mode)} · {price(listing)}</p>
+          {listing.city && <p className="flex items-center gap-2"><MapPin className="w-3.5 h-3.5" /> {listing.city}</p>}
+        </div>
+        <div className="flex justify-end mt-5"><ArrowRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-1 transition-transform" /></div>
+      </article>
+    </Link>)}
+  </div>;
 }

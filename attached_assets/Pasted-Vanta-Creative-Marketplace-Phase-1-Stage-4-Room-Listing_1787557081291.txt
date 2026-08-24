@@ -1,0 +1,69 @@
+Vanta Creative Marketplace — Phase 1, Stage 4: Room Listings Integration ONLY
+Continue in Free Mode. Do not switch to Power.
+Marketplace backend/UI and Vanta Rooms are already working.
+This task is ONLY to replace the existing Creative Marketplace listings coming soon placeholder inside /rooms/:id → Listings with real Marketplace listings associated with that Room.
+Do not modify database schema, authentication, Passport, XP, achievements, Vanta Play, Room environments, Marketplace architecture, Vault, Releases, World, startup, or unrelated features.
+1. Inspect the existing Marketplace filter contract
+The Marketplace backend already supports filtering listings by Room.
+Inspect server/marketplace-routes.ts and reuse the exact existing query parameter expected by:
+GET /api/marketplace
+Do not create a second Room-listings API.
+2. Room Listings tab
+On /rooms/:id, when the user selects Listings:
+Fetch only active Marketplace listings associated with the current Room.
+Display each listing using the existing Marketplace visual/data patterns:
+Title
+Category
+Creator username
+Price / Negotiable / Contact
+Delivery mode
+City where available
+Clicking a listing should open:
+/marketplace/:id
+Do not duplicate the full listing-detail interface inside Rooms.
+3. Empty state
+If the Room has no Marketplace listings, replace the old generic placeholder with an intentional state such as:
+Nothing on the board yet.
+Marketplace listings connected to this Room will appear here.
+For authenticated Room Members, include a simple:
+Post a Listing
+CTA that routes to the existing Marketplace.
+Do not invent fake listings.
+4. Room association
+Marketplace remains the source of truth.
+Do not store listing data inside Rooms.
+Do not modify rooms, room_memberships, or room_posts.
+A listing appears in the Room only when its existing Marketplace room_id points to that Room.
+5. Visual integration
+Keep the Room’s existing visual environment visible.
+In particular:
+Fashion listings must work inside the warehouse environment.
+Music listings must work inside the bedroom studio environment.
+Use translucent/dark Vanta panels consistent with the existing Feed/Members UI.
+Do not redesign the Fashion or Music environment assets.
+6. Preserve
+Do not modify:
+Marketplace create/edit/close logic
+Room Join/Leave
+Room Feed
+Room Members
+Passport
+XP/achievements
+Play
+navigation/launcher
+authentication architecture
+7. Verification
+Run:
+npm run check
+npm run build
+git diff --check
+Manually verify:
+Room with no listings shows intentional empty state.
+Marketplace listing associated with a Room appears in that Room's Listings tab.
+Refresh retains it.
+Clicking it opens /marketplace/:id.
+Listing associated with Music does not appear in Fashion and vice versa.
+Closing a Marketplace listing removes it from the Room's active Listings tab.
+Feed, Members, Join/Leave and Room environments remain unchanged.
+Stop after Room Listings integration.
+Do not begin payments, DMs, bookings, reviews, Work integration, audio uploads, or creator certification.
