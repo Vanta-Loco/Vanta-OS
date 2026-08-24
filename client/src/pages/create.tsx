@@ -23,6 +23,7 @@ import { ArrowLeft, Upload, X, Loader2 } from "lucide-react";
 import { Link } from "wouter";
 import { insertPostSchema, type InsertPost } from "@shared/schema";
 import { CoverImagePositionPicker } from "@/components/cover-image-position-picker";
+import { ImageLayoutPicker, type ImageLayout } from "@/components/image-layout-picker";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
@@ -63,6 +64,7 @@ export default function CreatePost() {
       readTime: "5 min read",
       featured: "false",
       musicUrl: "",
+      imageLayout: "original",
     },
   });
 
@@ -323,6 +325,11 @@ export default function CreatePost() {
                       <CoverImagePositionPicker
                         value={form.watch("coverImagePosition") || "50% 50%"}
                         onChange={(val) => form.setValue("coverImagePosition", val)}
+                      />
+                      <ImageLayoutPicker
+                        value={form.watch("imageLayout") || "original"}
+                        onChange={(value: ImageLayout) => form.setValue("imageLayout", value)}
+                        preview={coverImagePreview}
                       />
                     </div>
                   )}

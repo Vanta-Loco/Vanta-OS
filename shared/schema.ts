@@ -17,6 +17,7 @@ export const posts = pgTable("posts", {
   featured: text("featured").notNull().default('false'),
   published: text("published").notNull().default('true'),
   musicUrl: text("music_url").notNull().default(""),
+  imageLayout: text("image_layout").notNull().default("original"),
 });
 
 export const insertPostSchema = createInsertSchema(posts).omit({
@@ -34,6 +35,7 @@ export const insertPostSchema = createInsertSchema(posts).omit({
   featured: z.string().default('false'),
   published: z.string().default('true'),
   musicUrl: z.string().default(""),
+  imageLayout: z.enum(["original", "square", "portrait", "landscape", "wide", "story"]).default("original"),
 });
 
 export type InsertPost = z.infer<typeof insertPostSchema>;

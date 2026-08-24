@@ -4,6 +4,7 @@ import { Calendar, Clock } from "lucide-react";
 import { Link } from "wouter";
 import type { Post } from "@shared/schema";
 import { format } from "date-fns";
+import { getImageLayout } from "@/components/image-layout-picker";
 
 interface PostCardProps {
   post: Post;
@@ -11,6 +12,7 @@ interface PostCardProps {
 }
 
 export function PostCard({ post, featured = false }: PostCardProps) {
+  const layout = getImageLayout(post.imageLayout);
   return (
     <Link href={`/post/${post.id}`} data-testid={`link-post-${post.id}`}>
       <Card
@@ -19,11 +21,11 @@ export function PostCard({ post, featured = false }: PostCardProps) {
         }`}
       >
         <div className="relative overflow-hidden">
-          <div className={`relative ${featured ? "aspect-[16/9]" : "aspect-[4/5]"} overflow-hidden`}>
+          <div className={`relative ${layout.value === "original" ? "max-h-[70vh]" : layout.className} overflow-hidden`}>
             <img
               src={post.coverImage}
               alt={post.title}
-              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+              className={`w-full ${layout.value === "original" ? "h-auto max-h-[70vh] object-contain" : "h-full object-cover"} transition-transform duration-500 group-hover:scale-105`}
               style={{ objectPosition: post.coverImagePosition || "50% 50%" }}
               data-testid={`img-post-${post.id}`}
             />

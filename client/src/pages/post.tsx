@@ -20,6 +20,7 @@ import { Calendar, Clock, Link2, Check, ArrowLeft, Edit, Trash2, Twitter, Facebo
 import { Link } from "wouter";
 import type { Post } from "@shared/schema";
 import { format } from "date-fns";
+import { getImageLayout } from "@/components/image-layout-picker";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAdmin } from "@/hooks/use-admin";
@@ -207,11 +208,11 @@ export default function PostPage() {
       <Header />
 
       <article className="flex-1 bg-background pt-20">
-        <div className="relative h-[60vh] md:h-[70vh] overflow-hidden">
+        <div className={`relative ${getImageLayout(post.imageLayout).value === "original" ? "max-h-[70vh]" : getImageLayout(post.imageLayout).className} overflow-hidden`}>
           <img
             src={post.coverImage}
             alt={post.title}
-            className="w-full h-full object-cover"
+            className={`w-full ${getImageLayout(post.imageLayout).value === "original" ? "h-auto max-h-[70vh] object-contain" : "h-full object-cover"}`}
             style={{ objectPosition: post.coverImagePosition || "50% 50%" }}
             data-testid="img-post-cover"
           />

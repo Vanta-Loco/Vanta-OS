@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -22,6 +22,7 @@ import { ArrowLeft, Upload, X, Loader2 } from "lucide-react";
 import { Link } from "wouter";
 import { insertPostSchema, type InsertPost, type Post } from "@shared/schema";
 import { CoverImagePositionPicker } from "@/components/cover-image-position-picker";
+import { ImageLayoutPicker, type ImageLayout, getImageLayout } from "@/components/image-layout-picker";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAdmin } from "@/hooks/use-admin";
@@ -44,6 +45,8 @@ export default function EditPost() {
   const [coverImagePreview, setCoverImagePreview] = useState<string>("");
   const [galleryPreviews, setGalleryPreviews] = useState<string[]>([]);
   const [isFeatured, setIsFeatured] = useState(false);
+  const originalCoverImage = useRef("");
+  const originalImages = useRef<string[]>([]);
 
   // Guard: redirect to login, preserving the edit URL so the user lands back here
   useEffect(() => {
@@ -70,6 +73,7 @@ export default function EditPost() {
       readTime: "5 min read",
       featured: "false",
       musicUrl: "",
+      imageLayout: "original",
     },
   });
 
@@ -86,9 +90,12 @@ export default function EditPost() {
         readTime: post.readTime,
         featured: post.featured,
         musicUrl: post.musicUrl ?? "",
+        imageLayout: post.imageLayout || "original",
       });
       setCoverImagePreview(post.coverImage);
       setGalleryPreviews(post.images);
+      originalCoverImage.current = post.coverImage;
+      originalImages.current = post.images;
       setIsFeatured(post.featured === "true");
     }
   }, [post, form]);
@@ -151,7 +158,10 @@ export default function EditPost() {
   };
 
   const onSubmit = (data: InsertPost) => {
-    updatePost.mutate({ ...data, featured: isFeatured ? "true" : "false" });
+    const payload = { ...data, featured: isFeatured ? "true" : "false" };
+    if (data.coverImage === originalCoverImage.current) delete (payload as Partial<InsertPost>).coverImage;
+    if (JSON.stringify(data.images || []) === JSON.stringify(originalImages.current)) delete (payload as Partial<InsertPost>).images;
+    updatePost.mutate(payload);
   };
 
   if (isLoading) {
@@ -368,6 +378,11 @@ export default function EditPost() {
                       <CoverImagePositionPicker
                         value={form.watch("coverImagePosition") || "50% 50%"}
                         onChange={(val) => form.setValue("coverImagePosition", val)}
+                      />
+                      <ImageLayoutPicker
+                        value={form.watch("imageLayout") || "original"}
+                        onChange={(value: ImageLayout) => form.setValue("imageLayout", value)}
+                        preview={coverImagePreview}
                       />
                     </div>
                   ) : (

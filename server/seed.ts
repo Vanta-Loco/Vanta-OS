@@ -29,6 +29,7 @@ Let's create something unforgettable together.`,
     featured: "true",
     published: "true",
     musicUrl: "",
+    imageLayout: "original",
   },
   {
     title: "Late Night Sessions",
@@ -50,6 +51,7 @@ These are the moments that define Vanta Cold.`,
     featured: "false",
     published: "true",
     musicUrl: "",
+    imageLayout: "original",
   },
   {
     title: "Building a Vision",
@@ -71,10 +73,12 @@ Looking ahead, there's so much more to build. More music to create, more stories
     featured: "false",
     published: "true",
     musicUrl: "",
+    imageLayout: "original",
   }
 ];
 
 export async function seedDatabase() {
+  await pool.query(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS image_layout TEXT NOT NULL DEFAULT 'original'`);
   const existingPosts = await storage.getAllPosts();
   
   if (existingPosts.length > 0) {
