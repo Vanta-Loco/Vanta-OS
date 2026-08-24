@@ -446,6 +446,10 @@ async function seedEcosystem() {
       created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       last_login_at TIMESTAMPTZ
     );
+    ALTER TABLE users
+      ADD COLUMN IF NOT EXISTS account_status TEXT NOT NULL DEFAULT 'active';
+    CREATE INDEX IF NOT EXISTS users_account_status_idx
+      ON users(account_status);
 
     CREATE TABLE IF NOT EXISTS user_profiles (
       id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
