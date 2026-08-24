@@ -1,0 +1,92 @@
+Transmission — Gallery Multi-Upload Fix + 4 Image Limit ONLY
+Continue in Free Mode. Do not switch to Power.
+Current confirmed behavior:
+One gallery image uploads successfully.
+Attempting to upload another gallery image afterward returns Upload failed.
+Gallery uploads already use the existing Admin /api/upload route.
+Uploads are already sequential.
+Gallery image URLs are stored in form state.
+Fix ONLY the gallery multi-image upload behavior.
+Desired Phase 1 behavior
+A post may contain a maximum of 4 gallery images.
+The Admin editor should allow:
+0 images
+1 image
+2 images
+3 images
+4 images
+Once 4 images are present, disable/hide the Add Gallery Images action and show:
+4 / 4 images
+Do not allow a fifth image.
+Diagnose the second-upload failure first
+Reproduce:
+Upload gallery image #1 successfully.
+Attempt gallery image #2.
+Capture:
+request URL
+HTTP status
+response body
+server error
+whether a fresh FormData instance is created for each file
+whether the file input is reset after a successful upload
+whether the same input/file object is accidentally being reused
+current gallery state before and after each upload
+Fix the actual cause.
+Upload behavior
+Each image must be uploaded as its own independent request using:
+POST /api/upload
+For EACH file:
+create a new FormData()
+append only that file using the existing file field
+include existing Admin authentication
+await the response
+receive /uploads/...
+append the returned URL to gallery state
+then continue to the next file
+Do not reuse the same FormData object across multiple uploads.
+Do not send multiple files in one multipart request unless the existing backend explicitly supports it.
+Do not send base64 image data in the eventual post PATCH.
+File selection UX
+Allow selecting multiple gallery images from the file picker if cleanly supported:
+multiple
+If the Member selects more images than remaining slots, accept only enough to reach 4 and clearly notify them of the limit.
+Example:
+2 gallery images already exist
+user selects 4 more
+only 2 additional images should be uploaded
+final gallery count = 4
+Alternatively, repeated one-at-a-time additions must also work until 4.
+Important file-input reset
+After processing the selection, reset the file input value so the same file or another image can be selected again later without the browser suppressing the change event.
+Preserve
+Do not change:
+cover upload system
+text editing
+gallery remove X
+gallery ordering
+gallery per-image format controls
+public gallery rendering
+Rooms
+Marketplace
+Passport
+Play
+Vault
+Releases
+auth architecture
+Verification
+Manually/automatically verify:
+Upload image #1.
+Upload image #2.
+Upload image #3.
+Upload image #4.
+Confirm all four appear in editor state.
+Confirm adding a fifth is prevented.
+Save post.
+Reopen post and confirm all four persist.
+Remove one image.
+Confirm a new image can now be added back into the freed slot.
+Then run:
+npm run check
+npm run build
+git diff --check
+Stop after the four-image gallery behavior works.

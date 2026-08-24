@@ -36,6 +36,8 @@ const categories = [
   "Release",
 ];
 
+const MAX_GALLERY_IMAGES = 4;
+
 async function uploadFile(file: File): Promise<string> {
   const formData = new FormData();
   formData.append("file", file);
@@ -165,11 +167,27 @@ export default function EditPost() {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
 
+    const existingImages = form.getValues("images") || [];
+    const remainingSlots = MAX_GALLERY_IMAGES - existingImages.length;
+    if (remainingSlots <= 0) {
+      toast({ title: "Gallery limit reached.", description: "A post can contain up to 4 gallery images." });
+      e.target.value = "";
+      return;
+    }
+
+    const filesToUpload = files.slice(0, remainingSlots);
+    if (filesToUpload.length < files.length) {
+      toast({
+        title: "Gallery limited to 4 images.",
+        description: `Only ${remainingSlots} more image${remainingSlots === 1 ? "" : "s"} will be added.`,
+      });
+    }
+
     setIsUploadingMedia(true);
     try {
-      let nextImages = [...(form.getValues("images") || [])];
+      let nextImages = [...existingImages];
       let nextLayouts = [...(form.getValues("imageLayouts") || [])];
-      for (const file of files) {
+      for (const file of filesToUpload) {
         const url = await uploadFile(file);
         nextImages = [...nextImages, url];
         nextLayouts = [...nextLayouts, "original"];
@@ -507,9 +525,14 @@ export default function EditPost() {
             <Card className="p-6">
               <div className="space-y-4">
                 <div>
-                  <Label data-testid="label-gallery">
-                    Gallery Images (Optional)
-                  </Label>
+                  <div className="flex items-center justify-between gap-4">
+                    <Label data-testid="label-gallery">
+                      Gallery Images (Optional)
+                    </Label>
+                    <span className="text-sm text-muted-foreground" data-testid="text-gallery-count">
+                      {galleryPreviews.length} / {MAX_GALLERY_IMAGES} images
+                    </span>
+                  </div>
                   <p className="text-sm text-muted-foreground mb-4">
                     Add additional images to create a gallery
                   </p>
@@ -550,25 +573,27 @@ export default function EditPost() {
                     </div>
                   )}
 
-                  <label
-                    className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-border rounded-md hover-elevate cursor-pointer"
-                    data-testid="label-gallery-upload"
-                  >
-                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                      <Upload className="w-8 h-8 mb-3 text-muted-foreground" />
-                      <p className="text-sm text-muted-foreground">
-                        <span className="font-semibold">Add images</span> to gallery
-                      </p>
-                    </div>
-                    <input
-                      type="file"
-                      className="hidden"
-                      accept="image/*"
-                      multiple
-                      onChange={handleGalleryImagesChange}
-                      data-testid="input-gallery-upload"
-                    />
-                  </label>
+                  {galleryPreviews.length < MAX_GALLERY_IMAGES && (
+                    <label
+                      className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-border rounded-md hover-elevate cursor-pointer"
+                      data-testid="label-gallery-upload"
+                    >
+                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                        <Upload className="w-8 h-8 mb-3 text-muted-foreground" />
+                        <p className="text-sm text-muted-foreground">
+                          <span className="font-semibold">Add images</span> to gallery
+                        </p>
+                      </div>
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept="image/*"
+                        multiple
+                        onChange={handleGalleryImagesChange}
+                        data-testid="input-gallery-upload"
+                      />
+                    </label>
+                  )}
                 </div>
               </div>
             </Card>
