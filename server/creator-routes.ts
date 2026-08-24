@@ -126,8 +126,10 @@ export function registerCreatorRoutes(app: Express) {
       if (!row) return res.status(404).json({ error: "Creator profile not found" });
       const listings = await pool.query(
         `SELECT id, title, description, category, price_amount, currency, price_type,
-                city, delivery_mode, status, created_at, updated_at
-         FROM marketplace_listings
+                city, delivery_mode, status, created_at, updated_at,
+                r.name AS room_name, r.slug AS room_slug
+         FROM marketplace_listings l
+         LEFT JOIN rooms r ON r.id=l.room_id
          WHERE creator_user_id=$1 AND status='active'
          ORDER BY created_at DESC`,
         [row.user_id],

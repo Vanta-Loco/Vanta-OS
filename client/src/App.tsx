@@ -65,6 +65,8 @@ import EarlyAccess from "@/pages/early-access";
 import EarlyAccessApp from "@/pages/early-access-app";
 import Profile from "@/pages/profile";
 import ProfileEdit from "@/pages/profile-edit";
+import Creator from "@/pages/creator";
+import CreatorPublic from "@/pages/creator-public";
 import Login from "@/pages/login";
 import Register from "@/pages/register";
 import NotFound from "@/pages/not-found";
@@ -139,6 +141,8 @@ function Router() {
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/profile/edit" component={ProfileEdit} />
       <Route path="/profile/:username" component={Profile} />
+      <Route path="/creator" component={Creator} />
+      <Route path="/creators/:username" component={CreatorPublic} />
 
       {/* ── Public Vanta OS pages ────────────────────────────────── */}
       <Route path="/devlogs" component={DevLogs} />

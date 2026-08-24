@@ -1,0 +1,131 @@
+Vanta Certified Creators — Phase 1, Stage 4B: Creator Profile Frontend ONLY
+Continue in Free Mode. Do not switch to Power.
+The Creator backend foundation is complete and working:
+GET /api/creator/me
+POST /api/creator
+PATCH /api/creator
+GET /api/creators/:username
+Admin certification API already exists
+Do not modify Creator database schema or backend APIs during this stage unless a verified frontend-blocking contract bug exists.
+Do not modify Passport, XP, achievements, Rooms backend/environments, Marketplace backend, Vanta Play, Transmission, Vault, Releases, World, authentication architecture, startup, or unrelated systems.
+Goal
+Give every Vanta Member the ability to create/edit a public Creator Profile, and give every Creator a public profile page that becomes their creative identity inside Vanta.
+1. Own Creator Profile page
+Create:
+/creator
+Use existing authenticated Member state.
+Call:
+GET /api/creator/me
+If no Creator Profile exists
+Show an intentional onboarding state:
+Activate Creator Profile
+Explain briefly that Creator Profiles connect a Member’s identity to their work, Rooms and Marketplace presence.
+Allow creation with:
+Display name
+Bio
+City
+Country
+Primary discipline
+Additional disciplines
+Instagram link
+Website
+Spotify
+SoundCloud
+Use the existing allowed disciplines from the Creator backend.
+Do not expose certification controls.
+If profile exists
+Show the current profile with an:
+Edit Profile
+action.
+Allow editing only fields the backend permits.
+Never send:
+user_id
+is_certified
+certified_at
+2. Public Creator profile
+Create:
+/creators/:username
+Load:
+GET /api/creators/:username
+Build a strong public Vanta Creator Profile.
+Header
+Show:
+Display name
+@username
+Bio
+City / country where supplied
+disciplines
+If:
+is_certified === true
+display a clear Certified Creator Vanta badge.
+If not certified, do not show a fake/grey certification badge.
+Certification should feel intentional and premium, not like a generic social-media blue check.
+3. Creator profile sections
+Use sections/tabs such as:
+Overview · Work · Listings
+Overview
+Show:
+Bio
+disciplines
+public social/platform links
+Work
+For Phase 1 show an intentional state:
+Creator work coming soon.
+Do not invent fake projects.
+Listings
+Use the active Marketplace listing data already returned through the public Creator API.
+Show real listings created by this Creator:
+title
+category
+price/contact state
+delivery mode
+associated Room if available
+Clicking one should open:
+/marketplace/:id
+Do not duplicate Marketplace data or create another Marketplace API.
+4. Profile imagery
+The backend contains profile/banner image fields, but do NOT create a new insecure Member upload system during this stage.
+Inspect whether a safe existing Member-authorized image upload mechanism already exists.
+If not, use a polished default Vanta avatar/banner treatment for now and leave image uploading for a separate stage.
+Do not open the Admin-only generic upload endpoint to Members.
+Do not use base64 profile images.
+5. Visual direction
+Creator Profiles should feel like a creative identity card / artist page inside Vanta OS, not LinkedIn and not Fiverr.
+Think:
+underground artist profile
+editorial
+music/fashion/media culture
+Y2K digital identity
+dark Vanta interface
+The Certified Creator badge should be visually distinctive but restrained.
+Keep mobile responsive.
+6. Authentication behavior
+/creator
+requires sign-in.
+Guests should be routed to the existing login flow.
+/creators/:username
+is public.
+Use the existing useUser() / getUserToken() system.
+Do not refactor authentication.
+7. Navigation
+Do NOT add Creator to the Vanta OS launcher yet.
+Do not change global navigation during this stage.
+We will decide later whether Creator belongs in the launcher, Passport, or both.
+8. Verification
+Run:
+npm run check
+npm run build
+git diff --check
+Manual test:
+Sign in as a normal Member.
+Visit /creator.
+Create a Creator Profile.
+Refresh and confirm it persists.
+Edit bio/discipline and save.
+Refresh and confirm updates persist.
+Open /creators/YOUR_USERNAME.
+Confirm public data renders correctly.
+Confirm an uncertified Creator cannot make themselves Certified.
+Confirm their active Marketplace listings appear.
+Stop after Creator Profile frontend is complete.
+Do not begin Admin certification UI, portfolio uploads, profile-image uploads, Rooms integration, XP, or achievements.
