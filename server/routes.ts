@@ -17,6 +17,7 @@ import { registerUserRoutes } from "./user-routes";
 import { registerRoomsRoutes } from "./rooms-routes";
 import { registerMarketplaceRoutes } from "./marketplace-routes";
 import { registerCreatorRoutes } from "./creator-routes";
+import { registerCreatorWorkRoutes } from "./creator-work-routes";
 import { registerMemberManagementRoutes } from "./member-management-routes";
 
 declare module "express-session" {
@@ -61,6 +62,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerRoomsRoutes(app);
   registerMarketplaceRoutes(app);
   registerCreatorRoutes(app);
+  registerCreatorWorkRoutes(app);
   registerMemberManagementRoutes(app);
 
   // ── Admin Auth ───────────────────────────────────────────────────

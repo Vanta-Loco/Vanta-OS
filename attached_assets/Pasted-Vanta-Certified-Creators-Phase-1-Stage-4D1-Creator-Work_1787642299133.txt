@@ -1,0 +1,140 @@
+Vanta Certified Creators — Phase 1, Stage 4D1: Creator Work Backend Foundation ONLY
+Continue in Free Mode. Do not switch to Power.
+The following systems are complete and stable:
+Member authentication
+centralized suspension enforcement
+Passport
+Creator Profiles
+Certified Creator status
+Rooms
+Marketplace
+Vanta Play
+Transmission
+Do not modify those systems during this task.
+This stage is ONLY the backend/database/API foundation for Creator Work / Portfolio.
+Do not build frontend portfolio UI yet.
+Core concept
+Creator Work is the public portfolio attached to a real Vanta Creator Profile.
+It should allow creators to show what they have actually made across music, fashion, photography, media, development and other creative fields.
+Work belongs to a Creator Profile / authenticated Member identity.
+Database
+Add one minimal additive table such as:
+creator_work_items
+Suggested fields:
+id UUID primary key
+creator_user_id reference to existing user
+title
+description nullable
+work_type
+external_url nullable
+thumbnail_url nullable
+room_id nullable
+sort_order default 0
+is_featured default false
+created_at
+updated_at
+Do not duplicate Creator Profile information.
+Use creator_user_id to connect Work to the existing Creator identity.
+If room_id is used, reference the existing Rooms table without modifying Rooms.
+Work types
+Support expandable values such as:
+Music
+Photography
+Artwork
+Fashion
+Video
+Writing / Media
+Web / Development
+Design
+Other
+Do not build a category-management system.
+Important upload rule
+Do NOT build Member file uploads during this stage.
+Vanta's current generic upload endpoint is Admin-oriented and we have not yet built a dedicated safe Member media-storage layer.
+Phase 1 Creator Work should therefore support external/public URLs and metadata only.
+Do not use base64.
+Do not open Admin upload permissions to Members.
+A later stage will handle Creator media uploads properly.
+Member APIs
+Add isolated Creator Work routes.
+Prefer a dedicated module such as:
+server/creator-work-routes.ts
+Create Work item
+POST /api/creator/work
+Authenticated Member only.
+Requirements:
+Member must already have a Creator Profile.
+derive creator identity from currentUser
+never trust creator_user_id from the browser
+validate title/type/URLs
+Update own Work item
+PATCH /api/creator/work/:id
+Creator may only edit their own item.
+Delete Work item
+DELETE /api/creator/work/:id
+Creator may only delete their own Work item.
+For Phase 1, hard deletion is acceptable unless the project already has a clear soft-delete convention.
+Own Work
+GET /api/creator/work
+Authenticated Member only.
+Return their own Work items.
+Public Creator Work
+Extend the existing public Creator response cleanly OR add:
+GET /api/creators/:username/work
+Prefer whichever keeps Creator routes cleaner.
+Return only public-safe Work data.
+Order featured items first, then sort_order, then newest.
+Do not expose internal user fields.
+Optional Room association
+A Creator may optionally associate Work with a public Room they belong to.
+If room_id is supplied:
+Room must exist
+Room must be public
+Creator must currently belong to that Room
+Do not modify Room tables or Room UI yet.
+Featured Work
+Allow Creators to mark a small number of items as featured.
+For Phase 1, enforce a maximum of 3 featured Work items per Creator.
+Do this server-side.
+Security
+A Creator must never:
+edit another Creator's Work
+delete another Creator's Work
+create Work for another user
+associate Work with a Room they have not joined
+Existing suspended-Member enforcement through requireUser should automatically apply.
+Do not add separate suspension checks.
+Preserve
+Do not modify:
+Creator Profiles schema
+certification logic
+Passport
+XP/achievements
+Member Management
+suspension middleware
+Rooms
+Marketplace
+Play
+Transmission
+Vault
+Releases
+World
+navigation
+startup
+Verification
+Run:
+npm run check
+npm run build
+git diff --check
+Verify:
+Creator can create Work
+Work persists
+Creator can edit own Work
+Creator can delete own Work
+another Member cannot alter it
+public Creator Work endpoint returns safe data
+max 3 featured items is enforced
+optional Room association validates membership
+If authenticated testing requires a real Member token, give me manual steps instead of recommending Power.
+Stop after Creator Work backend foundation.
+Do not begin the frontend portfolio.

@@ -98,6 +98,7 @@ export async function seedDatabase() {
   await seedStonerism();
   await seedEcosystem();
   await seedRooms();
+  await seedCreatorWork();
   await seedMarketplace();
 }
 
@@ -881,6 +882,30 @@ async function seedRooms() {
     ON CONFLICT (slug) DO NOTHING;
   `);
   console.log("✓ Rooms tables ready");
+}
+
+async function seedCreatorWork() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS creator_work_items (
+      id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      creator_user_id   UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      title             TEXT NOT NULL,
+      description       TEXT NOT NULL DEFAULT '',
+      work_type         TEXT NOT NULL,
+      external_url      TEXT,
+      thumbnail_url     TEXT,
+      room_id           UUID REFERENCES rooms(id) ON DELETE SET NULL,
+      sort_order        INTEGER NOT NULL DEFAULT 0,
+      is_featured       BOOLEAN NOT NULL DEFAULT false,
+      created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS creator_work_items_creator_idx
+      ON creator_work_items(creator_user_id, is_featured DESC, sort_order ASC, created_at DESC);
+    CREATE INDEX IF NOT EXISTS creator_work_items_room_idx
+      ON creator_work_items(room_id);
+  `);
+  console.log("✓ Creator Work tables ready");
 }
 
 async function seedMarketplace() {
