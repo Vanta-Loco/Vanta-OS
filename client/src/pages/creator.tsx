@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { getUserToken, useUser } from "@/hooks/use-user";
+import { CreatorWorkManager } from "@/components/creator-work";
 
 export const CREATOR_DISCIPLINES = [
   "Artist", "Producer", "Engineer", "Photographer", "Filmmaker", "Model",
@@ -172,7 +173,8 @@ export default function Creator() {
                 <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/55">Public profile</p>
                 <p className="text-sm text-muted-foreground mt-3">Your profile is ready to become a home for your work and listings.</p>
                 <Button variant="outline" className="w-full mt-6 gap-2" onClick={() => navigate(`/creators/${profile.username}`)}>View public profile <ExternalLink className="w-3.5 h-3.5" /></Button>
-              </aside>
+                </aside>
+                <div className="lg:col-span-2"><CreatorWorkManager /></div>
             </div>
           ) : (
             <ProfileForm form={form} setField={setField} toggleDiscipline={toggleDiscipline} onSave={save} saving={saving} canSave={canSave} onCancel={profile ? () => { setForm(formFromProfile(profile)); setEditing(false); } : undefined} userName={user?.username} />

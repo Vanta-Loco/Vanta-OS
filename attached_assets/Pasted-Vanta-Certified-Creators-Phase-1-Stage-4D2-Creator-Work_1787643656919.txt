@@ -1,0 +1,177 @@
+Vanta Certified Creators — Phase 1, Stage 4D2: Creator Work / Portfolio Frontend ONLY
+Continue in Free Mode. Do not switch to Power.
+Creator Work backend foundation is complete and stable.
+Existing endpoints:
+GET /api/creator/work
+POST /api/creator/work
+PATCH /api/creator/work/:id
+DELETE /api/creator/work/:id
+GET /api/creators/:username/work
+Existing Creator Profile pages are already working:
+/creator
+/creators/:username
+Do not modify Creator Work database schema or backend architecture unless a verified frontend-blocking contract issue exists.
+Do not modify Passport, XP, achievements, Member Management, suspension enforcement, certification, Rooms backend, Marketplace backend, Vanta Play, Transmission, Vault, Releases, World, authentication architecture, startup, or unrelated systems.
+GOAL
+Replace the current:
+Creator work coming soon.
+state with a real Vanta portfolio system.
+Creator Work should feel like an artist/creative archive inside Vanta — not LinkedIn projects and not a generic résumé portfolio.
+1. Own Creator Work manager
+On /creator, add a clear:
+Work
+section using:
+GET /api/creator/work
+Show the signed-in Creator's real Work items.
+Add:
+Add Work
+action.
+A Member without a Creator Profile should continue through the existing Creator Profile activation flow before being able to add Work.
+2. Add Work form
+Use:
+POST /api/creator/work
+Fields:
+Title
+Description
+Work type
+External URL
+Thumbnail URL
+Optional Room association
+Featured toggle
+Use existing Work types from the backend:
+Music
+Photography
+Artwork
+Fashion
+Video
+Writing / Media
+Web / Development
+Design
+Other
+Do not add Member media upload yet.
+For this stage, Work media comes from external/public URLs only.
+Do not use base64.
+Do not open the Admin uploader to Members.
+3. Featured Work
+Make Featured visually meaningful.
+The backend already enforces a maximum of 3 featured Work items.
+In the Creator manager:
+allow toggling Featured
+clearly indicate currently featured items
+if the backend rejects a fourth featured item, show the returned error cleanly
+Do not bypass the server limit.
+4. Work cards
+Each Work item should show:
+thumbnail where supplied
+title
+Work type
+short description
+Featured state
+associated Room where available
+If no thumbnail exists, use an intentional Vanta placeholder based on the Work type rather than a broken-image box.
+Do not invent fake work.
+5. Edit / Delete own Work
+Creator may:
+Edit Work
+Delete Work
+Use:
+PATCH /api/creator/work/:id
+and:
+DELETE /api/creator/work/:id
+Ask for confirmation before deletion.
+Update the UI immediately after successful create/edit/delete.
+A Creator must never receive controls for another Creator's Work.
+6. Public Creator Work tab
+On:
+/creators/:username
+replace:
+Creator work coming soon.
+with real public Work from:
+GET /api/creators/:username/work
+Public presentation
+Featured Work should appear first and feel more prominent.
+Then show remaining Work in the server-provided ordering.
+Clicking a Work item with an external_url should provide an intentional:
+View Work
+action.
+Open external URLs safely.
+Do not embed arbitrary external websites directly inside Vanta during this stage.
+7. Work type presentation
+Give each Work type a subtle Vanta identity using the project's existing icon system.
+Examples:
+Music → audio/music icon
+Photography → camera
+Video → film/video
+Fashion → clothing/design-oriented icon where available
+Writing / Media → document/editorial
+Web / Development → code
+Keep the styling restrained.
+Do not create emoji-heavy cards.
+8. Room association
+If a Work item has a Room association, show that Room on the Work card/detail where data is available.
+If cleanly supported, allow clicking through to:
+/rooms/:id
+Do not modify Rooms tables or build Work into the Room Work tab yet.
+That will be a separate integration stage.
+9. Visual direction
+Creator Work should feel like:
+portfolio archive
+mixtape/art-book credits
+underground creative résumé
+gallery wall
+Vanta OS identity
+Avoid:
+corporate portfolio templates
+LinkedIn
+Fiverr
+generic SaaS cards
+Featured items should feel like the Creator is saying:
+“This is the work that represents me.”
+10. Responsive behavior
+Desktop can use a stronger visual grid.
+Mobile should remain clean and scrollable.
+Do not let thumbnails create horizontal overflow.
+11. Authentication
+Own Work management uses existing:
+useUser() / getUserToken() / X-User-Token
+Suspended Member enforcement already exists centrally through requireUser.
+Do not add separate suspension logic.
+Public Creator Work remains publicly readable.
+12. Preserve
+Do not modify:
+Creator Profile schema
+certification
+Member Management
+suspension middleware
+Passport
+XP/achievements
+Marketplace
+Rooms backend/environments
+Vanta Play
+Transmission
+Vault/Releases
+navigation/launcher
+startup
+Do not begin Creator media uploads.
+Verification
+Run:
+npm run check
+npm run build
+git diff --check
+Manual test:
+Sign into a real Creator account.
+Open /creator.
+Add a Work item.
+Refresh and confirm it persists.
+Edit it.
+Mark it Featured.
+Create additional Work.
+Confirm maximum 3 Featured items is respected.
+Open /creators/USERNAME.
+Confirm real Work appears publicly.
+Confirm Featured Work appears first.
+Confirm external View Work action works.
+Delete one Work item.
+Refresh and confirm it remains deleted.
+Stop after Creator Work frontend is complete.
+Do not begin Room Work integration, uploads, XP, or another Creator stage.

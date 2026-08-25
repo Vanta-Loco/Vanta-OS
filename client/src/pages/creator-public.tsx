@@ -5,6 +5,7 @@ import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
 import { deliveryLabel, priceLabel } from "./marketplace";
+import { WorkCard, type WorkItem } from "@/components/creator-work";
 
 type Listing = {
   id: string; title: string; description: string; category: string; price_amount?: string | null;
@@ -25,6 +26,8 @@ export default function CreatorPublic() {
   const [loading, setLoading] = useState(true);
   const [missing, setMissing] = useState(false);
   const [tab, setTab] = useState<"overview" | "work" | "listings">("overview");
+  const [work, setWork] = useState<WorkItem[]>([]);
+  const [workLoading, setWorkLoading] = useState(false);
 
   useEffect(() => {
     if (!params?.username) return;
@@ -35,6 +38,14 @@ export default function CreatorPublic() {
       .catch(() => setMissing(true))
       .finally(() => setLoading(false));
   }, [params?.username]);
+
+  useEffect(() => {
+    if (tab !== "work" || !params?.username) return;
+    setWorkLoading(true);
+    fetch(`/api/creators/${encodeURIComponent(params.username)}/work`)
+      .then(response => { if (!response.ok) throw new Error(); return response.json(); })
+      .then(setWork).catch(() => setWork([])).finally(() => setWorkLoading(false));
+  }, [tab, params?.username]);
 
   if (loading) return <div className="min-h-screen bg-background pt-32 text-center text-sm text-muted-foreground">Locating Creator Profile…</div>;
   if (missing || !profile) return <div className="min-h-screen bg-background pt-32 text-center px-6"><p className="font-display text-3xl">Creator not found<span className="text-primary">.</span></p><p className="text-sm text-muted-foreground mt-3">This identity has not activated a public profile yet.</p><Link href="/"><Button variant="outline" className="mt-7">Return to Vanta</Button></Link></div>;
@@ -64,7 +75,7 @@ export default function CreatorPublic() {
         <div className="max-w-6xl mx-auto px-6 lg:px-8 py-8 md:py-12">
           <div className="flex gap-6 border-b border-border mb-8 overflow-x-auto"><Tab active={tab === "overview"} onClick={() => setTab("overview")}>Overview</Tab><Tab active={tab === "work"} onClick={() => setTab("work")}>Work</Tab><Tab active={tab === "listings"} onClick={() => setTab("listings")}>Listings <span className="ml-1 text-muted-foreground/50">({profile.active_marketplace_listings.length})</span></Tab></div>
           {tab === "overview" && <div className="grid lg:grid-cols-[1fr_300px] gap-10"><section><SectionLabel>About the practice</SectionLabel><p className="text-muted-foreground leading-relaxed max-w-2xl">{profile.bio || "This creator has not added a bio yet."}</p><SectionLabel>Disciplines</SectionLabel><div className="flex flex-wrap gap-2">{profile.disciplines.length ? profile.disciplines.map(item => <span key={item} className="text-xs border border-border rounded-md px-3 py-2 text-muted-foreground">{item}</span>) : <p className="text-sm text-muted-foreground">No disciplines listed yet.</p>}</div></section><aside><SectionLabel>Open channels</SectionLabel>{links.length ? <div className="space-y-2">{links.map(link => <a key={link.label} href={link.url!} target="_blank" rel="noreferrer" className="flex items-center justify-between border border-border rounded-lg px-4 py-3 text-sm hover:border-primary/50 transition-colors"><span>{link.label}</span><ExternalLink className="w-3.5 h-3.5 text-muted-foreground" /></a>)}</div> : <p className="text-sm text-muted-foreground">No public links added yet.</p>}</aside></div>}
-          {tab === "work" && <EmptySection title="Creator work coming soon." copy="A dedicated home for music, images, videos, articles and designs is on the way." />}
+          {tab === "work" && <PublicWork work={work} loading={workLoading} />}
           {tab === "listings" && <Listings listings={profile.active_marketplace_listings} />}
         </div>
       </main>
@@ -76,4 +87,9 @@ export default function CreatorPublic() {
 function Tab({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) { return <button onClick={onClick} className={`pb-3 text-sm whitespace-nowrap border-b-2 transition-colors ${active ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`}>{children}</button>; }
 function SectionLabel({ children }: { children: React.ReactNode }) { return <p className="text-[10px] font-mono uppercase tracking-[0.25em] text-muted-foreground/55 mb-4 mt-2">{children}</p>; }
 function EmptySection({ title, copy }: { title: string; copy: string }) { return <div className="border border-dashed border-border rounded-2xl py-24 px-6 text-center"><p className="font-display text-3xl">{title}</p><p className="text-sm text-muted-foreground mt-3">{copy}</p></div>; }
+function PublicWork({ work, loading }: { work: WorkItem[]; loading: boolean }) {
+  if (loading) return <p className="py-20 text-center text-sm text-muted-foreground">Opening the archive…</p>;
+  if (!work.length) return <EmptySection title="No work in the archive yet." copy="This Creator has not added public work yet." />;
+  return <div><div className="mb-7 flex items-center justify-between"><div><SectionLabel>Selected work</SectionLabel><p className="text-sm text-muted-foreground">The pieces this Creator chose to leave behind.</p></div><span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/50">{work.length} {work.length === 1 ? "item" : "items"}</span></div><div className="grid gap-5 md:grid-cols-2">{work.map(item => <WorkCard key={item.id} item={item} />)}</div></div>;
+}
 function Listings({ listings }: { listings: Listing[] }) { if (!listings.length) return <EmptySection title="No active listings." copy="This creator has not put an offer on the Marketplace board yet." />; return <div className="grid md:grid-cols-2 gap-5">{listings.map(listing => <Link key={listing.id} href={`/marketplace/${listing.id}`}><article className="border border-border rounded-xl p-5 bg-card/40 hover:border-primary/50 transition-colors group"><div className="flex justify-between gap-4 text-[10px] font-mono uppercase tracking-widest text-muted-foreground/50"><span>{listing.category}</span><ArrowUpRight className="w-3.5 h-3.5 group-hover:text-primary" /></div><h2 className="font-display text-2xl mt-8 group-hover:text-primary transition-colors">{listing.title}</h2><p className="text-sm text-muted-foreground leading-relaxed mt-2 line-clamp-2">{listing.description}</p><div className="mt-7 space-y-2 text-xs text-muted-foreground/75"><p className="flex items-center gap-2 text-foreground"><Radio className="w-3.5 h-3.5" />{priceLabel(listing as any)}</p><p>{deliveryLabel(listing.delivery_mode)}{listing.city ? ` · ${listing.city}` : ""}</p>{listing.room_name && <p className="flex items-center gap-2 text-primary/75"><Users className="w-3.5 h-3.5" />Room · {listing.room_name}</p>}</div></article></Link>)}</div>; }
