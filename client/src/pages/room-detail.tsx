@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { getUserToken, useUser } from "@/hooks/use-user";
 import { useToast } from "@/hooks/use-toast";
+import { WorkCard, type WorkItem } from "@/components/creator-work";
 import fashionWarehouseImage from "@assets/generated_images/fashion_warehouse_environment.png";
 import musicBedroomStudioImage from "@assets/generated_images/music_bedroom_studio_environment.png";
 
@@ -59,6 +60,9 @@ export default function RoomDetail() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [listings, setListings] = useState<MarketplaceListing[]>([]);
+  const [work, setWork] = useState<WorkItem[]>([]);
+  const [workLoading, setWorkLoading] = useState(false);
+  const [hasCreatorProfile, setHasCreatorProfile] = useState(false);
   const [listingsLoading, setListingsLoading] = useState(false);
   const [tab, setTab] = useState("Feed");
   const [body, setBody] = useState("");
@@ -100,6 +104,27 @@ export default function RoomDetail() {
   useEffect(() => {
     if (tab === "Listings" && room) loadListings(room.id);
   }, [tab, room?.id]);
+
+  async function loadWork(roomId: string) {
+    setWorkLoading(true);
+    try {
+      const response = await fetch(`/api/rooms/${roomId}/work`);
+      if (!response.ok) throw new Error();
+      setWork(await response.json());
+      if (isAuthenticated && room?.joined) {
+        const profileResponse = await fetch("/api/creator/me", { headers: tokenHeaders });
+        if (profileResponse.ok) setHasCreatorProfile(Boolean((await profileResponse.json()).profile));
+      }
+    } catch {
+      toast({ title: "Could not load Room Work", description: "The Room archive could not be reached.", variant: "destructive" });
+    } finally {
+      setWorkLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    if (tab === "Work" && room) loadWork(room.id);
+  }, [tab, room?.id, room?.joined, isAuthenticated]);
 
   async function changeMembership(action: "join" | "leave") {
     if (!isAuthenticated) return navigate("/login");
@@ -160,7 +185,7 @@ export default function RoomDetail() {
           {!posts.length && <p className="text-sm text-muted-foreground py-10">No signals yet. Be the first to post.</p>}
         </div>}
         {tab === "Members" && <div className="grid sm:grid-cols-2 gap-3 max-w-2xl">{members.map(member => <Link href={`/profile/${member.username}`} key={member.id}><div className="border border-border rounded-lg p-4 flex justify-between"><span className="text-sm">@{member.username}</span>{member.owner && <span className="text-[10px] uppercase tracking-widest text-muted-foreground">Owner</span>}</div></Link>)}</div>}
-        {tab === "Work" && <EmptyState title="Work sharing coming soon." description="This Phase 1 space is ready for conversation. Work tools will arrive in a later phase." />}
+         {tab === "Work" && <RoomWork work={work} loading={workLoading} canAdd={isAuthenticated && room.joined && hasCreatorProfile} />}
          {tab === "Listings" && <RoomListings
            listings={listings}
            loading={listingsLoading}
@@ -174,6 +199,19 @@ export default function RoomDetail() {
 
 function EmptyState({ title, description }: { title: string; description: string }) {
   return <div className="border border-dashed border-border rounded-xl p-12 text-center max-w-2xl"><Wrench className="w-6 h-6 mx-auto text-muted-foreground/40 mb-4" /><h2 className="font-display text-lg">{title}</h2><p className="text-sm text-muted-foreground mt-2">{description}</p></div>;
+}
+
+function RoomWork({ work, loading, canAdd }: { work: WorkItem[]; loading: boolean; canAdd: boolean }) {
+  if (loading) return <p className="max-w-3xl py-10 text-sm text-muted-foreground">Reading the Room wall…</p>;
+  if (!work.length) {
+    return <div className="max-w-3xl rounded-xl border border-dashed border-border bg-black/20 p-10 text-center backdrop-blur-sm">
+      <Wrench className="mx-auto mb-4 h-6 w-6 text-muted-foreground/40" />
+      <h2 className="font-display text-lg">Nothing on the wall yet.</h2>
+      <p className="mt-2 text-sm text-muted-foreground">Creator work connected to this Room will appear here.</p>
+      {canAdd && <Link href="/creator"><Button variant="outline" className="mt-6">Add Work</Button></Link>}
+    </div>;
+  }
+  return <div className="max-w-3xl"><div className="mb-5 flex items-end justify-between"><div><p className="text-[10px] font-mono uppercase tracking-[.25em] text-muted-foreground/55">Room archive</p><p className="mt-2 text-sm text-muted-foreground">Work connected to this space.</p></div>{canAdd && <Link href="/creator"><Button variant="outline" size="sm">Add Work</Button></Link>}</div><div className="grid gap-4 sm:grid-cols-2">{work.map(item => <WorkCard key={item.id} item={item} />)}</div></div>;
 }
 
 function RoomListings({ listings, loading, canPost }: { listings: MarketplaceListing[]; loading: boolean; canPost: boolean }) {

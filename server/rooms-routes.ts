@@ -66,6 +66,30 @@ export function registerRoomsRoutes(app: Express) {
     }
   });
 
+  app.get("/api/rooms/:id/work", async (req: Request, res: Response) => {
+    try {
+      const result = await pool.query(
+        `SELECT w.id, w.title, w.description, w.work_type, w.external_url,
+                w.thumbnail_url, w.room_id, w.sort_order, w.is_featured,
+                w.created_at, w.updated_at,
+                u.username AS creator_username,
+                c.display_name AS creator_display_name,
+                c.is_certified AS creator_is_certified
+         FROM creator_work_items w
+         JOIN rooms r ON r.id=w.room_id
+         JOIN users u ON u.id=w.creator_user_id
+         JOIN creator_profiles c ON c.user_id=w.creator_user_id
+         WHERE r.id=$1 AND r.visibility='public'
+         ORDER BY w.is_featured DESC, w.sort_order ASC, w.created_at DESC`,
+        [req.params.id],
+      );
+      return res.json(result.rows);
+    } catch (error) {
+      console.error("[rooms] work:", error);
+      return res.status(500).json({ error: "Failed to load Room Work" });
+    }
+  });
+
   app.post("/api/rooms", requireUser, async (req: Request, res: Response) => {
     const user = (req as any).currentUser as { userId: string };
     const name = clean(req.body?.name, 80);

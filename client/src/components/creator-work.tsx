@@ -13,6 +13,7 @@ export type WorkItem = {
   external_url: string | null; thumbnail_url: string | null; room_id: string | null;
   room_name?: string | null; room_slug?: string | null; sort_order: number;
   is_featured: boolean; created_at: string; updated_at: string;
+  creator_username?: string | null; creator_display_name?: string | null; creator_is_certified?: boolean;
 };
 type Room = { id: string; name: string; visibility: string; joined: boolean };
 type WorkForm = { title: string; description: string; work_type: WorkType; external_url: string; thumbnail_url: string; room_id: string; is_featured: boolean };
@@ -37,6 +38,7 @@ export function WorkCard({ item, manage = false, onEdit, onDelete }: { item: Wor
       <div className="p-5">
         <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-widest text-muted-foreground/60"><Icon className="h-3.5 w-3.5 text-primary/75" />{item.work_type}</div>
         <h3 className="mt-3 font-display text-2xl font-semibold">{item.title}</h3>
+        {item.creator_username && <Link href={`/creators/${item.creator_username}`} className="mt-2 inline-flex items-center gap-2 text-xs text-muted-foreground hover:text-primary"><span>@{item.creator_username}</span>{item.creator_is_certified && <span className="rounded-full border border-primary/50 px-2 py-0.5 text-[9px] font-mono uppercase tracking-widest text-primary">Certified</span>}</Link>}
         {item.description && <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-muted-foreground">{item.description}</p>}
         <div className="mt-5 flex flex-wrap items-center gap-3 text-xs">
           {item.room_id && item.room_name && <Link href={`/rooms/${item.room_id}`} className="text-primary/80 hover:text-primary">Room · {item.room_name}</Link>}

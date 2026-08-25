@@ -1,0 +1,105 @@
+Stage 4D3 — Room Work Integration
+That means if a Creator associates a Work item with the Music Room, Fashion Room, etc., that Work should appear inside that Room’s existing Work tab.
+Send Free Mode this:
+Vanta Certified Creators — Phase 1, Stage 4D3: Room Work Integration ONLY
+Continue in Free Mode. Do not switch to Power.
+Creator Work backend/frontend is complete and working.
+Existing Creator Work supports optional room_id association.
+Existing Rooms already have:
+/rooms/:id
+Feed
+Members
+Work
+Listings
+The Work tab is currently only a placeholder.
+This task is ONLY to replace the Room Work placeholder with real Creator Work associated with that Room.
+Do not modify Creator Work ownership, Creator Profile schema, Rooms database schema, Marketplace, Passport, XP, achievements, Play, Transmission, Vault, Releases, authentication, navigation, startup, or unrelated systems.
+1. Reuse Creator Work as source of truth
+Do not duplicate Work into Rooms.
+Work remains stored in the existing:
+creator_work_items
+table.
+A Work item belongs in a Room when:
+creator_work_items.room_id = current Room id
+Do not add Work columns to rooms.
+2. Public Room Work API
+Inspect the existing Creator Work routes.
+Add the smallest public read capability needed to retrieve Work for a Room.
+Prefer either:
+GET /api/rooms/:id/work
+or an existing Creator Work endpoint with a room_id filter if that fits the current architecture more cleanly.
+Return public-safe Work data only.
+Include enough Creator identity to display:
+Creator username
+Creator display name where available
+Certified Creator status
+Do not expose private Member data.
+3. Room Work tab
+Replace:
+Work sharing coming soon.
+with real Work associated with the current Room.
+Show:
+thumbnail or intentional Work-type placeholder
+Work title
+Work type
+Creator identity
+Certified Creator treatment when appropriate
+short description
+Featured state where relevant
+If the Work item has an external_url, show:
+View Work
+using the same safe external-link behavior already used on Creator Profiles.
+4. Creator links
+Creator identity on Work cards should link to:
+/creators/:username
+where available.
+Do not create another Creator profile interface inside Rooms.
+5. Empty state
+If no Work has been associated with the Room, show an intentional state:
+Nothing on the wall yet.
+Creator work connected to this Room will appear here.
+For authenticated Creators who are Members of the Room, include a subtle:
+Add Work
+CTA linking to the existing /creator Work manager.
+Do not build Work creation directly inside Rooms.
+6. Environment integration
+Preserve the existing rendered Room environments.
+In particular:
+Music Work should display cleanly over the bedroom-studio environment.
+Fashion Work should display cleanly over the warehouse environment.
+Use the same translucent/dark HUD treatment as Feed and Listings.
+Do not redesign the rendered environment assets.
+7. Filtering
+The Work tab must display only Work whose room_id matches the current Room.
+Example:
+Work associated with Music Room must not appear in Fashion Room.
+Work associated with Fashion Room must not appear in Music Room.
+8. Preserve functionality
+Do not alter:
+Feed
+Members
+Join/Leave
+Listings integration
+Room membership persistence
+Creator Work CRUD
+Creator featured-item limit
+Marketplace
+Certified Creator Admin controls
+9. Verification
+Run:
+npm run check
+npm run build
+git diff --check
+Manual test:
+Sign into a Creator account.
+Join the Music Room.
+Create a Music Work item and associate it with the Music Room.
+Open Music Room → Work.
+Confirm the Work appears.
+Confirm Creator name links to their public Creator Profile.
+Confirm View Work works where an external URL exists.
+Open Fashion Room → Work and confirm the Music Work does not appear.
+Create Fashion Work associated with Fashion Room and confirm it appears only there.
+Remove or reassign the Room association and confirm the Room Work tab updates accordingly.
+Stop after Room Work integration.
+Do not begin Creator uploads, Work comments, likes, XP, recommendations, or another Creator phase.
