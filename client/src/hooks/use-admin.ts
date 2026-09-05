@@ -12,8 +12,8 @@ export function useAdmin() {
   });
 
   const loginMutation = useMutation({
-    mutationFn: async (password: string) => {
-      const res = await apiRequest("POST", "/api/admin/login", { password });
+    mutationFn: async (credentials: { username: string; password: string }) => {
+      const res = await apiRequest("POST", "/api/admin/login", credentials);
       return res.json() as Promise<{ authenticated: boolean; token?: string }>;
     },
     onSuccess: (data) => {

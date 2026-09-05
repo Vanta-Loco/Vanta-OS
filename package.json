@@ -11,7 +11,9 @@
     "db:push": "drizzle-kit push",
     "db:migrate": "tsx server/migrate.ts",
     "db:seed:dev": "NODE_ENV=development tsx server/seed-dev.ts",
-    "sessions:cleanup": "tsx server/cleanup-user-sessions.ts"
+    "sessions:cleanup": "tsx server/cleanup-user-sessions.ts",
+    "admin:bootstrap": "tsx server/bootstrap-admin.ts",
+    "admin:sessions:cleanup": "tsx server/cleanup-admin-sessions.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

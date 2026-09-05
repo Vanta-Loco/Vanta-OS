@@ -33,6 +33,38 @@ const migrations: Migration[] = [
       `);
     },
   },
+  {
+    id: "0003_durable_admin_auth",
+    apply: async () => {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS admin_users (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          username TEXT NOT NULL UNIQUE,
+          password_hash TEXT NOT NULL,
+          display_name TEXT,
+          is_active BOOLEAN NOT NULL DEFAULT true,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          last_login_at TIMESTAMPTZ
+        );
+        CREATE TABLE IF NOT EXISTS admin_sessions (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          admin_user_id UUID NOT NULL REFERENCES admin_users(id) ON DELETE CASCADE,
+          token_hash CHAR(64) NOT NULL UNIQUE,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          expires_at TIMESTAMPTZ NOT NULL,
+          last_used_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          revoked_at TIMESTAMPTZ
+        );
+        CREATE INDEX IF NOT EXISTS admin_sessions_admin_user_id_idx
+          ON admin_sessions(admin_user_id);
+        CREATE INDEX IF NOT EXISTS admin_sessions_expires_at_idx
+          ON admin_sessions(expires_at);
+        CREATE INDEX IF NOT EXISTS admin_sessions_revoked_at_idx
+          ON admin_sessions(revoked_at) WHERE revoked_at IS NOT NULL;
+      `);
+    },
+  },
 ];
 
 async function runMigrations() {

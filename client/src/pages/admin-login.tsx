@@ -7,6 +7,7 @@ import { useAdmin } from "@/hooks/use-admin";
 import { Link } from "wouter";
 
 export default function AdminLogin() {
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const [, navigate] = useLocation();
@@ -26,10 +27,10 @@ export default function AdminLogin() {
     e.preventDefault();
     setErrorMsg("");
     try {
-      await login.mutateAsync(password);
+      await login.mutateAsync({ username: username.trim().toLowerCase(), password });
       navigate(from);
     } catch {
-      setErrorMsg("Invalid password. Try again.");
+      setErrorMsg("Invalid Admin credentials. Try again.");
       setPassword("");
     }
   }
@@ -58,6 +59,15 @@ export default function AdminLogin() {
 
         <form onSubmit={handleSubmit} className="space-y-3">
           <Input
+            type="text"
+            placeholder="Admin username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            className="text-center font-mono"
+            autoComplete="username"
+            data-testid="input-admin-username"
+          />
+          <Input
             type="password"
             placeholder="Admin password"
             value={password}
@@ -74,7 +84,7 @@ export default function AdminLogin() {
           <Button
             type="submit"
             className="w-full"
-            disabled={!password.trim() || login.isPending}
+            disabled={!username.trim() || !password || login.isPending}
             data-testid="button-admin-login"
           >
             {login.isPending ? "Authenticating…" : "Enter"}

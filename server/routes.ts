@@ -11,8 +11,9 @@ import {
   issueAdminToken,
   hasValidAdminToken,
   requireAdmin,
-  clearAdminToken,
+  revokePresentedAdminToken,
 } from "./admin-auth";
+import { verifyPassword } from "./user-auth";
 import { registerUserRoutes } from "./user-routes";
 import { registerRoomsRoutes } from "./rooms-routes";
 import { registerMarketplaceRoutes } from "./marketplace-routes";
@@ -22,7 +23,6 @@ import { registerMemberManagementRoutes } from "./member-management-routes";
 
 declare module "express-session" {
   interface SessionData {
-    isAdmin: boolean;
     vaultAuthorized: boolean;
   }
 }
@@ -66,38 +66,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerMemberManagementRoutes(app);
 
   // ── Admin Auth ───────────────────────────────────────────────────
-  app.get("/api/admin/me", (req, res) => {
-    const authenticated = req.session?.isAdmin === true || hasValidAdminToken(req);
+  app.get("/api/admin/me", async (req, res) => {
+    const authenticated = await hasValidAdminToken(req);
     res.json({ authenticated });
   });
 
-  app.post("/api/admin/login", (req, res) => {
-    const { password } = req.body;
-    const adminPassword = process.env.ADMIN_PASSWORD;
-    if (!adminPassword) {
-      return res.status(500).json({ error: "ADMIN_PASSWORD not configured." });
+  app.post("/api/admin/login", async (req, res) => {
+    const username = typeof req.body?.username === "string" ? req.body.username.trim().toLowerCase() : "";
+    const password = typeof req.body?.password === "string" ? req.body.password : "";
+    const result = await pool.query(
+      `SELECT id, username, password_hash, is_active
+       FROM admin_users WHERE username=$1 LIMIT 1`,
+      [username],
+    );
+    const admin = result.rows[0];
+    if (!admin || !admin.is_active || !(await verifyPassword(password, admin.password_hash))) {
+      return res.status(401).json({ error: "Invalid Admin credentials" });
     }
-    const submitted = typeof password === "string" ? password.trim() : "";
-    if (submitted === adminPassword.trim()) {
-      const token = issueAdminToken();
-      // Best-effort session save (may not persist in all proxy environments)
-      req.session.isAdmin = true;
-      req.session.save(() => {
-        // Return the token regardless of session save result — the client will
-        // use the token header as primary auth, session as fallback
-        res.json({ authenticated: true, token });
-      });
-    } else {
-      return res.status(401).json({ error: "Invalid password" });
-    }
+    const token = await issueAdminToken(admin.id);
+    await pool.query("UPDATE admin_users SET last_login_at=NOW(), updated_at=NOW() WHERE id=$1", [admin.id]);
+    return res.json({ authenticated: true, token });
   });
 
-  app.post("/api/admin/logout", (req, res) => {
-    clearAdminToken();
-    req.session.destroy(() => {
-      res.clearCookie("connect.sid");
-      res.json({ success: true });
-    });
+  app.post("/api/admin/logout", async (req, res) => {
+    await revokePresentedAdminToken(req);
+    res.json({ success: true });
   });
 
   // ── File Upload ──────────────────────────────────────────────────
@@ -378,9 +371,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ── Vault Auth ───────────────────────────────────────────────────
   // Admins are automatically treated as vault-authorized (convenience override).
   // Non-admin users still require the vault code.
-  app.get("/api/vault/me", (req, res) => {
+  app.get("/api/vault/me", async (req, res) => {
     const authorized =
-      req.session?.isAdmin === true || req.session?.vaultAuthorized === true;
+      (await hasValidAdminToken(req)) || req.session?.vaultAuthorized === true;
     res.json({ authorized });
   });
 
@@ -409,7 +402,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ── Vault Items ──────────────────────────────────────────────────
   app.get("/api/vault/items", async (req, res) => {
     const canRead =
-      req.session?.isAdmin === true || req.session?.vaultAuthorized === true;
+      (await hasValidAdminToken(req)) || req.session?.vaultAuthorized === true;
     if (!canRead) {
       return res.status(401).json({ error: "Vault access required" });
     }

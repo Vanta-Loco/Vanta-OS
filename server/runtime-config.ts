@@ -2,7 +2,7 @@ const isProduction = process.env.NODE_ENV === "production";
 
 export function validateRuntimeConfig(): void {
   const required = isProduction
-    ? ["DATABASE_URL", "SESSION_SECRET", "ADMIN_PASSWORD", "VAULT_CODE"]
+    ? ["DATABASE_URL", "SESSION_SECRET", "VAULT_CODE"]
     : ["DATABASE_URL"];
   const missing = required.filter(name => !process.env[name]);
   if (missing.length) {
