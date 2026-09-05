@@ -16,7 +16,7 @@ export function registerRoomsRoutes(app: Express) {
   app.get("/api/rooms", async (req: Request, res: Response) => {
     try {
       const category = clean(req.query.category, 30);
-      const user = getRequestUser(req);
+      const user = await getRequestUser(req);
       const result = await pool.query(
         `SELECT r.id, r.name, r.slug, r.description, r.category, r.visibility,
                 r.owner_user_id, r.created_at,
@@ -40,7 +40,7 @@ export function registerRoomsRoutes(app: Express) {
 
   app.get("/api/rooms/:id", async (req: Request, res: Response) => {
     try {
-      const user = getRequestUser(req);
+      const user = await getRequestUser(req);
       const result = await pool.query(
         `SELECT r.id, r.name, r.slug, r.description, r.category, r.visibility,
                 r.owner_user_id, r.created_at,
@@ -161,7 +161,7 @@ export function registerRoomsRoutes(app: Express) {
 
   app.get("/api/rooms/:id/members", async (req: Request, res: Response) => {
     try {
-      const user = getRequestUser(req);
+      const user = await getRequestUser(req);
       const access = await pool.query(
         `SELECT 1 FROM rooms r
          WHERE r.id=$1 AND (r.visibility='public' OR r.owner_user_id=$2::uuid
@@ -187,7 +187,7 @@ export function registerRoomsRoutes(app: Express) {
 
   app.get("/api/rooms/:id/posts", async (req: Request, res: Response) => {
     try {
-      const user = getRequestUser(req);
+      const user = await getRequestUser(req);
       const access = await pool.query(
         `SELECT 1 FROM rooms r
          WHERE r.id=$1 AND (r.visibility='public' OR r.owner_user_id=$2::uuid

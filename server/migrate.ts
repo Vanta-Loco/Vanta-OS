@@ -11,6 +11,28 @@ const migrations: Migration[] = [
     id: "0001_current_schema_baseline",
     apply: migrateDatabase,
   },
+  {
+    id: "0002_durable_user_sessions",
+    apply: async () => {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS member_sessions (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          token_hash CHAR(64) NOT NULL UNIQUE,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          expires_at TIMESTAMPTZ NOT NULL,
+          last_used_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          revoked_at TIMESTAMPTZ
+        );
+        CREATE INDEX IF NOT EXISTS member_sessions_user_id_idx
+          ON member_sessions(user_id);
+        CREATE INDEX IF NOT EXISTS member_sessions_expires_at_idx
+          ON member_sessions(expires_at);
+        CREATE INDEX IF NOT EXISTS member_sessions_revoked_at_idx
+          ON member_sessions(revoked_at) WHERE revoked_at IS NOT NULL;
+      `);
+    },
+  },
 ];
 
 async function runMigrations() {

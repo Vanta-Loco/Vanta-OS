@@ -103,7 +103,7 @@ export function registerUserRoutes(app: Express) {
         [user.id],
       );
 
-      const token = issueUserToken(user.id, user.username);
+      const token = await issueUserToken(user.id, user.username);
       res.status(201).json({ user: stripPrivate(user), token });
     } catch (e: any) {
       console.error("[user-routes] register:", e.message);
@@ -142,7 +142,7 @@ export function registerUserRoutes(app: Express) {
 
       await pool.query("UPDATE users SET last_login_at=NOW() WHERE id=$1", [user.id]);
 
-      const token = issueUserToken(user.id, user.username);
+      const token = await issueUserToken(user.id, user.username);
       res.json({ user: stripPrivate(user), token });
     } catch (e: any) {
       console.error("[user-routes] login:", e.message);
@@ -151,17 +151,20 @@ export function registerUserRoutes(app: Express) {
   });
 
   // ── Logout ───────────────────────────────────────────────────────
-  app.post("/api/user/logout", (req: Request, res: Response) => {
+  app.post("/api/user/logout", async (req: Request, res: Response) => {
     const header = req.headers["x-user-token"];
-    if (typeof header === "string") revokeUserToken(header);
+    if (typeof header === "string") await revokeUserToken(header);
     res.json({ success: true });
   });
 
   // ── Current user ─────────────────────────────────────────────────
   app.get("/api/user/me", async (req: Request, res: Response) => {
     try {
-      const session = getRequestUser(req);
+      const session = await getRequestUser(req);
       if (!session) return res.json({ authenticated: false });
+      if (session.accountStatus === "suspended") {
+        return res.status(403).json({ error: "Account suspended", code: "ACCOUNT_SUSPENDED" });
+      }
 
       const r = await pool.query(
         `SELECT u.id, u.username, u.email, u.display_name, u.role, u.created_at,
@@ -398,7 +401,7 @@ app.get("/api/passport/achievements", requireUser, async (req: Request, res: Res
 // Public game list. Guests can browse; Members also receive their joined state.
 app.get("/api/play/games", async (req: Request, res: Response) => {
   try {
-    const currentUser = getRequestUser(req);
+    const currentUser = await getRequestUser(req);
     const joinedSelect = currentUser
       ? `EXISTS (
            SELECT 1
@@ -779,7 +782,7 @@ app.delete(
         return res.status(409).json({ duplicate: true, message: "Already on waitlist for this app" });
 
       // Get user_id if logged in
-      const session = getRequestUser(req);
+      const session = await getRequestUser(req);
       const user_id = session?.userId ?? null;
 
       await pool.query(
