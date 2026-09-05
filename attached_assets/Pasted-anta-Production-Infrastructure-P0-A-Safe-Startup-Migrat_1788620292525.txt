@@ -1,0 +1,125 @@
+anta Production Infrastructure — P0-A: Safe Startup, Migrations & Secrets
+Use Power Mode.
+The production-readiness audit is complete. Implement ONLY the first P0 hardening stage.
+Preserve all existing Vanta functionality and data.
+Do not begin durable sessions, object storage, Vault migration, rate limiting, or observability yet.
+Primary goals
+Remove destructive database/schema initialization from normal application startup.
+Separate schema migration from development/demo seeding.
+Preserve all current database rows, UUIDs and relationships.
+Remove insecure production-secret fallbacks/configuration.
+1. Audit current startup flow before editing
+Inspect:
+server/index.ts
+server/seed.ts
+Drizzle configuration
+package scripts
+all current table initialization/seed functions
+Identify exactly which startup operations:
+create tables
+alter tables
+seed demo data
+drop/recreate tables
+Pay particular attention to the current Stonerism initialization that drops/recreates tables.
+Do not execute destructive SQL while investigating.
+2. Stop destructive production startup behavior
+Normal application startup must no longer:
+DROP tables
+recreate production tables
+reset production content
+seed demo/sample content
+perform uncontrolled schema evolution
+npm run start should start the application against an already-prepared database.
+Existing data must remain untouched.
+3. Separate three concerns
+Establish explicit commands/concepts for:
+Migration
+Applies versioned schema changes intentionally.
+Development/demo seed
+Populates optional development/demo content only when explicitly requested.
+Application startup
+Starts Vanta and performs no destructive schema or demo-seed operations.
+Follow the existing project architecture rather than introducing a major framework rewrite.
+4. Versioned migrations
+Convert the current required schema state into a controlled forward-only migration strategy.
+Do not blindly recreate every table.
+Existing databases must be brought forward safely.
+Preserve:
+users
+Passport identities and XP
+achievements
+Creator Profiles
+Creator certification
+Creator Work
+Rooms/memberships/posts
+Marketplace
+Vanta Play
+Transmission/posts
+Stonerism
+Vault
+Releases
+World data
+Do not change UUIDs or ownership relationships.
+If existing raw SQL remains useful, it may be migrated into explicit migration files/scripts rather than application startup.
+5. Development seeding
+Keep intentional demo data available for development where useful, including official seeded Rooms and existing demo content.
+But seeding must require an explicit development command.
+Production startup must never automatically seed demo data.
+Make development seed routines idempotent where practical.
+6. Stonerism protection
+Remove the current behavior where application startup can drop/recreate Stonerism/media tables.
+Do not delete any existing Stonerism rows during this task.
+If initialization needs restructuring, make it additive and safe.
+7. Secrets
+Inspect .replit and application configuration.
+ADMIN_PASSWORD must not remain stored in tracked project configuration.
+Remove the tracked value/reference where appropriate and require it from environment-specific Secrets.
+Do not print the credential.
+Do not copy it into another tracked file.
+Tell me explicitly that the existing credential needs to be rotated after this change because it may exist in repository/project history.
+8. Required production secrets
+Production startup must fail clearly when mandatory production secrets are absent.
+Remove unsafe production fallback behavior such as:
+SESSION_SECRET = "vanta-dev-secret"
+Development may retain an explicit development-only fallback if absolutely necessary, but production must never silently use it.
+Resolve/document the canonical database environment variable:
+DATABASE_URL
+and identify any inconsistency with:
+NEON_DATABASE_URL
+Do not expose secret values in logs.
+9. Backup safety
+Before executing any schema-changing migration against the current database, identify how the current development database should be backed up.
+Do not destroy or reset the existing development database.
+If an automated backup cannot be made safely from this environment, stop and give me the exact backup step before performing risky migration work.
+10. Preserve the application
+Do not modify:
+Member auth architecture
+suspension semantics
+Admin auth architecture beyond secret loading
+Passport logic
+XP/achievements
+Creator features
+Rooms
+Marketplace
+Play
+Transmission behavior
+Vault media delivery
+Releases
+World
+frontend routes/design
+Those receive later infrastructure phases.
+Verification
+Run:
+npm run check
+npm run build
+git diff --check
+Then verify:
+Development application starts successfully.
+Starting/restarting the application does NOT drop or recreate production-content tables.
+Existing database rows remain intact.
+Explicit migration command succeeds safely.
+Explicit development seed command remains available where required.
+Production startup has no automatic destructive seed behavior.
+Missing mandatory production secrets cause a clear startup failure rather than insecure fallback.
+Stop after P0-A.
+Do not begin durable sessions or media migration yet.

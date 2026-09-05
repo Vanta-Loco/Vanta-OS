@@ -80,9 +80,18 @@ Looking ahead, there's so much more to build. More music to create, more stories
   }
 ];
 
-export async function seedDatabase() {
+export async function migrateDatabase() {
   await pool.query(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS image_layout TEXT NOT NULL DEFAULT 'original'`);
   await pool.query(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS image_layouts TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[]`);
+  await seedStonerism(false);
+  await seedEcosystem(false);
+  await seedRooms(false);
+  await seedCreatorWork();
+  await seedMarketplace();
+}
+
+export async function seedDevelopmentData() {
+  await migrateDatabase();
   const existingPosts = await storage.getAllPosts();
   
   if (existingPosts.length > 0) {
@@ -95,29 +104,16 @@ export async function seedDatabase() {
     console.log(`✓ Seeded ${seedPosts.length} posts successfully`);
   }
 
-  await seedStonerism();
-  await seedEcosystem();
-  await seedRooms();
-  await seedCreatorWork();
-  await seedMarketplace();
+  await seedStonerism(true);
+  await seedEcosystem(true);
+  await seedRooms(true);
 }
 
-async function seedStonerism() {
+async function seedStonerism(includeDemoData: boolean) {
   // ── Create tables — exact match with drizzle schema in shared/schema.ts ──
   // Drop + recreate on first run (tables are empty — guard above prevents re-run)
   await pool.query(`
-    DROP TABLE IF EXISTS stonerism_newsletter_subscribers CASCADE;
-    DROP TABLE IF EXISTS stonerism_review_scores CASCADE;
-    DROP TABLE IF EXISTS stonerism_reviews CASCADE;
-    DROP TABLE IF EXISTS stonerism_events CASCADE;
-    DROP TABLE IF EXISTS stonerism_content CASCADE;
-    DROP TABLE IF EXISTS stonerism_entities CASCADE;
-    DROP TABLE IF EXISTS stonerism_series CASCADE;
-    DROP TABLE IF EXISTS stonerism_authors CASCADE;
-    DROP TABLE IF EXISTS stonerism_categories CASCADE;
-    DROP TABLE IF EXISTS vanta_media CASCADE;
-
-    CREATE TABLE vanta_media (
+    CREATE TABLE IF NOT EXISTS vanta_media (
       id           VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
       url          TEXT NOT NULL DEFAULT '',
       type         TEXT NOT NULL DEFAULT 'image',
@@ -131,7 +127,7 @@ async function seedStonerism() {
       created_at   TIMESTAMP NOT NULL DEFAULT NOW()
     );
 
-    CREATE TABLE stonerism_categories (
+    CREATE TABLE IF NOT EXISTS stonerism_categories (
       id          VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
       name        TEXT NOT NULL,
       slug        TEXT NOT NULL,
@@ -140,7 +136,7 @@ async function seedStonerism() {
       created_at  TIMESTAMP NOT NULL DEFAULT NOW()
     );
 
-    CREATE TABLE stonerism_authors (
+    CREATE TABLE IF NOT EXISTS stonerism_authors (
       id         VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
       name       TEXT NOT NULL,
       slug       TEXT NOT NULL,
@@ -150,7 +146,7 @@ async function seedStonerism() {
       created_at TIMESTAMP NOT NULL DEFAULT NOW()
     );
 
-    CREATE TABLE stonerism_series (
+    CREATE TABLE IF NOT EXISTS stonerism_series (
       id          VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
       title       TEXT NOT NULL,
       slug        TEXT NOT NULL,
@@ -161,7 +157,7 @@ async function seedStonerism() {
       updated_at  TIMESTAMP NOT NULL DEFAULT NOW()
     );
 
-    CREATE TABLE stonerism_content (
+    CREATE TABLE IF NOT EXISTS stonerism_content (
       id               VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
       type             TEXT NOT NULL DEFAULT 'article',
       title            TEXT NOT NULL,
@@ -200,7 +196,7 @@ async function seedStonerism() {
       updated_at       TIMESTAMP NOT NULL DEFAULT NOW()
     );
 
-    CREATE TABLE stonerism_entities (
+    CREATE TABLE IF NOT EXISTS stonerism_entities (
       id               VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
       name             TEXT NOT NULL,
       slug             TEXT NOT NULL,
@@ -224,7 +220,7 @@ async function seedStonerism() {
       updated_at       TIMESTAMP NOT NULL DEFAULT NOW()
     );
 
-    CREATE TABLE stonerism_reviews (
+    CREATE TABLE IF NOT EXISTS stonerism_reviews (
       id                VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
       content_id        VARCHAR,
       entity_id         VARCHAR,
@@ -242,7 +238,7 @@ async function seedStonerism() {
       updated_at        TIMESTAMP NOT NULL DEFAULT NOW()
     );
 
-    CREATE TABLE stonerism_review_scores (
+    CREATE TABLE IF NOT EXISTS stonerism_review_scores (
       id        VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
       review_id VARCHAR NOT NULL,
       category  TEXT NOT NULL,
@@ -250,7 +246,7 @@ async function seedStonerism() {
       notes     TEXT NOT NULL DEFAULT ''
     );
 
-    CREATE TABLE stonerism_events (
+    CREATE TABLE IF NOT EXISTS stonerism_events (
       id              VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
       title           TEXT NOT NULL,
       slug            TEXT NOT NULL,
@@ -274,7 +270,7 @@ async function seedStonerism() {
       updated_at      TIMESTAMP NOT NULL DEFAULT NOW()
     );
 
-    CREATE TABLE stonerism_newsletter_subscribers (
+    CREATE TABLE IF NOT EXISTS stonerism_newsletter_subscribers (
       id             VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
       email          TEXT NOT NULL,
       city           TEXT NOT NULL DEFAULT '',
@@ -284,6 +280,7 @@ async function seedStonerism() {
     );
   `);
   console.log("✓ Stonerism tables created");
+  if (!includeDemoData) return;
 
   // ── Guard: skip seed data if categories already exist ─────────────
   const existing = await db.select().from(stonerismCategories).limit(1);
@@ -434,7 +431,7 @@ async function seedStonerism() {
   console.log("✓ Stonerism data seeded successfully");
 }
 
-async function seedEcosystem() {
+async function seedEcosystem(includeDemoData: boolean) {
   await pool.query(`
     -- ── Users & Profiles ─────────────────────────────────────────────
     CREATE TABLE IF NOT EXISTS users (
@@ -671,6 +668,8 @@ CREATE TABLE IF NOT EXISTS vanta_play_participants (
       updated_at            TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
   `);
+  console.log("✓ Ecosystem tables ready");
+  if (!includeDemoData) return;
 
 await pool.query(`
   INSERT INTO vanta_play_games (
@@ -770,8 +769,6 @@ await pool.query(`
   ON CONFLICT (slug) DO NOTHING;
 `);
 
-  console.log("✓ Ecosystem tables ready");
-
   // ── Seed first dev log ──────────────────────────────────────────
   const existingLog = await pool.query("SELECT id FROM dev_logs WHERE slug='foundation-online' LIMIT 1");
   if (!existingLog.rows.length) {
@@ -835,7 +832,7 @@ await pool.query(`
   }
 }
 
-async function seedRooms() {
+async function seedRooms(includeDemoData: boolean) {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS rooms (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -864,6 +861,10 @@ async function seedRooms() {
     CREATE INDEX IF NOT EXISTS room_memberships_room_idx ON room_memberships(room_id);
     CREATE INDEX IF NOT EXISTS room_posts_room_created_idx ON room_posts(room_id, created_at DESC);
   `);
+  if (!includeDemoData) {
+    console.log("✓ Rooms tables ready");
+    return;
+  }
   await pool.query(`
     UPDATE rooms SET name='Music', slug='music'
       WHERE slug='after-hours' AND owner_user_id IS NULL;

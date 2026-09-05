@@ -2,8 +2,10 @@ import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-import { seedDatabase } from "./seed";
+import { getSessionSecret, validateRuntimeConfig } from "./runtime-config";
 import path from "path";
+
+validateRuntimeConfig();
 
 const app = express();
 app.set("trust proxy", 1);
@@ -17,7 +19,7 @@ app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 // for a single-server deployment and has zero external dependencies.
 app.use(
   session({
-    secret: process.env.SESSION_SECRET || "vanta-dev-secret",
+    secret: getSessionSecret(),
     resave: false,
     saveUninitialized: false,
     cookie: {
@@ -78,7 +80,6 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  await seedDatabase();
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
