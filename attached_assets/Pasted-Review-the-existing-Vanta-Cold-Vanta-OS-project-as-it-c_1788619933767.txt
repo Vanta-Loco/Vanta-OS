@@ -1,0 +1,127 @@
+Review the existing Vanta Cold / Vanta OS project as it currently exists.
+Do not make code, database, deployment, authentication, or storage changes yet.
+The project currently has working:
+Member registration/login
+centralized Member Management
+account suspension enforcement
+Passport / XP / achievements
+Creator Profiles
+Certified Creators
+Creator Work portfolios
+Rooms
+rendered Fashion/Music Room environments
+Marketplace
+Vanta Play
+Transmission
+Vault
+Releases
+Vanta World
+Admin
+Preserve all of these systems.
+Goal
+Audit what must change before Vanta can safely move from a development/demo environment toward a real public platform with creators and Members.
+Do not implement the migration yet.
+1. Current deployment architecture
+Identify:
+how the Express server is deployed/run
+how the frontend is built/served
+current Replit deployment/runtime configuration
+environment variables and secrets architecture
+current production/public URL arrangement
+whether development and production currently share infrastructure/data
+2. Database
+Inspect:
+PostgreSQL provider/configuration
+whether the database is persistent
+migration/schema initialization strategy
+backup/recovery support
+connection pooling
+production-readiness risks
+Do not modify schema.
+3. Authentication
+Inspect the existing:
+X-User-Token
+system and active token/session storage.
+Determine:
+whether tokens live only in server memory
+what happens on server restart/deploy
+current logout/token invalidation behavior
+security limitations
+how suspension enforcement currently interacts with tokens
+Recommend a production-ready evolution path while preserving existing Member identities and suspension behavior.
+Do not implement JWT/session changes yet.
+4. Media/storage
+Audit all current media handling, including:
+/uploads
+Transmission images
+gallery images
+Vault audio
+Release audio
+previews/compressed files
+generated Room environment assets
+future Creator Work/profile media
+Identify:
+which files currently live only on local filesystem
+what survives process restarts
+what may be lost during deployment/rebuild/replacement
+current file-size/type restrictions
+image normalization through Sharp
+Recommend one durable shared Vanta Media Storage architecture suitable for images and audio.
+The future architecture should support:
+Creator avatars
+Creator banners
+Creator Work
+Transmission
+Room attachments
+Vault
+Releases
+Do not migrate files yet.
+5. Security
+Audit:
+rate limiting
+upload validation
+request-size limits
+security headers
+CORS
+SQL parameterization
+Member/Admin auth separation
+secrets handling
+account suspension
+public/private API boundaries
+Prioritize actual issues rather than theoretical overengineering.
+6. Observability
+Determine current support for:
+structured server logging
+error monitoring
+health checks
+uptime visibility
+failed upload diagnostics
+database error visibility
+Recommend the minimum production layer required.
+7. Development vs production
+Recommend how to separate:
+Development
+from:
+Production
+without destroying existing demo data or interrupting development.
+Include database/environment/storage separation where appropriate.
+8. Migration priorities
+Produce a phased migration plan with:
+P0 — must fix before onboarding real users
+P1 — must fix before wider public launch
+P2 — scalability / later
+For every item explain:
+current state
+risk
+recommended change
+files/services likely affected
+whether migration can be additive
+whether existing data/users will be preserved
+Hard rule
+Do not make any implementation changes during this task.
+Do not rewrite working apps.
+Do not alter database schema.
+Do not install packages.
+Do not change deployment settings.
+Do not touch authentication.
+Return the audit and migration plan only.
