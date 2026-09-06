@@ -10,6 +10,19 @@ validateRuntimeConfig();
 const app = express();
 app.set("trust proxy", 1);
 
+function redactSensitiveLogFields(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(redactSensitiveLogFields);
+  if (!value || typeof value !== "object") return value;
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>).map(([key, fieldValue]) => [
+      key,
+      /^(token|password|password_hash|token_hash)$/i.test(key)
+        ? "[REDACTED]"
+        : redactSensitiveLogFields(fieldValue),
+    ]),
+  );
+}
+
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 // Session middleware — MemoryStore (built into express-session).
@@ -65,7 +78,7 @@ app.use((req, res, next) => {
     if (path.startsWith("/api")) {
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
       if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+        logLine += ` :: ${JSON.stringify(redactSensitiveLogFields(capturedJsonResponse))}`;
       }
 
       if (logLine.length > 80) {
