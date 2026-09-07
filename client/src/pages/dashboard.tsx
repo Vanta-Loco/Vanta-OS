@@ -299,16 +299,16 @@ export default function Dashboard() {
     queryFn: () => fetchJson<{ rooms: Room[] }>("/api/rooms", true),
     enabled: isAuthenticated,
   });
-  const { data: creatorData } = useQuery<{ profile: CreatorProfile | null }>({
+  const { data: creatorData } = useQuery<CreatorProfile | { profile: null }>({
     queryKey: ["/api/creator/me"],
-    queryFn: () => fetchJson<{ profile: CreatorProfile | null }>("/api/creator/me", true),
+    queryFn: () => fetchJson<CreatorProfile | { profile: null }>("/api/creator/me", true),
     enabled: isAuthenticated,
     retry: false,
   });
   const { data: work = [] } = useQuery<WorkItem[]>({
     queryKey: ["/api/creator/work", "dashboard"],
     queryFn: () => fetchJson<WorkItem[]>("/api/creator/work", true),
-    enabled: isAuthenticated && !!creatorData?.profile,
+    enabled: isAuthenticated && !!creatorData && (!("profile" in creatorData) || !!creatorData.profile),
     retry: false,
   });
   const { data: marketplaceData } = useQuery<{ listings: Listing[] }>({
@@ -331,7 +331,9 @@ export default function Dashboard() {
     () => (roomsData?.rooms || []).filter(room => room.joined).slice(0, 4),
     [roomsData?.rooms],
   );
-  const creatorProfile = creatorData?.profile || null;
+  const creatorProfile = creatorData && "profile" in creatorData
+    ? creatorData.profile
+    : creatorData || null;
   const workPreview = work.slice(0, 3);
   const listings = (marketplaceData?.listings || []).slice(0, 4);
   const transmissions = posts.filter(post => post.published !== "false").slice(0, 3);
