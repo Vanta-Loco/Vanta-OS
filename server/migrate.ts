@@ -65,6 +65,52 @@ const migrations: Migration[] = [
       `);
     },
   },
+  {
+    id: "0004_media_assets_foundation",
+    apply: async () => {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS media_assets (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          storage_key TEXT NOT NULL UNIQUE,
+          owner_type TEXT,
+          owner_id TEXT,
+          namespace TEXT NOT NULL,
+          purpose TEXT NOT NULL,
+          original_filename TEXT,
+          mime_type TEXT NOT NULL,
+          byte_size INTEGER NOT NULL CHECK (byte_size >= 0),
+          width INTEGER CHECK (width IS NULL OR width > 0),
+          height INTEGER CHECK (height IS NULL OR height > 0),
+          duration_ms INTEGER CHECK (duration_ms IS NULL OR duration_ms >= 0),
+          visibility TEXT NOT NULL DEFAULT 'public'
+            CHECK (visibility IN ('public', 'private')),
+          processing_status TEXT NOT NULL DEFAULT 'pending'
+            CHECK (processing_status IN ('pending', 'ready', 'failed')),
+          checksum_sha256 CHAR(64) NOT NULL
+            CHECK (checksum_sha256 ~ '^[0-9a-f]{64}$'),
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          deleted_at TIMESTAMPTZ,
+          CHECK (
+            (owner_type IS NULL AND owner_id IS NULL)
+            OR (owner_type IS NOT NULL AND owner_id IS NOT NULL)
+          )
+        );
+        CREATE INDEX IF NOT EXISTS media_assets_namespace_purpose_idx
+          ON media_assets(namespace, purpose);
+        CREATE INDEX IF NOT EXISTS media_assets_owner_idx
+          ON media_assets(owner_type, owner_id)
+          WHERE owner_id IS NOT NULL;
+        CREATE INDEX IF NOT EXISTS media_assets_processing_status_idx
+          ON media_assets(processing_status);
+        CREATE INDEX IF NOT EXISTS media_assets_checksum_sha256_idx
+          ON media_assets(checksum_sha256);
+        CREATE INDEX IF NOT EXISTS media_assets_deleted_at_idx
+          ON media_assets(deleted_at)
+          WHERE deleted_at IS NOT NULL;
+      `);
+    },
+  },
 ];
 
 async function runMigrations() {

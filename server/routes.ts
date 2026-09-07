@@ -30,6 +30,8 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import sharp from "sharp";
+import crypto from "crypto";
+import { mediaStorage, MediaStorageError } from "./media-storage";
 
 const uploadsDir = path.join(process.cwd(), "uploads");
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
@@ -56,7 +58,19 @@ const upload = multer({
   },
 });
 
+const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
+const MAX_IMAGE_PIXELS = 40_000_000;
+const SUPPORTED_DECODED_IMAGE_FORMATS = new Set([
+  "jpeg", "png", "webp", "heif", "avif", "tiff", "gif",
+]);
+
+class ImageValidationError extends Error {}
+
 export async function registerRoutes(app: Express): Promise<Server> {
+  if (process.env.NODE_ENV === "production") {
+    await mediaStorage.ensureAvailable();
+  }
+
   // ── User / Profile / DevLogs / Waitlist routes ───────────────────
   registerUserRoutes(app);
   registerRoomsRoutes(app);
@@ -93,6 +107,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ success: true });
   });
 
+  app.get("/media/assets/:id", async (req, res) => {
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(req.params.id)) {
+      return res.status(404).end();
+    }
+    try {
+      const result = await pool.query(
+        `SELECT storage_key, mime_type, byte_size, checksum_sha256
+         FROM media_assets
+         WHERE id=$1
+           AND visibility='public'
+           AND processing_status='ready'
+           AND deleted_at IS NULL
+         LIMIT 1`,
+        [req.params.id],
+      );
+      const asset = result.rows[0];
+      if (!asset) return res.status(404).end();
+
+      const etag = `"${asset.checksum_sha256}"`;
+      if (req.headers["if-none-match"] === etag) {
+        return res.status(304).end();
+      }
+      const bytes = await mediaStorage.read(asset.storage_key);
+      if (!bytes) {
+        console.error("[media:missing-object]", JSON.stringify({ assetId: req.params.id }));
+        return res.status(404).end();
+      }
+      res.set({
+        "Content-Type": asset.mime_type,
+        "Content-Length": String(bytes.length),
+        "Cache-Control": "public, max-age=31536000, immutable",
+        "ETag": etag,
+        "X-Content-Type-Options": "nosniff",
+      });
+      return res.send(bytes);
+    } catch {
+      console.error("[media:read-failed]", JSON.stringify({ assetId: req.params.id }));
+      return res.status(503).json({ error: "Media is temporarily unavailable." });
+    }
+  });
+
   // ── File Upload ──────────────────────────────────────────────────
   app.post("/api/upload", requireAdmin, (req, res, next) => {
     upload.single("file")(req, res, async (error) => {
@@ -126,16 +181,96 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.json({ url: `/uploads/${file.filename}` });
         }
 
-        const normalizedFilename = `${path.basename(file.filename, path.extname(file.filename))}.webp`;
-        const normalizedPath = path.join(uploadsDir, normalizedFilename);
-        const metadata = await sharp(file.path).metadata();
-        await sharp(file.path)
+        if (file.size > MAX_IMAGE_BYTES) {
+          throw new ImageValidationError("Image exceeds the decoded-image input limit.");
+        }
+        const metadata = await sharp(file.path, {
+          failOn: "error",
+          limitInputPixels: MAX_IMAGE_PIXELS,
+        }).metadata();
+        if (
+          !metadata.format
+          || !SUPPORTED_DECODED_IMAGE_FORMATS.has(metadata.format)
+          || !metadata.width
+          || !metadata.height
+          || metadata.width * metadata.height > MAX_IMAGE_PIXELS
+        ) {
+          throw new ImageValidationError("Image format or dimensions are not supported.");
+        }
+
+        const normalized = await sharp(file.path, {
+          failOn: "error",
+          limitInputPixels: MAX_IMAGE_PIXELS,
+        })
           .rotate()
           .webp({ quality: 85, alphaQuality: 100 })
-          .toFile(normalizedPath);
+          .toBuffer({ resolveWithObject: true });
+        if (
+          !normalized.info.width
+          || !normalized.info.height
+          || normalized.data.length > MAX_IMAGE_BYTES
+          || normalized.info.width * normalized.info.height > MAX_IMAGE_PIXELS
+        ) {
+          throw new ImageValidationError("Normalized image exceeds the image limits.");
+        }
 
-        if (file.path !== normalizedPath) fs.unlinkSync(file.path);
-        const url = `/uploads/${normalizedFilename}`;
+        const assetId = crypto.randomUUID();
+        const objectId = crypto.randomUUID();
+        const now = new Date();
+        const storageKey = [
+          "vanta",
+          "admin-images",
+          String(now.getUTCFullYear()),
+          String(now.getUTCMonth() + 1).padStart(2, "0"),
+          `${objectId}.webp`,
+        ].join("/");
+        const checksum = crypto.createHash("sha256").update(normalized.data).digest("hex");
+        const admin = (req as Request & {
+          currentAdmin?: { adminUserId: string };
+        }).currentAdmin;
+        if (!admin) return res.status(401).json({ error: "Unauthorized" });
+
+        await pool.query(
+          `INSERT INTO media_assets (
+             id, storage_key, owner_type, owner_id, namespace, purpose,
+             original_filename, mime_type, byte_size, width, height,
+             visibility, processing_status, checksum_sha256
+           ) VALUES (
+             $1, $2, 'admin_user', $3, 'vanta', 'admin_image',
+             $4, 'image/webp', $5, $6, $7, 'public', 'pending', $8
+           )`,
+          [
+            assetId,
+            storageKey,
+            admin.adminUserId,
+            file.originalname,
+            normalized.data.length,
+            normalized.info.width,
+            normalized.info.height,
+            checksum,
+          ],
+        );
+        try {
+          await mediaStorage.store({ key: storageKey, bytes: normalized.data });
+          await pool.query(
+            `UPDATE media_assets
+             SET processing_status='ready', updated_at=NOW()
+             WHERE id=$1`,
+            [assetId],
+          );
+        } catch (error) {
+          await pool.query(
+            `UPDATE media_assets
+             SET processing_status='failed', updated_at=NOW()
+             WHERE id=$1`,
+            [assetId],
+          ).catch(() => undefined);
+          throw error;
+        } finally {
+          if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
+        }
+
+        const url = mediaStorage.publicUrl(assetId);
         console.info("[upload:complete]", JSON.stringify({
           filename: file.originalname,
           detectedFormat: metadata.format,
@@ -152,7 +287,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           size: req.file?.size,
           error: message,
         }));
-        return res.status(415).json({
+        if (error instanceof MediaStorageError) {
+          return res.status(503).json({
+            error: "Durable media storage is temporarily unavailable.",
+          });
+        }
+        return res.status(error instanceof ImageValidationError ? 413 : 415).json({
           error: "This image format could not be processed. Try exporting it as JPEG, PNG, or WebP.",
         });
       }

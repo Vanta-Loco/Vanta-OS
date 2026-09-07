@@ -141,6 +141,29 @@ export const insertVaultItemSchema = createInsertSchema(vaultItems).omit({
 export type InsertVaultItem = z.infer<typeof insertVaultItemSchema>;
 export type VaultItem = typeof vaultItems.$inferSelect;
 
+export const mediaAssets = pgTable("media_assets", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  storageKey: text("storage_key").notNull().unique(),
+  ownerType: text("owner_type"),
+  ownerId: text("owner_id"),
+  namespace: text("namespace").notNull(),
+  purpose: text("purpose").notNull(),
+  originalFilename: text("original_filename"),
+  mimeType: text("mime_type").notNull(),
+  byteSize: integer("byte_size").notNull(),
+  width: integer("width"),
+  height: integer("height"),
+  durationMs: integer("duration_ms"),
+  visibility: text("visibility").notNull().default("public"),
+  processingStatus: text("processing_status").notNull().default("pending"),
+  checksumSha256: varchar("checksum_sha256", { length: 64 }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
+});
+
+export type MediaAsset = typeof mediaAssets.$inferSelect;
+
 // ── Vanta Media Library (shared across all Vanta apps) ───────────────────────
 
 export const vantaMedia = pgTable("vanta_media", {
