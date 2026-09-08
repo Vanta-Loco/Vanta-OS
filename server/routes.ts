@@ -562,7 +562,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({
         id: track.id,
-        title: track.title,
+        title: track.title.trim(),
         fileUrl: track.fileUrl,
         compressedUrl: track.compressedUrl,
       });

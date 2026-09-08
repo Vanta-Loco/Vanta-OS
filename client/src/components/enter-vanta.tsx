@@ -2,102 +2,248 @@
 // Atmospheric cinematic entry screen with CSS rain, fog, CRT scanlines,
 // and Vault radio. Optimized — no Three.js.
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Volume2, VolumeX, ChevronDown } from "lucide-react";
+import { Volume2, VolumeX } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import cityBackdrop from "@assets/generated_images/Urban_night_cityscape_mood_2c3c2c61.png";
 
 interface EnterVantaProps {
   onEnter: () => void;   // called when user clicks Enter Vanta
 }
 
-interface VaultItem {
+interface RadioTrack {
   id: string;
   title: string;
   fileUrl: string;
   compressedUrl: string;
-  type: string;
 }
 
 const SKIP_KEY = "vanta-skip-os-boot";
 
+type RainEngine = {
+  context: AudioContext;
+  output: GainNode;
+  source: AudioBufferSourceNode;
+};
+
 export function EnterVanta({ onEnter }: EnterVantaProps) {
-  const [muted, setMuted] = useState(true); // Start muted (autoplay)
+  const [muted, setMuted] = useState(false);
   const [volume, setVolume] = useState(0.35);
-  const [trackIdx, setTrackIdx] = useState(0);
   const [playing, setPlaying] = useState(false);
+  const [radioState, setRadioState] = useState<"tuning" | "playing" | "no-signal">("tuning");
   const [exiting, setExiting] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const rainRef = useRef<RainEngine | null>(null);
   const prefersReducedMotion =
     typeof window !== "undefined" &&
     window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  // Fetch vault audio tracks (vault may be locked — handle 401/errors gracefully)
-  const { data: vaultItems = [] } = useQuery<VaultItem[]>({
-    queryKey: ["/api/vault/items"],
+  // The startup screen receives only the designated public radio track, not the
+  // full restricted Vault catalog.
+  const { data: currentTrack = null, isLoading: trackLoading } = useQuery<RadioTrack | null>({
+    queryKey: ["/api/vault/radio"],
     queryFn: async () => {
-      const r = await fetch("/api/vault/items");
-      if (!r.ok) return [];
-      const data = await r.json();
-      return Array.isArray(data) ? data : [];
+      const response = await fetch("/api/vault/radio");
+      if (response.status === 404 || response.status === 401) return null;
+      if (!response.ok) throw new Error("Unable to tune Vanta Radio");
+      return response.json();
     },
+    retry: false,
+    staleTime: 5 * 60 * 1000,
   });
 
-  const audioTracks = vaultItems.filter(
-    v => (v.type === "audio" || v.type === "demo") &&
-    (v.compressedUrl || v.fileUrl)
-  );
+  // Build a small procedural rain bed so the fallback ambience does not need a
+  // separate media asset or a new storage system.
+  const createRainEngine = useCallback(() => {
+    if (typeof window === "undefined" || !window.AudioContext) return null;
 
-  const currentTrack = audioTracks[trackIdx];
+    const context = new window.AudioContext();
+    const output = context.createGain();
+    output.gain.value = 0.0001;
+    output.connect(context.destination);
 
-  // Setup audio
+    const buffer = context.createBuffer(1, context.sampleRate * 2, context.sampleRate);
+    const noise = buffer.getChannelData(0);
+    for (let i = 0; i < noise.length; i += 1) {
+      noise[i] = (Math.random() * 2 - 1) * 0.45;
+    }
+
+    const source = context.createBufferSource();
+    source.buffer = buffer;
+    source.loop = true;
+
+    const lowPass = context.createBiquadFilter();
+    lowPass.type = "lowpass";
+    lowPass.frequency.value = 3600;
+    lowPass.Q.value = 0.45;
+
+    const highPass = context.createBiquadFilter();
+    highPass.type = "highpass";
+    highPass.frequency.value = 650;
+    highPass.Q.value = 0.35;
+
+    source.connect(lowPass);
+    lowPass.connect(output);
+    source.connect(highPass);
+    highPass.connect(output);
+    source.start();
+
+    return { context, output, source };
+  }, []);
+
+  const setRainAudible = useCallback((audible: boolean) => {
+    const engine = rainRef.current ?? createRainEngine();
+    if (!engine) return;
+    rainRef.current = engine;
+
+    const now = engine.context.currentTime;
+    engine.output.gain.cancelScheduledValues(now);
+    engine.output.gain.setTargetAtTime(audible ? 0.12 : 0.0001, now, 0.25);
+    if (engine.context.state === "suspended") {
+      void engine.context.resume();
+    }
+  }, [createRainEngine]);
+
+  // Setup the designated radio track. Autoplay may be blocked until the
+  // user's Enter Vanta click, so that gesture retries playback below.
   useEffect(() => {
-    if (!currentTrack) return;
-    const url = currentTrack.compressedUrl || currentTrack.fileUrl;
-    if (!url) return;
+    const url = currentTrack?.compressedUrl || currentTrack?.fileUrl;
+    if (!url) {
+      if (!trackLoading) {
+        setPlaying(false);
+        setRadioState("no-signal");
+        setRainAudible(true);
+      }
+      return;
+    }
 
     const audio = new Audio(url);
+    audio.preload = "auto";
     audio.loop = false;
     audio.volume = muted ? 0 : volume;
+    audio.muted = muted;
     audioRef.current = audio;
 
-    // Try playing (may be blocked by browser)
-    audio.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
+    const handleEnded = () => {
+      setPlaying(false);
+      setRadioState("no-signal");
+      setRainAudible(true);
+    };
+    const handleError = () => {
+      setPlaying(false);
+      setRadioState("no-signal");
+      setRainAudible(true);
+    };
+    audio.addEventListener("ended", handleEnded);
+    audio.addEventListener("error", handleError);
 
-    audio.addEventListener("ended", () => {
-      setTrackIdx(i => (i + 1) % Math.max(audioTracks.length, 1));
-    });
+    audio.play()
+      .then(() => {
+        setPlaying(true);
+        setRadioState("playing");
+        setRainAudible(false);
+      })
+      .catch(() => {
+        // A browser gesture is required in some preview environments.
+        setRadioState("playing");
+        setRainAudible(true);
+      });
 
     return () => {
+      audio.removeEventListener("ended", handleEnded);
+      audio.removeEventListener("error", handleError);
       audio.pause();
       audio.src = "";
+      if (audioRef.current === audio) audioRef.current = null;
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentTrack?.id, audioTracks.length]);
+  }, [currentTrack?.id, currentTrack?.compressedUrl, currentTrack?.fileUrl, trackLoading, setRainAudible]);
 
   // Sync volume/mute
   useEffect(() => {
     if (!audioRef.current) return;
     audioRef.current.volume = muted ? 0 : volume;
+    audioRef.current.muted = muted;
   }, [muted, volume]);
 
+  // Stop generated ambience and music when the startup overlay exits.
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = "";
+      }
+      if (rainRef.current) {
+        rainRef.current.source.stop();
+        void rainRef.current.context.close();
+        rainRef.current = null;
+      }
+    };
+  }, []);
+
   const handlePlay = () => {
-    if (!audioRef.current) return;
-    if (audioRef.current.paused) {
-      audioRef.current.play().then(() => setPlaying(true)).catch(() => {});
+    const audio = audioRef.current;
+    if (!audio) {
+      setRadioState("no-signal");
+      setRainAudible(true);
+      return;
+    }
+
+    if (audio.paused) {
+      setMuted(false);
+      audio.muted = false;
+      audio.play()
+        .then(() => {
+          setPlaying(true);
+          setRadioState("playing");
+          setRainAudible(false);
+        })
+        .catch(() => {
+          setRadioState("no-signal");
+          setRainAudible(true);
+        });
     } else {
-      audioRef.current.pause();
+      audio.pause();
       setPlaying(false);
+      setRainAudible(true);
+    }
+  };
+
+  const handleMuteToggle = () => {
+    const nextMuted = !muted;
+    setMuted(nextMuted);
+    if (!nextMuted && audioRef.current?.paused) {
+      handlePlay();
+    }
+  };
+
+  const activateRadio = () => {
+    if (!audioRef.current) {
+      setRainAudible(true);
+      return;
     }
     setMuted(false);
+    audioRef.current.muted = false;
+    audioRef.current.play()
+      .then(() => {
+        setPlaying(true);
+        setRadioState("playing");
+        setRainAudible(false);
+      })
+      .catch(() => {
+        setRadioState("no-signal");
+        setRainAudible(true);
+      });
   };
 
   const handleEnter = useCallback(() => {
+    activateRadio();
     setExiting(true);
     setTimeout(onEnter, 600);
   }, [onEnter]);
 
   return (
     <div
-      className="fixed inset-0 z-[9997] overflow-hidden"
+      className="fixed inset-0 z-[9997] overflow-hidden select-none"
+      data-testid="enter-vanta-screen"
       style={{ opacity: exiting ? 0 : 1, transition: "opacity 600ms ease" }}
     >
       <style>{`
@@ -143,23 +289,35 @@ export function EnterVanta({ onEnter }: EnterVantaProps) {
           25%  { transform: translate(-2px, 1px); }
           75%  { transform: translate(2px, -1px); }
         }
+        @keyframes water-shimmer {
+          0%,100% { opacity: 0.2; transform: scaleX(1); }
+          50% { opacity: 0.36; transform: scaleX(1.04); }
+        }
+        @keyframes system-flicker {
+          0%, 92%, 100% { opacity: 0.62; }
+          94% { opacity: 0.38; }
+          96% { opacity: 0.72; }
+        }
       `}</style>
 
       {/* ── Night sky / city backdrop ── */}
       <div
         className="absolute inset-0"
         style={{
-          background:
-            "linear-gradient(to bottom, #030806 0%, #050f08 35%, #040d07 65%, #020703 100%)",
+          backgroundImage: `linear-gradient(to bottom, rgba(1,8,4,0.56), rgba(2,18,10,0.48) 42%, rgba(1,7,4,0.82)), url(${cityBackdrop})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center bottom",
+          filter: "saturate(0.58) hue-rotate(58deg) brightness(0.52) contrast(1.22)",
         }}
       />
 
-      {/* ── City silhouette ── */}
+      {/* ── Near skyline haze ── */}
       <div
         className="absolute bottom-0 left-0 right-0"
         style={{
-          height: "45%",
-          background: "linear-gradient(to top, #010503 0%, #020804 60%, transparent 100%)",
+          height: "48%",
+          opacity: 0.56,
+          background: "linear-gradient(to top, #010503 0%, rgba(2,12,6,0.92) 24%, rgba(2,8,4,0.3) 75%, transparent 100%)",
           clipPath: `polygon(
             0% 100%, 0% 70%, 4% 70%, 4% 55%, 6% 55%, 6% 70%,
             10% 70%, 10% 42%, 12% 42%, 12% 70%,
@@ -180,6 +338,17 @@ export function EnterVanta({ onEnter }: EnterVantaProps) {
             92% 70%, 92% 48%, 94% 48%, 94% 70%,
             97% 70%, 97% 55%, 100% 55%, 100% 100%
           )`,
+        }}
+      />
+
+      {/* ── Wet reflective foreground ── */}
+      <div
+        className="absolute bottom-0 left-0 right-0 pointer-events-none"
+        style={{
+          height: "22%",
+          background: "linear-gradient(to bottom, rgba(20,100,52,0.06), rgba(0,3,2,0.92) 75%), repeating-linear-gradient(175deg, transparent 0, transparent 7px, rgba(107,229,141,0.035) 8px, transparent 10px)",
+          filter: "blur(0.3px)",
+          animation: prefersReducedMotion ? undefined : "water-shimmer 7s ease-in-out infinite",
         }}
       />
 
@@ -220,11 +389,11 @@ export function EnterVanta({ onEnter }: EnterVantaProps) {
       ))}
 
       {/* ── Rain ── */}
-      {!prefersReducedMotion && Array.from({ length: 35 }, (_, i) => {
+      {!prefersReducedMotion && Array.from({ length: 72 }, (_, i) => {
         const left = Math.random() * 100;
-        const height = 25 + Math.random() * 40;
-        const duration = 0.6 + Math.random() * 0.8;
-        const delay = Math.random() * 3;
+        const height = 18 + Math.random() * (i % 4 === 0 ? 58 : 35);
+        const duration = 0.55 + Math.random() * 1.15;
+        const delay = Math.random() * 3.5;
         return (
           <div
             key={i}
@@ -261,6 +430,32 @@ export function EnterVanta({ onEnter }: EnterVantaProps) {
         />
       )}
 
+      {/* ── System labels ── */}
+      <div
+        className="absolute left-6 top-8 sm:left-10 sm:top-12 z-10 font-mono text-[8px] leading-[1.65] tracking-[0.28em] text-emerald-200/55"
+        style={{ animation: prefersReducedMotion ? undefined : "system-flicker 8s ease-in-out infinite" }}
+      >
+        MUSIC<br />ART<br />PEOPLE<br />WORLDS
+      </div>
+      <div className="absolute left-6 bottom-24 sm:left-10 sm:bottom-28 z-10 font-mono text-[8px] leading-[1.65] tracking-[0.28em] text-emerald-200/50">
+        SOUNDS<br />FOR A<br />COLDER<br />TOMORROW
+      </div>
+      <div className="absolute right-6 top-8 sm:right-10 sm:top-12 z-10 text-right font-mono text-[8px] leading-[1.65] tracking-[0.28em] text-emerald-200/55">
+        ARCHIVE<br />RADIO<br />PASSPORT<br />SYSTEM
+      </div>
+      <div className="absolute right-6 bottom-24 sm:right-10 sm:bottom-28 z-10 text-right font-mono text-[8px] leading-[1.65] tracking-[0.28em] text-emerald-200/50">
+        SAME<br />PEOPLE<br />DIFFERENT<br />FREQUENCIES
+      </div>
+      <div className="absolute right-6 top-3 sm:right-10 sm:top-5 z-10 font-mono text-[7px] tracking-[0.25em] text-emerald-200/45">
+        VANTA COLD OS&nbsp;&nbsp;v0.1
+      </div>
+      <div className="absolute left-6 bottom-6 sm:left-10 sm:bottom-8 z-10 font-mono text-[7px] leading-[1.5] tracking-[0.2em] text-emerald-200/45">
+        ◎&nbsp;&nbsp;GLOBAL CULTURE<br />&nbsp;&nbsp;&nbsp;&nbsp;NETWORK
+      </div>
+      <div className="absolute right-6 bottom-6 sm:right-10 sm:bottom-8 z-10 text-right font-mono text-[7px] leading-[1.5] tracking-[0.2em] text-emerald-200/45">
+        BUILT FROM<br />THE GROUND UP
+      </div>
+
       {/* ── Centered content ── */}
       <div
         className="absolute inset-0 flex flex-col items-center justify-center"
@@ -274,22 +469,22 @@ export function EnterVanta({ onEnter }: EnterVantaProps) {
           <p style={{
             fontFamily: "monospace",
             fontSize: 10,
-            letterSpacing: "0.4em",
-            color: "rgba(80,200,80,0.4)",
-            marginBottom: 16,
+            letterSpacing: "0.42em",
+            color: "rgba(126,255,155,0.68)",
+            marginBottom: 18,
             textTransform: "uppercase",
           }}>
             A CULTURE OPERATING SYSTEM
           </p>
           <h1 style={{
-            fontSize: "clamp(42px, 8vw, 72px)",
+            fontSize: "clamp(42px, 8vw, 78px)",
             fontWeight: 800,
-            letterSpacing: "0.18em",
-            color: "#e8f0e8",
+            letterSpacing: "0.16em",
+            color: "#f1fff2",
             lineHeight: 1,
-            textShadow: "0 0 40px rgba(80,200,80,0.15), 0 0 80px rgba(40,120,40,0.1)",
+            textShadow: "0 0 12px rgba(175,255,190,0.65), 0 0 42px rgba(64,220,108,0.4), 0 0 88px rgba(20,150,60,0.25)",
           }}>
-            VANTA
+            VANTA COLD
           </h1>
         </div>
 
@@ -303,24 +498,25 @@ export function EnterVanta({ onEnter }: EnterVantaProps) {
               fontFamily: "monospace",
               fontSize: 13,
               letterSpacing: "0.35em",
-              color: "#5aff5a",
-              border: "1px solid rgba(80,200,80,0.35)",
-              background: "rgba(0,0,0,0.6)",
+               color: "#d9ffe0",
+               border: "1px solid rgba(104,255,143,0.72)",
+               background: "rgba(3,19,10,0.72)",
               padding: "14px 36px",
               cursor: "pointer",
-              backdropFilter: "blur(4px)",
+               backdropFilter: "blur(8px)",
               transition: "border-color 0.2s, color 0.2s, box-shadow 0.2s",
               textTransform: "uppercase",
-              minWidth: 200,
+               minWidth: 218,
               minHeight: 48,
+               boxShadow: "0 0 18px rgba(68,220,104,0.18), inset 0 0 20px rgba(68,220,104,0.06)",
             }}
             onMouseEnter={e => {
-              (e.target as HTMLButtonElement).style.borderColor = "rgba(80,200,80,0.8)";
-              (e.target as HTMLButtonElement).style.boxShadow = "0 0 20px rgba(80,200,80,0.15)";
+               (e.target as HTMLButtonElement).style.borderColor = "rgba(160,255,175,1)";
+               (e.target as HTMLButtonElement).style.boxShadow = "0 0 28px rgba(86,240,120,0.3), inset 0 0 20px rgba(86,240,120,0.12)";
             }}
             onMouseLeave={e => {
-              (e.target as HTMLButtonElement).style.borderColor = "rgba(80,200,80,0.35)";
-              (e.target as HTMLButtonElement).style.boxShadow = "none";
+               (e.target as HTMLButtonElement).style.borderColor = "rgba(104,255,143,0.72)";
+               (e.target as HTMLButtonElement).style.boxShadow = "0 0 18px rgba(68,220,104,0.18), inset 0 0 20px rgba(68,220,104,0.06)";
             }}
             aria-label="Enter Vanta"
           >
@@ -344,20 +540,6 @@ export function EnterVanta({ onEnter }: EnterVantaProps) {
           ALPHA VERSION 0.1
         </div>
 
-        {/* Scroll hint */}
-        <div
-          style={{
-            position: "absolute",
-            bottom: 80,
-            animation: "ev-press 2s ease-in-out infinite",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: 4,
-          }}
-        >
-          <ChevronDown size={14} style={{ color: "rgba(80,200,80,0.3)" }} />
-        </div>
       </div>
 
       {/* ── Vanta Radio HUD ── */}
@@ -386,7 +568,7 @@ export function EnterVanta({ onEnter }: EnterVantaProps) {
             borderRadius: 4,
             padding: "8px 16px",
             backdropFilter: "blur(6px)",
-            maxWidth: 420,
+             maxWidth: 440,
             width: "100%",
           }}
         >
@@ -401,16 +583,20 @@ export function EnterVanta({ onEnter }: EnterVantaProps) {
           <div style={{ flex: 1, minWidth: 0 }}>
             <p style={{
               fontFamily: "monospace", fontSize: 11,
-              color: currentTrack ? "rgba(200,230,200,0.8)" : "rgba(100,150,100,0.4)",
+               color: radioState === "no-signal" ? "rgba(149,203,157,0.52)" : "rgba(200,245,210,0.88)",
               overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
             }}>
-              {currentTrack ? currentTrack.title : "NO SIGNAL"}
+               {trackLoading
+                 ? "TUNING VANTA RADIO…"
+                 : radioState === "no-signal"
+                   ? "NO SIGNAL — ACCESS VAULT FOR MORE MUSIC"
+                   : `NOW PLAYING: ${currentTrack?.title || "DEGAUSSER"}`}
             </p>
           </div>
 
           {/* Controls */}
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-            {currentTrack && (
+             {currentTrack && radioState !== "no-signal" && (
               <button
                 onClick={handlePlay}
                 style={{
@@ -425,7 +611,7 @@ export function EnterVanta({ onEnter }: EnterVantaProps) {
             )}
 
             <button
-              onClick={() => { setMuted(m => !m); if (!playing && audioRef.current) { audioRef.current.play().then(() => setPlaying(true)).catch(() => {}); } }}
+               onClick={handleMuteToggle}
               style={{
                 background: "none", border: "none", cursor: "pointer",
                 color: muted ? "rgba(100,120,100,0.4)" : "rgba(80,200,80,0.7)",
@@ -448,7 +634,7 @@ export function EnterVanta({ onEnter }: EnterVantaProps) {
                 setVolume(v);
                 setMuted(v === 0);
               }}
-              style={{ width: 60, accentColor: "#5aff5a", cursor: "pointer" }}
+               style={{ width: 60, accentColor: "#7dff9a", cursor: "pointer" }}
               aria-label="Volume"
             />
           </div>
@@ -457,7 +643,8 @@ export function EnterVanta({ onEnter }: EnterVantaProps) {
 
       {/* ── Skip startup preference ── */}
       <div style={{
-        position: "absolute", top: 16, right: 16, zIndex: 20,
+        position: "absolute", top: 16, left: "50%", zIndex: 20,
+        transform: "translateX(-50%)",
         animation: "ev-fadein 0.6s 2s ease both", opacity: 0, animationFillMode: "forwards",
       }}>
         <label style={{
