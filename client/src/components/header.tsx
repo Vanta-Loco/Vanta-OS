@@ -175,7 +175,7 @@ export function Header() {
                 className="hidden sm:inline-flex gap-1.5 text-[10px] font-mono uppercase tracking-widest text-muted-foreground/70"
               >
                 <BookOpen className="h-3.5 w-3.5" />
-                <span className="hidden xl:inline">Guide</span>
+                <span className="hidden lg:inline">Guide</span>
               </Button>
 
               {/* App Launcher */}
