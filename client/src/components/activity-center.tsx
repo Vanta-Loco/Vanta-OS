@@ -205,7 +205,7 @@ export function ActivityCenter() {
 
   useEffect(() => {
     if (!open || !isAuthenticated) return;
-    void Promise.all([unreadQuery.refetch(), activityQuery.refetch()]);
+    void unreadQuery.refetch();
   }, [open, isAuthenticated]);
 
   const unreadCount = unreadQuery.data?.count || 0;
@@ -248,6 +248,7 @@ export function ActivityCenter() {
 
   const openTarget = (item: ActivityItem) => {
     markOneIfUnread(item);
+    setOpen(false);
   };
 
   if (!isAuthenticated) return null;
