@@ -88,6 +88,7 @@ export default function Marketplace() {
   }
 
   function openListingFromKeyboard(event: React.KeyboardEvent<HTMLElement>, id: string) {
+    if ((event.target as HTMLElement).closest("a,button,select,input")) return;
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
       navigate(`/marketplace/${id}`);
@@ -98,29 +99,96 @@ export default function Marketplace() {
       <Header />
       <main className="flex-1 pt-20">
         <section className="border-b border-border bg-[radial-gradient(circle_at_78%_20%,rgba(105,74,145,.17),transparent_34%)]">
-          <div className="max-w-7xl mx-auto px-6 lg:px-8 py-16 md:py-20">
-            <p className="text-[10px] font-mono uppercase tracking-[0.3em] text-primary/70 mb-4">VANTA OS · CREATIVE MARKETPLACE</p>
+          <div className="mx-auto max-w-7xl px-6 py-14 lg:px-8 md:py-20">
+            <p className="mb-4 text-[10px] font-mono uppercase tracking-[0.3em] text-primary/70">VANTA OS · CREATIVE MARKETPLACE</p>
             <div className="flex flex-wrap items-end justify-between gap-8">
-              <div><h1 className="text-4xl md:text-6xl font-display font-bold tracking-tight">The board<span className="text-primary">.</span></h1><p className="mt-4 max-w-xl text-muted-foreground leading-relaxed">Creative services, unfinished ideas and skilled hands moving through the Vanta network.</p></div>
-              <Button onClick={() => isAuthenticated ? setShowForm(open => !open) : navigate("/login")} className="gap-2"><Plus className="w-4 h-4" /> Post Listing</Button>
+              <div>
+                <h1 className="font-display text-4xl font-bold tracking-tight md:text-6xl">VANTA MARKETPLACE<span className="text-primary">.</span></h1>
+                <p className="mt-4 max-w-xl leading-relaxed text-muted-foreground">Creative services, work, and opportunities across the Vanta network.</p>
+              </div>
+              <Button onClick={() => isAuthenticated ? setShowForm(open => !open) : navigate("/login")} className="gap-2"><Plus className="h-4 w-4" /> Post Listing</Button>
             </div>
             {showForm && <div className="mt-10 max-w-3xl"><MarketplaceForm rooms={rooms} submitLabel="Put it on the board" onSubmit={createListing} /></div>}
           </div>
         </section>
-        <div className="max-w-7xl mx-auto px-6 lg:px-8 py-10">
-          <div className="flex flex-wrap items-center gap-3 mb-10">
-            <select aria-label="Filter by category" className="h-9 rounded-md border border-input bg-background px-3 text-sm" value={category} onChange={e => setCategory(e.target.value)}><option value="">All categories</option>{MARKETPLACE_CATEGORIES.map(item => <option key={item}>{item}</option>)}</select>
-            <select aria-label="Filter by delivery mode" className="h-9 rounded-md border border-input bg-background px-3 text-sm" value={delivery} onChange={e => setDelivery(e.target.value)}><option value="">Any delivery</option><option value="remote">Remote</option><option value="in_person">In-person</option><option value="both">Both</option></select>
-            <form onSubmit={e => { e.preventDefault(); loadListings(); }} className="flex gap-2"><Input aria-label="Filter by city" className="h-9 w-36 sm:w-48" value={city} onChange={e => setCity(e.target.value)} placeholder="Filter city" /><Button type="submit" variant="outline" size="sm">Apply</Button></form>
-            <span className="ml-auto text-[10px] font-mono uppercase tracking-widest text-muted-foreground/50">{listings.length} active {listings.length === 1 ? "listing" : "listings"}</span>
+        <div className="mx-auto max-w-7xl px-6 py-8 lg:px-8 md:py-10">
+          <div className="mb-5 flex items-center gap-3 border-b border-border pb-5">
+            <Search className="h-4 w-4 shrink-0 text-primary/70" />
+            <Input aria-label="Search Marketplace listings" className="h-10 border-0 bg-transparent px-0 text-base shadow-none focus-visible:ring-0" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search listings, creators, disciplines…" />
+            {search && <button type="button" onClick={() => setSearch("")} className="shrink-0 text-[10px] font-mono uppercase tracking-widest text-muted-foreground hover:text-foreground">Clear</button>}
           </div>
-          {loading ? <p className="py-20 text-center text-sm text-muted-foreground">Scanning the board…</p> : listings.length ? <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {listings.map(listing => <Link key={listing.id} href={`/marketplace/${listing.id}`}><article className="h-full border border-border rounded-xl p-5 bg-card/50 hover:border-primary/50 hover:-translate-y-0.5 transition-all group"><div className="flex justify-between gap-4 text-[10px] font-mono uppercase tracking-widest text-muted-foreground/50"><span>{listing.category}</span><span>{listing.price_type === "negotiable" ? "Negotiable" : listing.price_type === "contact" ? "Contact" : "Fixed"}</span></div><h2 className="font-display text-xl font-semibold mt-8 group-hover:text-primary transition-colors">{listing.title}</h2><p className="text-sm text-muted-foreground leading-relaxed mt-2 line-clamp-3">{listing.description}</p><div className="mt-7 space-y-2 text-xs text-muted-foreground/70"><p className="flex items-center gap-2 text-foreground"><Users className="w-3.5 h-3.5" /> @{listing.creator_username}</p><p className="flex items-center gap-2"><Radio className="w-3.5 h-3.5" /> {deliveryLabel(listing.delivery_mode)} · {priceLabel(listing)}</p>{listing.city && <p className="flex items-center gap-2"><MapPin className="w-3.5 h-3.5" /> {listing.city}</p>}{listing.room_name && <p className="text-primary/70">Room · {listing.room_name}</p>}</div><div className="flex justify-end mt-6"><ArrowRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-1 transition-transform" /></div></article></Link>)}
-          </div> : <div className="border border-dashed border-border rounded-xl py-20 px-6 text-center max-w-2xl mx-auto"><p className="font-display text-2xl">No listings on the board yet.</p><p className="text-sm text-muted-foreground mt-3">Be the first Member to put something up.</p><Button onClick={() => isAuthenticated ? setShowForm(true) : navigate("/login")} variant="outline" className="mt-7">Post a Listing</Button></div>}
+          <div className="mb-10 flex flex-col gap-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <FilterSelect ariaLabel="Filter by category" value={category} onChange={setCategory}>
+                <option value="">All categories</option>
+                {MARKETPLACE_CATEGORIES.map(item => <option key={item}>{item}</option>)}
+              </FilterSelect>
+              <FilterSelect ariaLabel="Filter by delivery mode" value={delivery} onChange={setDelivery}>
+                <option value="">Any delivery</option>
+                <option value="remote">Remote</option>
+                <option value="in_person">In-person</option>
+                <option value="both">Both</option>
+              </FilterSelect>
+              <FilterSelect ariaLabel="Filter by price type" value={priceType} onChange={setPriceType}>
+                <option value="">Any price</option>
+                <option value="fixed">Fixed</option>
+                <option value="negotiable">Negotiable</option>
+                <option value="contact">Contact</option>
+              </FilterSelect>
+              <form onSubmit={e => { e.preventDefault(); loadListings(); }} className="flex min-w-0 w-full gap-2 sm:w-auto">
+                <Input aria-label="Filter by city" className="h-9 w-full sm:w-44" value={city} onChange={e => setCity(e.target.value)} placeholder="Filter city" />
+                <Button type="submit" variant="outline" size="sm">Apply</Button>
+              </form>
+              <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/50 sm:ml-auto">{visibleListings.length} active {visibleListings.length === 1 ? "listing" : "listings"}</span>
+            </div>
+          </div>
+          {loading ? <p className="py-20 text-center text-sm text-muted-foreground">Scanning the board…</p> : visibleListings.length ? <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {visibleListings.map(listing => (
+              <article
+                key={listing.id}
+                role="link"
+                tabIndex={0}
+                onClick={event => openListing(event, listing.id)}
+                onKeyDown={event => openListingFromKeyboard(event, listing.id)}
+                className="group flex h-full min-w-0 cursor-pointer flex-col border border-border bg-card/35 p-5 transition-all hover:-translate-y-0.5 hover:border-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              >
+                <div className="flex items-start justify-between gap-4 border-b border-border/70 pb-4">
+                  <span className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-[0.16em] text-primary/75"><BriefcaseBusiness className="h-3.5 w-3.5" /> {listing.category}</span>
+                  <span className="shrink-0 text-[10px] font-mono uppercase tracking-widest text-muted-foreground/55">{priceTypeLabel(listing.price_type)}</span>
+                </div>
+                <h2 className="mt-5 line-clamp-2 font-display text-xl font-semibold transition-colors group-hover:text-primary">{listing.title}</h2>
+                <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-muted-foreground">{listing.description}</p>
+                <div className="mt-6 flex-1 space-y-3 text-xs text-muted-foreground/75">
+                  <Link href={`/creators/${listing.creator_username}`} onClick={event => event.stopPropagation()} className="flex min-w-0 items-center gap-2 text-foreground hover:text-primary">
+                    <Users className="h-3.5 w-3.5 shrink-0 text-primary/75" />
+                    <span className="min-w-0 truncate">{listing.creator_display_name || `@${listing.creator_username}`} <span className="text-muted-foreground/55">· @{listing.creator_username}</span></span>
+                    {listing.creator_is_certified && <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-primary" aria-label="Certified Creator" />}
+                  </Link>
+                  {(listing.creator_disciplines?.length || listing.creator_type) && <p className="truncate pl-5 text-[10px] font-mono uppercase tracking-widest text-muted-foreground/55">{listing.creator_disciplines?.slice(0, 3).join(" · ") || listing.creator_type}</p>}
+                  <p className="flex items-center gap-2 text-foreground"><Radio className="h-3.5 w-3.5 shrink-0 text-primary/70" /> {deliveryLabel(listing.delivery_mode)}</p>
+                  <p className="flex items-center gap-2 font-display text-lg text-foreground"><span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/55">Offer</span> {priceLabel(listing)}</p>
+                  {listing.city && <p className="flex items-center gap-2"><MapPin className="h-3.5 w-3.5 shrink-0" /> {listing.city}</p>}
+                  {listing.room_name && listing.room_id && <Link href={`/rooms/${listing.room_id}`} onClick={event => event.stopPropagation()} className="flex min-w-0 items-center gap-2 border-t border-border/60 pt-3 text-primary/80 hover:text-primary"><Store className="h-3.5 w-3.5 shrink-0" /><span className="truncate">Room · {listing.room_name}</span>{listing.room_category && <span className="shrink-0 text-[9px] font-mono uppercase tracking-widest text-muted-foreground/50">{listing.room_category}</span>}</Link>}
+                </div>
+                <div className="mt-6 flex items-center justify-between border-t border-border/70 pt-4 text-[10px] font-mono uppercase tracking-[0.2em] text-muted-foreground/60">
+                  <span>View listing</span>
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                </div>
+              </article>
+            ))}
+          </div> : listings.length ? <EmptyMarketplaceState title="NO LISTINGS FOUND" description="Try another category, search, delivery mode, or price type." /> : <EmptyMarketplaceState title="THE BOARD IS QUIET" description="No listings are active yet." action={isAuthenticated ? "Post Listing" : undefined} onAction={() => isAuthenticated ? setShowForm(true) : navigate("/login")} />}
         </div>
       </main><Footer />
     </div>
   );
+}
+
+function FilterSelect({ ariaLabel, value, onChange, children }: { ariaLabel: string; value: string; onChange: (value: string) => void; children: React.ReactNode }) {
+  return <select aria-label={ariaLabel} className="h-9 w-full max-w-full rounded-md border border-input bg-background px-3 text-sm sm:w-auto" value={value} onChange={event => onChange(event.target.value)}>{children}</select>;
+}
+
+function EmptyMarketplaceState({ title, description, action, onAction }: { title: string; description: string; action?: string; onAction?: () => void }) {
+  return <div className="mx-auto max-w-2xl border border-dashed border-border px-6 py-20 text-center"><p className="font-display text-2xl">{title}</p><p className="mt-3 text-sm text-muted-foreground">{description}</p>{action && onAction && <Button onClick={onAction} variant="outline" className="mt-7">{action}</Button>}</div>;
 }
 
 export { priceLabel, deliveryLabel };
