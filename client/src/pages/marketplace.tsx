@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
-import { ArrowRight, MapPin, Plus, Radio, Users } from "lucide-react";
+import { ArrowRight, BadgeCheck, BriefcaseBusiness, MapPin, Plus, Radio, Search, Store, Users } from "lucide-react";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
@@ -11,12 +11,13 @@ import { MarketplaceForm, MARKETPLACE_CATEGORIES, MarketplaceRoom, ListingFormVa
 
 type Listing = {
   id: string; title: string; description: string; category: string; creator_user_id: string;
-  creator_username: string; creator_display_name?: string; price_amount?: string | null;
+  creator_username: string; creator_display_name?: string; creator_type?: string | null; creator_disciplines?: string[] | null; creator_is_certified?: boolean;
   currency: string; price_type: string; city?: string | null; delivery_mode: string;
-  room_id?: string | null; room_name?: string | null; status: string;
+  room_id?: string | null; room_name?: string | null; room_slug?: string | null; room_visibility?: string | null; room_category?: string | null; price_amount?: string | null; status: string;
 };
 
 const priceLabel = (listing: Listing) => listing.price_type === "contact" ? "Contact for price" : listing.price_type === "negotiable" ? (listing.price_amount ? `From ${listing.currency} ${listing.price_amount} · negotiable` : "Negotiable") : `${listing.currency} ${listing.price_amount}`;
+const priceTypeLabel = (type: string) => type === "negotiable" ? "Negotiable" : type === "contact" ? "Contact" : "Fixed";
 const deliveryLabel = (mode: string) => mode === "in_person" ? "In-person" : mode === "both" ? "Remote + in-person" : "Remote";
 
 export default function Marketplace() {
@@ -27,7 +28,9 @@ export default function Marketplace() {
   const [rooms, setRooms] = useState<MarketplaceRoom[]>([]);
   const [category, setCategory] = useState(() => new URLSearchParams(window.location.search).get("category") || "");
   const [delivery, setDelivery] = useState("");
+  const [priceType, setPriceType] = useState("");
   const [city, setCity] = useState("");
+  const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true);
   async function loadListings() {
@@ -59,6 +62,36 @@ export default function Marketplace() {
     const data = await response.json();
     if (!response.ok) { toast({ title: "Could not post listing", description: data.error, variant: "destructive" }); return; }
     setShowForm(false); navigate(`/marketplace/${data.id}`);
+  }
+
+  const visibleListings = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    return listings.filter(listing => {
+      if (priceType && listing.price_type !== priceType) return false;
+      if (!query) return true;
+      const searchable = [
+        listing.title,
+        listing.category,
+        listing.description,
+        listing.creator_display_name,
+        listing.creator_username,
+        listing.creator_type,
+        ...(listing.creator_disciplines || []),
+      ].filter(Boolean).join(" ").toLowerCase();
+      return searchable.includes(query);
+    });
+  }, [listings, priceType, search]);
+
+  function openListing(event: React.MouseEvent<HTMLElement>, id: string) {
+    if ((event.target as HTMLElement).closest("a,button,select,input")) return;
+    navigate(`/marketplace/${id}`);
+  }
+
+  function openListingFromKeyboard(event: React.KeyboardEvent<HTMLElement>, id: string) {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      navigate(`/marketplace/${id}`);
+    }
   }
   return (
     <div className="min-h-screen flex flex-col bg-background">

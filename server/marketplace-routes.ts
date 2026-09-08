@@ -111,9 +111,14 @@ const listingSelect = `
          l.price_amount, l.currency, l.price_type, l.city, l.delivery_mode,
          l.status, l.created_at, l.updated_at,
          u.username AS creator_username, u.display_name AS creator_display_name,
-         r.name AS room_name, r.slug AS room_slug
+         c.creator_type, c.disciplines AS creator_disciplines,
+         c.is_certified AS creator_is_certified,
+         CASE WHEN r.visibility='public' THEN r.name ELSE NULL END AS room_name,
+         CASE WHEN r.visibility='public' THEN r.slug ELSE NULL END AS room_slug,
+         r.visibility AS room_visibility, r.category AS room_category
   FROM marketplace_listings l
   JOIN users u ON u.id=l.creator_user_id
+   LEFT JOIN creator_profiles c ON c.user_id=l.creator_user_id
   LEFT JOIN rooms r ON r.id=l.room_id
 `;
 
