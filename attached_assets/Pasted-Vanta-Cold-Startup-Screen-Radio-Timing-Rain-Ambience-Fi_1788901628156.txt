@@ -1,0 +1,130 @@
+Vanta Cold Startup Screen — Radio Timing + Rain Ambience Fix ONLY
+Continue in Free Mode. Do not switch to Max/Power.
+The new Vanta Cold rainy-city startup screen is implemented, but there are two issues:
+The startup screen currently has a timeout/automatic progression that ends before the full song Degausser finishes.
+The rain ambience currently sounds more like static/noise than believable rain.
+Fix ONLY these startup audio/timing issues.
+1. Remove the startup timeout
+The Vanta Cold startup screen should not automatically disappear or progress after a fixed number of seconds.
+Remove the fixed timeout controlling the lifetime of this screen.
+The screen should remain visible until the user intentionally clicks:
+[ ENTER VANTA ]
+Do not force the user to wait for the song before entering.
+This means:
+User can enter Vanta whenever they want.
+If they remain on the startup screen, Degausser is allowed to play all the way to the end.
+Preserve the existing startup/boot routing after the user clicks Enter.
+2. Radio state must be driven by the actual audio
+Do not use a timer to guess when Degausser has finished.
+Use the actual HTMLAudioElement/Web Audio playback state and the audio:
+ended
+event.
+Radio states should work like:
+While track is playing
+Display:
+VANTA RADIO
+NOW PLAYING: DEGAUSSER
+Rain ambience should be very low/ducked or muted underneath the music.
+When Degausser actually ends
+Change the radio display to:
+VANTA RADIO — NO SIGNAL
+and:
+ACCESS VAULT FOR MORE MUSIC
+At that exact point, the rain ambience should become the main audible sound.
+Do not restart Degausser automatically.
+Do not shuffle another song.
+This startup radio is intentionally a single-track transmission.
+3. Failure state
+If Degausser fails to load or play:
+do not break the startup screen
+switch to rain ambience
+show:
+VANTA RADIO — NO SIGNAL
+ACCESS VAULT FOR MORE MUSIC
+4. Fix the rain ambience
+Inspect how rain sound is currently being produced.
+If it is based mainly on raw white noise/static or a crude oscillator/noise generator, replace that treatment.
+The ambience should sound like:
+steady rain outside
+wet city atmosphere
+rain hitting windows/roof/pavement
+distant urban ambience
+occasional subtle heavier droplets
+It should NOT sound like:
+radio static
+white noise
+TV hiss
+constant broadband noise
+Preferred approach
+First inspect whether the project already contains a real rain ambience audio asset.
+If one exists, use that and loop it seamlessly.
+If there is no proper rain recording in the project, do NOT pretend raw static is acceptable.
+In that case:
+keep the code prepared for a dedicated rain ambience file
+tell me exactly where the file should be placed and what filename/path the component expects
+Do not download random copyrighted audio or introduce a third-party media dependency without asking.
+5. Rain looping
+Rain ambience should:
+loop continuously
+use a gentle volume
+have no obvious pause/click at the loop point where possible
+fade smoothly when changing volume
+Suggested behavior:
+Startup idle / no music
+→ rain at normal ambience level
+Degausser begins
+→ rain smoothly ducks very low
+Degausser ends
+→ rain smoothly fades back up
+Avoid abrupt volume jumps.
+6. Radio volume control
+Preserve the existing Vanta Radio volume control.
+Make sure it controls the intended startup audio consistently.
+Do not create competing music/rain volume sliders during this fix.
+If necessary, treat the radio volume as a master startup-audio volume while maintaining the internal music/rain ducking relationship.
+7. Browser autoplay behavior
+Respect browser autoplay restrictions.
+Do not repeatedly throw play errors into the console.
+If audio requires the user's first interaction before starting, use the first legitimate interaction with the startup screen to unlock audio cleanly.
+Do not alter the visual entry flow simply to bypass browser policy.
+8. ENTER VANTA behavior
+Clicking:
+[ ENTER VANTA ]
+must still proceed through the existing Vanta flow.
+The user does not have to listen to the entire song.
+If leaving the startup screen requires disposing/stopping its ambience/audio, clean it up properly so startup audio does not continue over unrelated Vanta pages unless the existing global radio architecture explicitly requires that.
+9. Preserve
+Do not modify:
+rainy-city visuals
+moving rain animation
+CRT treatment
+VANTA COLD title
+header/navigation
+Member authentication
+Vault backend
+Releases
+Rooms
+Dashboard
+existing route architecture
+This is an audio-state and startup-timing fix only.
+Verification
+Run:
+npm run check
+npm run build
+git diff --check
+Manually verify:
+Open the Vanta Cold startup screen.
+Confirm it does not automatically time out.
+Confirm animated rain continues indefinitely.
+Start/unlock audio.
+Confirm Degausser plays.
+Leave the startup screen open for the entire track.
+Confirm radio changes only when the real track ends.
+Confirm display changes to:
+NO SIGNAL
+ACCESS VAULT FOR MORE MUSIC
+Confirm rain becomes clearly audible after the song.
+Confirm rain sounds like rain rather than radio static.
+Confirm Enter Vanta can still be clicked before, during, or after the song.
+Confirm startup audio cleans up correctly after entering Vanta.
+Stop after this fix.
