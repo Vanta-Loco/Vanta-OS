@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useRoute } from "wouter";
-import { Archive, ArrowLeft, Camera, Clapperboard, Lock, Music2, Palette, PenLine, Radio, Search, Send, Shirt, Store, Users, Wrench, MapPin, ArrowRight } from "lucide-react";
+import { Archive, ArrowLeft, BadgeCheck, Lock, Music2, Palette, PenLine, Radio, Search, Send, Shirt, Store, Users, Wrench, MapPin, ArrowRight } from "lucide-react";
 import { Header } from "@/components/header";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -18,11 +18,20 @@ type Room = {
   is_owner: boolean; owner_user_id?: string | null; owner_username?: string; owner_display_name?: string;
 };
 type Post = { id: string; body: string; created_at: string; username: string; display_name?: string };
-type Member = { id: string; username: string; display_name?: string; owner: boolean };
+type Member = {
+  id: string;
+  username: string;
+  display_name?: string;
+  owner: boolean;
+  creator_display_name?: string | null;
+  creator_type?: string | null;
+  creator_disciplines?: string[] | null;
+  creator_is_certified?: boolean;
+};
 type MarketplaceListing = {
   id: string; title: string; description: string; category: string;
   creator_username: string; price_amount?: string | null; currency: string;
-  price_type: string; city?: string | null; delivery_mode: string;
+  creator_display_name?: string | null; price_type: string; city?: string | null; delivery_mode: string;
 };
 
 type RoomTheme = "warehouse" | "studio" | "visual-studio" | "media-archive" | "default";
@@ -147,6 +156,153 @@ function RoomTools({ category, onOpenWork }: { category: string; onOpenWork: () 
   );
 }
 
+function RoomPulse({
+  room,
+  posts,
+  members,
+  work,
+  workLoading,
+  listings,
+  listingsLoading,
+  onOpenTab,
+}: {
+  room: Room;
+  posts: Post[];
+  members: Member[];
+  work: WorkItem[];
+  workLoading: boolean;
+  listings: MarketplaceListing[];
+  listingsLoading: boolean;
+  onOpenTab: (tab: string) => void;
+}) {
+  const latestWork = work.find(item => item.is_featured) || [...work].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+  const latestListing = listings[0];
+  const latestPost = posts[0];
+  const creatorMembers = members.filter(member => member.creator_display_name || member.creator_disciplines?.length).slice(0, 4);
+  const emphasis = room.category === "Music"
+    ? "Music Work · Artists · Producers · Engineers"
+    : room.category === "Fashion"
+      ? "Fashion Work · Designers · Models · Stylists"
+      : room.category === "Visual"
+        ? "Photography · Video · Design Work"
+        : "Writing / Media Work · Writers · Curators";
+
+  return (
+    <section className="mt-8 border border-primary/25 bg-black/25 p-4 backdrop-blur-md md:p-5" aria-label="Room Pulse">
+      <div className="mb-4 flex flex-wrap items-end justify-between gap-3 border-b border-white/10 pb-3">
+        <div>
+          <p className="text-[9px] font-mono uppercase tracking-[0.28em] text-primary/80">Studio status // {emphasis}</p>
+          <h2 className="mt-1 font-display text-xl font-semibold tracking-wide">Room Pulse<span className="text-primary">.</span></h2>
+        </div>
+        <div className="flex gap-4 text-[9px] font-mono uppercase tracking-[0.18em] text-muted-foreground/60">
+          <span>{room.member_count} Members</span>
+          <span>{workLoading ? "—" : work.length} Works</span>
+          <span>{listingsLoading ? "—" : listings.length} Listings</span>
+        </div>
+      </div>
+
+      <div className="grid gap-3 lg:grid-cols-3">
+        <PulseCard label="Latest Work" actionLabel="View Work" onAction={() => onOpenTab("Work")}>
+          {workLoading ? <PulseLoading /> : latestWork ? (
+            <div className="flex min-w-0 gap-3">
+              <div className="flex h-16 w-20 shrink-0 items-center justify-center overflow-hidden border border-white/10 bg-muted/30">
+                {latestWork.thumbnail_url ? <img src={latestWork.thumbnail_url} alt="" className="h-full w-full object-cover" /> : <Palette className="h-5 w-5 text-primary/45" />}
+              </div>
+              <div className="min-w-0">
+                <p className="truncate font-display text-lg">{latestWork.title}</p>
+                <p className="mt-1 text-[10px] font-mono uppercase tracking-widest text-muted-foreground/60">{latestWork.work_type}{latestWork.is_featured ? " · Featured" : ""}</p>
+                {latestWork.creator_username && <p className="mt-2 truncate text-xs text-muted-foreground">by @{latestWork.creator_username}</p>}
+              </div>
+            </div>
+          ) : <PulseEmpty title="No Work on the wall yet." action={room.joined ? "Add Work" : undefined} href={room.joined ? "/creator" : undefined} />}
+        </PulseCard>
+
+        <PulseCard label="Latest Listing" actionLabel={latestListing ? "View Listing" : undefined} href={latestListing ? `/marketplace/${latestListing.id}` : undefined}>
+          {listingsLoading ? <PulseLoading /> : latestListing ? (
+            <div className="min-w-0">
+              <p className="truncate font-display text-lg">{latestListing.title}</p>
+              <p className="mt-1 text-[10px] font-mono uppercase tracking-widest text-muted-foreground/60">{latestListing.category}</p>
+              <p className="mt-3 truncate text-xs text-muted-foreground">by @{latestListing.creator_username} · {listingPrice(latestListing)}</p>
+            </div>
+          ) : <PulseEmpty title="No listings in this space." action={room.joined ? "Create Listing" : undefined} href={room.joined ? "/marketplace" : undefined} />}
+        </PulseCard>
+
+        <PulseCard label="Recent Feed Signal" actionLabel="Open Feed" onAction={() => onOpenTab("Feed")}>
+          {latestPost ? (
+            <div className="min-w-0">
+              <p className="line-clamp-3 text-sm leading-relaxed text-muted-foreground">{latestPost.body}</p>
+              <p className="mt-3 truncate text-[10px] font-mono uppercase tracking-widest text-muted-foreground/55">@{latestPost.username} · {new Date(latestPost.created_at).toLocaleDateString()}</p>
+            </div>
+          ) : <PulseEmpty title="Feed is quiet." action="Open Feed" onAction={() => onOpenTab("Feed")} />}
+        </PulseCard>
+      </div>
+
+      {creatorMembers.length > 0 && (
+        <div className="mt-3 border-t border-white/10 pt-4">
+          <div className="mb-3 flex items-center justify-between gap-4">
+            <p className="text-[9px] font-mono uppercase tracking-[0.24em] text-muted-foreground/60">Creators in this space</p>
+            <span className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground/40">Public profiles only</span>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            {creatorMembers.map(member => (
+              <Link key={member.id} href={`/creators/${member.username}`} className="flex min-w-0 items-center gap-3 border border-white/10 bg-white/[0.02] px-3 py-2.5 transition-colors hover:border-primary/40">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center border border-primary/25 text-[10px] font-mono text-primary/75">{(member.creator_display_name || member.username).slice(0, 1).toUpperCase()}</span>
+                <span className="min-w-0">
+                  <span className="flex items-center gap-1.5 truncate text-xs text-foreground">{member.creator_display_name || `@${member.username}`}{member.creator_is_certified && <BadgeCheck className="h-3 w-3 shrink-0 text-primary" />}</span>
+                  <span className="block truncate text-[10px] text-muted-foreground/60">{member.creator_disciplines?.slice(0, 2).join(" · ") || member.creator_type || "Creator"}</span>
+                </span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function PulseCard({
+  label,
+  actionLabel,
+  href,
+  onAction,
+  children,
+}: {
+  label: string;
+  actionLabel?: string;
+  href?: string;
+  onAction?: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex min-h-[166px] min-w-0 flex-col border border-white/10 bg-white/[0.02] p-4">
+      <p className="mb-4 text-[9px] font-mono uppercase tracking-[0.22em] text-primary/70">{label}</p>
+      <div className="min-h-0 flex-1">{children}</div>
+      {actionLabel && href && <Link href={href} className="mt-4 inline-flex items-center gap-1.5 self-start text-[10px] font-mono uppercase tracking-widest text-foreground hover:text-primary">{actionLabel}<ArrowRight className="h-3 w-3" /></Link>}
+      {actionLabel && !href && onAction && <button type="button" onClick={onAction} className="mt-4 inline-flex items-center gap-1.5 self-start text-[10px] font-mono uppercase tracking-widest text-foreground hover:text-primary">{actionLabel}<ArrowRight className="h-3 w-3" /></button>}
+    </div>
+  );
+}
+
+function PulseLoading() {
+  return <div className="h-12 animate-pulse bg-white/[0.05]" />;
+}
+
+function PulseEmpty({ title, action, href, onAction }: { title: string; action?: string; href?: string; onAction?: () => void }) {
+  return (
+    <div>
+      <p className="text-sm text-muted-foreground">{title}</p>
+      {action && href && <Link href={href} className="mt-3 inline-flex text-[10px] font-mono uppercase tracking-widest text-primary/80 hover:text-primary">{action}<ArrowRight className="ml-1 h-3 w-3" /></Link>}
+      {action && !href && onAction && <button type="button" onClick={onAction} className="mt-3 inline-flex text-[10px] font-mono uppercase tracking-widest text-primary/80 hover:text-primary">{action}<ArrowRight className="ml-1 h-3 w-3" /></button>}
+    </div>
+  );
+}
+
+function listingPrice(listing: MarketplaceListing) {
+  if (listing.price_type === "contact") return "Contact";
+  if (listing.price_type === "negotiable") return listing.price_amount ? `From ${listing.currency} ${listing.price_amount}` : "Negotiable";
+  return `${listing.currency} ${listing.price_amount}`;
+}
+
 export default function RoomDetail() {
   const [, params] = useRoute("/rooms/:id");
   const [, navigate] = useLocation();
@@ -167,6 +323,9 @@ export default function RoomDetail() {
   async function loadRoom() {
     if (!params?.id) return;
     setLoading(true);
+    setWork([]);
+    setListings([]);
+    setHasCreatorProfile(false);
     const authHeaders = { "X-User-Token": getUserToken() || "" };
     const [roomResponse, postsResponse, membersResponse] = await Promise.all([
       fetch(`/api/rooms/${params.id}`, { headers: authHeaders }),
@@ -198,8 +357,8 @@ export default function RoomDetail() {
   }
 
   useEffect(() => {
-    if (tab === "Listings" && room) loadListings(room.id);
-  }, [tab, room?.id]);
+    if (room && (tab === "Listings" || room.owner_user_id === null)) loadListings(room.id);
+  }, [tab, room?.id, room?.owner_user_id]);
 
   async function loadWork(roomId: string) {
     setWorkLoading(true);
@@ -219,8 +378,8 @@ export default function RoomDetail() {
   }
 
   useEffect(() => {
-    if (tab === "Work" && room) loadWork(room.id);
-  }, [tab, room?.id, room?.joined, isAuthenticated]);
+    if (room && (tab === "Work" || room.owner_user_id === null)) loadWork(room.id);
+  }, [tab, room?.id, room?.joined, room?.owner_user_id, isAuthenticated]);
 
   async function changeMembership(action: "join" | "leave") {
     if (!isAuthenticated) return navigate("/login");
@@ -273,6 +432,7 @@ export default function RoomDetail() {
           </div>
           <div className="flex gap-5 mt-6 text-xs text-muted-foreground"><span className="flex gap-1 items-center"><Users className="w-3.5 h-3.5" /> {room.member_count} members</span>{room.visibility === "private" && <span className="flex gap-1 items-center"><Lock className="w-3.5 h-3.5" /> Invite only</span>}</div>
         </div>
+         {room.owner_user_id === null && <RoomPulse room={room} posts={posts} members={members} work={work} workLoading={workLoading} listings={listings} listingsLoading={listingsLoading} onOpenTab={setTab} />}
          {room.owner_user_id === null && <RoomTools category={room.category} onOpenWork={() => setTab("Work")} />}
         <div className="flex gap-1 border-b border-border mt-8 mb-8 overflow-x-auto">{tabs.map(item => <Button key={item} variant="ghost" onClick={() => setTab(item)} className={`rounded-none border-b-2 ${tab === item ? "border-primary text-foreground" : "border-transparent text-muted-foreground"}`}>{item}</Button>)}</div>
         {tab === "Feed" && <div className="max-w-2xl">

@@ -201,9 +201,14 @@ export function registerRoomsRoutes(app: Express) {
       if (!access.rows[0]) return res.status(404).json({ error: "Room not found" });
       const result = await pool.query(
         `SELECT u.id, u.username, u.display_name, p.avatar_url, m.joined_at,
-                (r.owner_user_id=u.id) AS owner
+                (r.owner_user_id=u.id) AS owner,
+                c.display_name AS creator_display_name,
+                c.creator_type AS creator_type,
+                c.disciplines AS creator_disciplines,
+                c.is_certified AS creator_is_certified
          FROM room_memberships m JOIN users u ON u.id=m.user_id
          LEFT JOIN user_profiles p ON p.user_id=u.id
+          LEFT JOIN creator_profiles c ON c.user_id=u.id AND u.account_status <> 'suspended'
          JOIN rooms r ON r.id=m.room_id
          WHERE m.room_id=$1 ORDER BY owner DESC, m.joined_at ASC`,
         [req.params.id],
