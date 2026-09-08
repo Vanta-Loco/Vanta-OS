@@ -1,0 +1,123 @@
+Vanta OS — Top Navigation Overflow Fix ONLY
+Continue in Free Mode. Do not switch to Max/Power.
+There is a responsive layout bug in the existing desktop top navigation/header.
+Current issue:
+As more Vanta features were added, the top navigation grew too wide.
+On desktop widths like the current Replit preview, the right-side controls are being pushed off-screen or covered.
+The affected controls include:
+Profile / Login
+Apps / launcher
+Vault
+possibly one additional right-side action
+The left/middle navigation currently includes items such as:
+Home
+Releases
+Worlds
+Play
+Passport
+About
+OS / related Vanta controls
+Do not remove working navigation items.
+Goal
+Make the top navigation reliably fit across normal desktop and laptop widths while keeping the important right-side controls always accessible.
+The header should remain visually consistent with Vanta OS.
+1. Inspect current Header first
+Locate the shared Header/top navigation component and determine:
+current flex/grid layout
+which items are fixed-width
+which section is causing overflow
+whether right-side controls are shrinking or being clipped
+Fix the layout rather than hiding the problem with overflow: hidden.
+2. Preserve priority controls
+These right-side actions must remain visible and clickable on desktop:
+Profile / Login
+Apps / launcher
+Vault
+Activity
+Vanta Guide
+If another existing utility belongs in this same control cluster, preserve it too.
+Do not allow normal navigation labels to cover these controls.
+3. Responsive desktop behavior
+Use the existing desktop width intelligently.
+Prefer approaches such as:
+compact spacing
+smaller gaps
+reduced horizontal padding at narrower desktop widths
+shorter label presentation where appropriate
+moving lower-priority page links into an existing overflow/OS dropdown when space gets tight
+Do not shrink text to an unreadable size.
+Do not make the right-side controls disappear.
+4. Navigation priority
+Keep the most important primary navigation visible where practical.
+Suggested priority:
+High priority:
+Home / Dashboard
+Releases
+Worlds
+Play
+Passport
+Lower-priority links that can safely live inside the existing Vanta OS/app menu at tighter widths:
+About
+Creator Directory
+Rooms
+Marketplace
+Transmission
+Black Index
+other secondary discovery destinations already available through launcher/OS menus
+Do not delete any route access.
+The goal is to avoid duplicate top-level links overwhelming the header.
+5. Breakpoint behavior
+Add or refine a sensible laptop/desktop breakpoint so the header transitions before controls start overlapping.
+Example behavior:
+Wide desktop → full primary navigation
+Smaller laptop → compact primary navigation + secondary links inside existing menu
+Mobile → preserve the existing mobile drawer/menu
+Do not wait until content is already clipped before switching layout.
+6. Right-side control cluster
+Keep the utility cluster grouped and non-overlapping.
+It should support:
+Activity
+Guide
+Apps
+Vault
+Profile/Login
+Use compact icon/label treatment where the existing UI permits.
+Do not make Profile/Login inaccessible.
+7. No horizontal page overflow
+The header must not increase the overall document width.
+Verify:
+no horizontal scrollbar caused by Header
+no clipped controls
+no controls hidden behind the viewport edge
+8. Preserve
+Do not modify:
+authentication logic
+Profile/Login behavior
+Apps launcher behavior
+Vault behavior
+Activity Center
+Vanta Guide
+routing
+Dashboard
+startup/entry screen
+database/backend
+This is a layout/responsiveness fix only.
+Verification
+Run:
+npm run check
+npm run build
+git diff --check
+Manually test:
+Wide desktop.
+Typical laptop width.
+Narrow desktop/tablet width before mobile breakpoint.
+Mobile.
+Confirm Profile/Login remains visible and clickable.
+Confirm Apps remains visible and clickable.
+Confirm Vault remains accessible.
+Confirm Activity remains accessible.
+Confirm Guide remains accessible.
+Confirm no route was removed.
+Confirm no horizontal overflow.
+Stop after the Top Navigation Overflow Fix.
+Do not redesign the entire header or navigation system.

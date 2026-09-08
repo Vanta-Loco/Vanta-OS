@@ -28,6 +28,8 @@ const navLinks = [
   { href: "/about",    label: "About"    },
 ];
 
+const compactNavLinks = navLinks.filter(({ label }) => label !== "About");
+
 const osLinks = [
   { href: "/world",      label: "District",         desc: "Vanta City map",       Icon: MapPin    },
   { href: "/play",       label: "Play",             desc: "Pickup sports, competitions and community activity", Icon: Trophy},
@@ -44,6 +46,44 @@ const osLinks = [
   { href: "/devlogs",    label: "Dev Logs",          desc: "Build journal",        Icon: BookOpen  },
   { href: "/early-access", label: "Early Access",   desc: "Upcoming apps",        Icon: Clock     },
 ];
+
+function OsMenu({ compact = false }: { compact?: boolean }) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          className={compact
+            ? "h-9 shrink-0 gap-1 px-1.5 text-[10px] uppercase tracking-[0.04em] font-medium text-muted-foreground"
+            : "h-9 shrink-0 gap-1.5 px-2.5 text-[11px] uppercase tracking-[0.08em] font-medium text-muted-foreground"
+          }
+          aria-label="Vanta OS apps"
+        >
+          <Terminal className={compact ? "w-3 h-3" : "w-3.5 h-3.5"} />
+          OS
+          <ChevronDown className={compact ? "w-3 h-3" : "w-3.5 h-3.5"} />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-64">
+        <DropdownMenuLabel className="font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground/60">
+          Vanta OS
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {osLinks.map(({ href, label, desc, Icon }) => (
+          <DropdownMenuItem key={href} asChild className="gap-3 cursor-pointer">
+            <Link href={href}>
+              <Icon className="w-4 h-4 text-muted-foreground/60 flex-shrink-0" />
+              <div className="min-w-0">
+                <p className="text-sm font-medium leading-tight">{label}</p>
+                <p className="text-[11px] text-muted-foreground/50 font-mono leading-tight mt-0.5">{desc}</p>
+              </div>
+            </Link>
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
 
 export function Header() {
   const [location, navigate] = useLocation();
