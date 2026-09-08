@@ -54,8 +54,8 @@ function OsMenu({ compact = false, active = false }: { compact?: boolean; active
         <Button
           variant="ghost"
           className={`${compact
-            ? "h-9 shrink-0 gap-1 px-1.5 text-[10px] uppercase tracking-[0.04em] font-medium"
-            : "h-9 shrink-0 gap-1.5 px-2.5 text-[11px] uppercase tracking-[0.08em] font-medium"
+            ? "h-9 shrink-0 gap-1.5 px-2 text-[11px] uppercase tracking-[0.06em] font-medium"
+            : "h-9 shrink-0 gap-2 px-2.5 text-xs uppercase tracking-[0.08em] font-medium"
           } ${active ? "text-foreground" : "text-muted-foreground"}`
           }
           aria-label="Vanta OS apps"
@@ -144,12 +144,12 @@ export function Header() {
             </Link>
 
             {/* Wide desktop nav — all primary links fit at 2xl and above. */}
-            <nav className="hidden 2xl:flex flex-1 min-w-0 items-center justify-center gap-0.5" aria-label="Main navigation">
+            <nav className="hidden 2xl:flex shrink-0 items-center gap-0.5" aria-label="Main navigation">
               {navLinks.map(({ href, label }) => (
                 <Link key={href} href={href} data-testid={`link-nav-${label.toLowerCase()}`}>
                   <Button
                     variant="ghost"
-                    className={`h-9 shrink-0 px-2.5 text-[11px] uppercase tracking-[0.08em] font-medium ${
+                    className={`h-9 shrink-0 px-3 text-xs uppercase tracking-[0.08em] font-medium ${
                       location === href ? "text-foreground" : "text-muted-foreground"
                     }`}
                   >
@@ -163,12 +163,12 @@ export function Header() {
 
             {/* Laptop nav — preserve the high-priority links and keep the
                 secondary discovery destinations in the OS menu. */}
-            <nav className="hidden lg:flex 2xl:hidden flex-1 min-w-0 items-center gap-0.5" aria-label="Compact main navigation">
+            <nav className="hidden lg:flex 2xl:hidden shrink-0 items-center gap-1" aria-label="Compact main navigation">
               {compactNavLinks.map(({ href, label }) => (
                 <Link key={href} href={href} data-testid={`link-nav-compact-${label.toLowerCase()}`}>
                   <Button
                     variant="ghost"
-                    className={`h-9 shrink-0 px-1.5 text-[10px] uppercase tracking-[0.04em] font-medium ${
+                    className={`h-9 shrink-0 px-2 text-[11px] uppercase tracking-[0.06em] font-medium ${
                       location === href ? "text-foreground" : "text-muted-foreground"
                     }`}
                   >
@@ -179,19 +179,21 @@ export function Header() {
               <OsMenu compact active={osLinks.some(l => l.href === location)} />
             </nav>
 
+            {/* Transmission search absorbs the available middle space
+                without pushing the utility cluster off-screen. */}
+            <form onSubmit={handleSearch} className="relative hidden lg:flex min-w-0 flex-1 basis-[140px] max-w-[280px] mx-1 xl:mx-3">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Search transmissions..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="h-9 w-full pl-9 text-xs"
+              />
+            </form>
+
             {/* Right-side actions */}
             <div className="flex shrink-0 items-center gap-0.5 sm:gap-1.5">
-              <form onSubmit={handleSearch} className="relative hidden 2xl:block">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  type="text"
-                  placeholder="Search transmissions..."
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  className="pl-10 w-56"
-                />
-              </form>
-
               <div className="hidden xl:block">
                 <ThemeToggle />
               </div>
@@ -207,7 +209,7 @@ export function Header() {
                  className="hidden sm:inline-flex shrink-0 gap-1.5 text-[10px] font-mono uppercase tracking-widest text-muted-foreground/70"
               >
                 <BookOpen className="h-3.5 w-3.5" />
-                <span className="hidden lg:inline">Guide</span>
+                 <span className="hidden xl:inline">Guide</span>
               </Button>
 
               {/* App Launcher */}
