@@ -17,6 +17,11 @@ const PROFILE_FIELDS = [
 ] as const;
 
 type ProfileField = typeof PROFILE_FIELDS[number];
+const DIRECTORY_FILTERS = new Set(["all", "certified", "with_work"]);
+
+function escapeLike(value: string): string {
+  return value.replace(/[\\%_]/g, character => `\\${character}`);
+}
 
 function text(value: unknown, max: number): string {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
@@ -115,6 +120,77 @@ function validateFields(body: any, partial: boolean): { values?: Record<string, 
 }
 
 export function registerCreatorRoutes(app: Express) {
+  app.get("/api/creators", async (req: Request, res: Response) => {
+    const query = typeof req.query.q === "string" ? req.query.q.trim() : "";
+    const filter = typeof req.query.filter === "string" ? req.query.filter : "all";
+    const discipline = typeof req.query.discipline === "string" ? req.query.discipline.trim() : "";
+
+    if (query.length > 100) {
+      return res.status(400).json({ error: "Search query must be 100 characters or fewer" });
+    }
+    if (!DIRECTORY_FILTERS.has(filter)) {
+      return res.status(400).json({ error: "Invalid Creator directory filter" });
+    }
+    if (discipline && !DISCIPLINES.has(discipline)) {
+      return res.status(400).json({ error: "Invalid Creator discipline" });
+    }
+
+    const params: string[] = [];
+    const conditions = ["COALESCE(u.account_status, 'active') <> 'suspended'"];
+    const addParam = (value: string) => {
+      params.push(value);
+      return `$${params.length}`;
+    };
+
+    if (query) {
+      const like = addParam(`%${escapeLike(query)}%`);
+      conditions.push(`(
+        u.username ILIKE ${like}
+        OR c.display_name ILIKE ${like}
+        OR COALESCE(array_to_string(c.disciplines, ' '), '') ILIKE ${like}
+        OR COALESCE(c.bio, '') ILIKE ${like}
+      )`);
+    }
+    if (filter === "certified") conditions.push("c.is_certified=true");
+    if (discipline) conditions.push(`$${params.push(discipline)} = ANY(c.disciplines)`);
+
+    try {
+      const result = await pool.query(
+        `SELECT
+           u.username,
+           c.display_name,
+           c.bio,
+           c.city,
+           c.country,
+           c.profile_image_url,
+           c.creator_type,
+           c.disciplines,
+           c.is_certified,
+           c.created_at,
+           COUNT(DISTINCT w.id)::int AS work_count,
+           COUNT(DISTINCT l.id)::int AS listing_count,
+           ARRAY_REMOVE(ARRAY_AGG(DISTINCT r.name), NULL) AS room_names
+         FROM creator_profiles c
+         JOIN users u ON u.id=c.user_id
+         LEFT JOIN creator_work_items w ON w.creator_user_id=c.user_id
+         LEFT JOIN marketplace_listings l
+           ON l.creator_user_id=c.user_id AND l.status='active'
+         LEFT JOIN room_memberships rm ON rm.user_id=c.user_id
+         LEFT JOIN rooms r ON r.id=rm.room_id AND r.visibility='public'
+         WHERE ${conditions.join(" AND ")}
+         GROUP BY c.id, u.username
+         ${filter === "with_work" ? "HAVING COUNT(DISTINCT w.id) > 0" : ""}
+         ORDER BY c.created_at DESC, u.username ASC`,
+        params,
+      );
+
+      return res.json({ creators: result.rows });
+    } catch (error) {
+      console.error("[creator-routes] directory:", error);
+      return res.status(500).json({ error: "Failed to fetch Creator directory" });
+    }
+  });
+
   app.get("/api/admin/creators", requireAdmin, async (_req: Request, res: Response) => {
     try {
       const result = await pool.query(

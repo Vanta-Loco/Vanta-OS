@@ -1,0 +1,205 @@
+Vanta OS — Creator Discovery Phase 1: Creator Directory
+Continue in Free Mode. Do not switch to Max/Power.
+Vanta already has:
+Member accounts
+Creator Profiles
+Certified Creator status
+Creator Work
+Rooms
+Marketplace
+Black Index
+This task is ONLY to build a real Creator Discovery / Creator Directory experience.
+Do not change Creator Profile ownership, certification rules, auth, schema, Marketplace, Rooms, Activity, Black Index, or production infrastructure unless a verified read-only API gap requires one small safe endpoint.
+Core rule
+Show all active Members who have activated a Creator Profile.
+Do NOT limit discovery to Certified Creators.
+The hierarchy is:
+Member only
+→ not shown in Creator Directory
+Member + Creator Profile
+→ publicly discoverable Creator
+Creator Profile + Certified
+→ publicly discoverable Creator with stronger Certified treatment
+Certification is a trust/status layer, not the gate to discovery.
+1. Creator Directory page
+Add or use:
+/creators
+as the public Creator Discovery page.
+The page should let people browse the creative network even when they do not already know a Creator’s name.
+Do not replace:
+/creators/:username
+public Creator Profiles.
+2. Real Creator data only
+Load real active Creator Profiles.
+Do not show ordinary Members who have never activated a Creator Profile.
+Do not show suspended accounts.
+Do not create fake Creators.
+Public Creator cards may use existing public-safe fields such as:
+display name
+@username
+disciplines
+bio
+Certified status
+Creator Work count if cleanly available
+Marketplace listing count if cleanly available
+Room associations if cleanly available
+Do not expose:
+email
+password/hash
+sessions/tokens
+account-management details
+Admin data
+3. Main filters
+Add:
+All Creators
+Certified
+With Work
+All Creators is the default.
+Certified should show only real Certified Creators.
+With Work should show Creators with at least one real Creator Work item.
+Do not make certification required for All Creators.
+4. Discipline filters
+Support the existing Creator disciplines where present:
+Artist
+Producer
+Engineer
+Photographer
+Filmmaker
+Model
+Designer
+Stylist
+Writer
+Journalist / Media
+Curator
+Developer
+Fashion
+Other
+Creator Profiles can have multiple disciplines.
+A multi-discipline Creator should appear in every relevant filter.
+Do not create another discipline-management system.
+5. Search
+Add lightweight Creator-directory search.
+Match:
+username
+display name
+disciplines
+public bio
+Reuse existing Black Index search behavior or existing Creator APIs where sensible.
+Do not duplicate the entire Black Index architecture.
+Creator Discovery is for browsing Creators.
+Black Index remains universal ecosystem search.
+6. Creator cards
+Each card should feel like a creative identity card, not LinkedIn.
+Show:
+display name
+@username
+disciplines
+short bio
+Certified Creator badge only when certified
+subtle Work presence/count where available
+Clicking the Creator opens:
+/creators/:username
+Do not build a duplicate profile inside the directory.
+7. Certified treatment
+Certified Creators should stand out clearly but tastefully.
+Examples:
+Certified badge
+subtle stronger border/system marking
+CERTIFIED CREATOR
+Do not bury non-certified Creators.
+Do not automatically rank every Certified Creator above every non-certified Creator unless there is already a deliberate ranking rule.
+Certification means trust/status, not ownership of discovery.
+8. Work connection
+If cleanly available, show a subtle indication such as:
+3 WORKS
+or:
+WORK ACTIVE
+Do not load full Creator portfolios into directory cards.
+Public Work remains on /creators/:username.
+9. Room connection
+If the existing public-safe data makes this easy, show one or two Room associations such as:
+MUSIC ROOM
+FASHION ROOM
+Keep it subtle.
+Do not query private Room membership/content.
+Do not modify Rooms.
+10. Marketplace connection
+If a Creator has active Marketplace listings and the data is already easy to obtain, a small:
+AVAILABLE
+or:
+LISTINGS ACTIVE
+indicator is acceptable.
+Do not turn Creator Discovery into Marketplace.
+11. Empty states
+If no Creator matches a filter:
+NO CREATORS FOUND
+Try another discipline or search.
+Do not create fake Creators.
+12. Visual direction
+Make Creator Discovery feel like:
+underground talent archive
+record-label roster book
+fashion/editorial casting index
+Vanta OS personnel database
+Avoid:
+LinkedIn
+Fiverr
+generic social-network profile grids
+Use:
+dark Vanta surfaces
+compact metadata
+restrained badges
+strong typography
+CRT/Y2K/system-index influence
+13. Mobile
+Ensure:
+cards stack cleanly
+filters are usable
+search stays full-width
+no horizontal overflow
+profiles remain easy to tap
+14. Navigation
+Make /creators reasonably discoverable from the existing Vanta OS navigation/launcher or relevant Creator area.
+Do not redesign the entire navigation.
+Do not replace Black Index.
+15. Preserve
+Do not modify:
+Member auth
+Admin auth
+sessions
+suspension
+Creator Profile CRUD
+certification logic
+Creator Work CRUD
+Passport
+XP/achievements
+Rooms
+Marketplace
+Activity Center
+Black Index
+Vanta Guide
+Dashboard
+Play
+Transmission
+Vault
+World
+media infrastructure
+Verification
+Run:
+npm run check
+npm run build
+git diff --check
+Manually verify:
+Member without Creator Profile does not appear.
+Non-certified Creator Profile appears in All Creators.
+Certified Creator appears in All Creators with Certified treatment.
+Certified filter shows only Certified Creators.
+With Work filter shows only Creators with real Work.
+Discipline filters work with multi-discipline Creators.
+Search works by username/display name/discipline.
+Suspended Creator does not appear.
+Clicking a card opens /creators/:username.
+Mobile layout works.
+Stop after Creator Discovery Phase 1.
+Do not begin follows, DMs, ratings, likes, recommendations, or social features.
+Do not recommend Max/Power unless there is a genuine blocker.

@@ -12,7 +12,7 @@ import {
   PenSquare, Search, LayoutDashboard, LogOut, LockKeyhole,
   Terminal, ChevronDown, Menu, X,
   MapPin, Database, Radio, Coins, Mountain, Skull, Leaf, Users,
-  Grid3x3, User, Settings, BookOpen, Clock, Trophy, ShoppingBag,
+  Grid3x3, User, Settings, BookOpen, Clock, Trophy, ShoppingBag, Sparkles,
 } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
@@ -32,6 +32,7 @@ const osLinks = [
   { href: "/world",      label: "District",         desc: "Vanta City map",       Icon: MapPin    },
   { href: "/play",       label: "Play",             desc: "Pickup sports, competitions and community activity", Icon: Trophy},
   { href: "/rooms",      label: "Rooms",            desc: "Creative spaces and community rooms", Icon: Users},
+  { href: "/creators",   label: "Creators",         desc: "Browse the creative network", Icon: Sparkles},
   { href: "/marketplace", label: "Marketplace",     desc: "Creative services & collaboration", Icon: ShoppingBag},
   { href: "/passport",   label: "Passport",         description: "Identity, achievements and activity across Vanta", Icon: User,},
   { href: "/search",     label: "Black Index",       desc: "Archive search",       Icon: Database  },
