@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, integer, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, integer, boolean, uuid } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -44,9 +44,9 @@ export type InsertPost = z.infer<typeof insertPostSchema>;
 export type Post = typeof posts.$inferSelect;
 
 export const activityEvents = pgTable("activity_events", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  recipientUserId: varchar("recipient_user_id").notNull(),
-  actorUserId: varchar("actor_user_id"),
+  id: uuid("id").primaryKey().defaultRandom(),
+  recipientUserId: uuid("recipient_user_id").notNull(),
+  actorUserId: uuid("actor_user_id"),
   eventType: text("event_type").notNull(),
   title: text("title").notNull(),
   body: text("body"),
