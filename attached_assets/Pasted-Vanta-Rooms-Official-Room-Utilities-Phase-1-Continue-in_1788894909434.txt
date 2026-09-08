@@ -1,0 +1,130 @@
+Vanta Rooms — Official Room Utilities Phase 1
+Continue in Free Mode. Do not switch to Max/Power.
+All four official Room environments are complete:
+Music
+Fashion
+Visual
+Media
+Existing Room functionality is stable:
+Feed
+Members
+Work
+Listings
+Join/Leave
+This task is ONLY to make each official Room feel functionally distinct using existing Vanta systems and data.
+Do not create major new backend architecture.
+Goal
+Add a compact contextual section called:
+ROOM TOOLS
+or another restrained Vanta-system label inside official Rooms.
+Room Tools should answer:
+“What can I actually do in this space?”
+Member-created Rooms should keep the existing general Room interface for now.
+Music Room
+Provide contextual shortcuts using existing routes/data:
+MUSIC WORK
+opens/activates the existing Work tab
+FIND CREATORS
+link to /creators with Music-relevant discovery where existing frontend filtering permits
+prioritize Artist / Producer / Engineer concepts
+MUSIC SERVICES
+link to Marketplace with relevant music categories where existing filtering permits
+RELEASES
+link to existing Releases
+VAULT
+link to existing Vault where appropriate
+Do not build DAW/studio functionality in the Room.
+Fashion Room
+Contextual tools:
+FASHION WORK
+FIND CREATORS
+Designer
+Model
+Stylist
+Photographer where relevant
+FASHION SERVICES
+relevant Marketplace discovery
+Do not create ecommerce or clothing inventory systems.
+Visual Room
+Contextual tools:
+VISUAL WORK
+FIND CREATORS
+Photographer
+Filmmaker
+Designer
+VISUAL SERVICES
+Photography
+Video
+Artwork / Design Marketplace categories
+Do not build editing software or media upload systems.
+Media Room
+Contextual tools:
+MEDIA WORK
+TRANSMISSION
+link to existing editorial/content system
+FIND CREATORS
+Writer
+Journalist / Media
+Curator
+MEDIA SERVICES
+relevant Marketplace discovery
+Do not build a new publication system.
+Existing tabs
+Preserve:
+Feed
+Members
+Work
+Listings
+Room Tools should complement them, not replace them.
+For actions such as MUSIC WORK, activate the existing Work tab rather than creating a duplicate page.
+Existing filters
+Where Creator Directory or Marketplace already supports URL/search/filter state cleanly, use it.
+If those pages do not currently accept deep-link filters, use the closest existing destination rather than adding a large new filtering architecture.
+Do not fake filtered behavior.
+Visual treatment
+Room Tools should feel like controls built into the physical environment:
+compact system panel
+environmental HUD
+console/menu inside the Room
+Not:
+generic navigation cards
+another dashboard
+Preserve each Room's rendered background.
+Official Rooms only
+Apply the tailored toolset only to the four official Rooms.
+Member-created Rooms should continue using their existing default interface.
+Mobile
+Keep Room Tools compact, tappable, and scroll-safe.
+No horizontal overflow.
+Preserve
+Do not modify:
+Room schema
+Room APIs
+Room environments
+join/leave
+Feed
+Members
+Work backend
+Listings backend
+Creator Directory backend
+Marketplace backend
+Transmission
+Vault
+Releases
+Activity Center
+authentication
+Verification
+Run:
+npm run check
+npm run build
+git diff --check
+Verify:
+Music gets Music-specific tools
+Fashion gets Fashion-specific tools
+Visual gets Visual-specific tools
+Media gets Media-specific tools
+actions route to existing real systems
+existing tabs still work
+member-created Rooms remain unchanged
+mobile remains clean
+Stop after Official Room Utilities Phase 1.
