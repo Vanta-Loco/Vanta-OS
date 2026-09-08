@@ -1,0 +1,180 @@
+Vanta OS — Activity Center Phase 1C: Core Event Wiring ONLY
+Continue in Free Mode. Do not switch to Max/Power.
+Activity Center Phase 1A backend and Phase 1B Member UI are complete.
+This task is ONLY to connect a small set of existing real Vanta actions to the existing createActivity(...) service.
+Do not redesign Activity Center.
+Do not add push notifications, email notifications, WebSockets, polling, preferences, comments, likes, or notification settings.
+Goal
+Activity should begin showing meaningful real events from Vanta without becoming noisy.
+Wire only these Phase 1C events:
+Passport achievement unlocked
+Creator certification granted
+Someone joins a Room you own
+New Creator Work added to a Room you belong to
+1. Achievement unlocked
+When an existing Passport achievement is successfully unlocked, create Activity for the same Member.
+Event type:
+passport_achievement_unlocked
+Example:
+Title:
+Achievement unlocked
+Body:
+achievement name where available
+Target:
+existing Passport route
+Important:
+Activity must only be created after the achievement unlock succeeds.
+Do not create duplicate Activity when an already-unlocked achievement is encountered again.
+Preserve existing XP/achievement logic exactly.
+2. Creator certification granted
+When Admin changes a real Creator from uncertified → certified:
+create Activity for that Creator Member.
+Event type:
+creator_certified
+Suggested copy:
+Title:
+Creator status updated
+Body:
+You are now a Certified Creator on Vanta.
+Target:
+/creator
+Important:
+only fire on false → true transition
+do not fire every time the Admin endpoint is called
+removing certification does NOT need a Member Activity event in Phase 1C
+preserve Admin certification behavior
+3. Someone joins your owned Room
+When Member B successfully joins a Room owned by Member A:
+send Activity to Member A.
+Event type:
+room_member_joined
+Actor:
+Member B
+Recipient:
+Room owner
+Suggested copy:
+Title:
+New Room member
+Body:
+<public username/display name> joined <Room name>
+Target:
+/rooms/:id
+Rules:
+do not notify someone that they joined their own Room
+only emit after the join actually succeeds
+duplicate joins must not create duplicate Activity
+preserve existing membership behavior
+4. New Work added to a Room
+When a Creator creates a new Work item already associated with a Room:
+notify the other current Members of that Room.
+Event type:
+creator_work_added
+Actor:
+Creator who added the Work
+Recipient:
+each other current Room Member
+Suggested copy:
+Title:
+New Work in <Room name>
+Body:
+<Creator> added <Work title>
+Target:
+/rooms/:id
+Rules:
+do not notify the Creator about their own Work
+only notify current Room Members
+do not notify users who left the Room
+only emit after Work creation succeeds
+if Work is later edited to a different Room, do not build reassignment notifications yet
+if existing Work is edited, do not emit creator_work_added
+5. Use existing Activity service
+Use the existing:
+createActivity(...)
+service.
+Do not duplicate raw Activity INSERT SQL across feature modules.
+If bulk creation is needed for Room Members, add the smallest reusable helper to the Activity service rather than scattering notification SQL.
+6. Failure isolation
+This is important.
+Activity creation is secondary to the core action.
+A notification failure must not incorrectly undo a successful:
+achievement unlock
+certification
+Room join
+Work creation
+Use the project's existing transaction patterns carefully.
+If Activity is part of the same transaction, ensure the intended failure semantics are explicit.
+Prefer preserving the core Vanta action over making notifications mission-critical.
+Log safe Activity emission failures without exposing sensitive data.
+7. Dedupe
+Use dedupe_key where useful to avoid repeated Activity.
+Examples conceptually:
+achievement:<user>:<achievement>
+certified:<creator>
+roomjoin:<room>:<member>
+roomwork:<work>:<recipient>
+Do not create a complex event-bus architecture.
+8. Privacy
+Activity must not leak:
+emails
+password data
+session data
+Admin identity/secrets
+private Room content
+Vault data
+Only use public-safe actor/profile information already supported by Activity Center.
+9. Do NOT wire these yet
+Do not add Activity for:
+every XP gain
+every Room post
+Marketplace browsing
+Marketplace listing creation
+Play joins
+Transmission publishing
+login/logout
+profile edits
+Those can come later if they prove useful.
+We want meaningful Activity, not spam.
+10. Preserve
+Do not modify:
+Activity UI
+Activity schema unless absolutely required
+Member/Admin auth
+sessions
+suspension
+Passport XP values
+achievement definitions
+certification rules
+Room membership semantics
+Creator Work ownership
+Marketplace
+Play
+Transmission
+Vault
+media infrastructure
+Dashboard
+NEXT MOVE
+Guide
+Black Index
+Verification
+Run:
+npm run check
+npm run build
+git diff --check
+Then verify with disposable/test Members:
+Unlock a real achievement.
+Confirm one Activity appears.
+Re-trigger the same condition and confirm no duplicate.
+Certify a test Creator.
+Confirm they receive one certification Activity.
+Re-submit certified state and confirm no duplicate.
+Have Member B join Member A's Room.
+Confirm Member A receives the join Activity.
+Create Creator Work associated with a Room containing multiple Members.
+Confirm all other current Members receive Activity.
+Confirm Creator receives no self-notification.
+Open Activity drawer and test target navigation.
+Confirm unread counts behave correctly.
+Remove disposable verification data where safe.
+Stop after Activity Center Phase 1C core event wiring.
+Do not begin additional event types or real-time delivery.
+Do not recommend Max/Power unless there is a genuine blocker.
