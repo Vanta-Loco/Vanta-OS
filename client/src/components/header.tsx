@@ -47,15 +47,16 @@ const osLinks = [
   { href: "/early-access", label: "Early Access",   desc: "Upcoming apps",        Icon: Clock     },
 ];
 
-function OsMenu({ compact = false }: { compact?: boolean }) {
+function OsMenu({ compact = false, active = false }: { compact?: boolean; active?: boolean }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
-          className={compact
-            ? "h-9 shrink-0 gap-1 px-1.5 text-[10px] uppercase tracking-[0.04em] font-medium text-muted-foreground"
-            : "h-9 shrink-0 gap-1.5 px-2.5 text-[11px] uppercase tracking-[0.08em] font-medium text-muted-foreground"
+          className={`${compact
+            ? "h-9 shrink-0 gap-1 px-1.5 text-[10px] uppercase tracking-[0.04em] font-medium"
+            : "h-9 shrink-0 gap-1.5 px-2.5 text-[11px] uppercase tracking-[0.08em] font-medium"
+          } ${active ? "text-foreground" : "text-muted-foreground"}`
           }
           aria-label="Vanta OS apps"
         >
@@ -132,23 +133,23 @@ export function Header() {
 
       {/* ── Fixed header bar ──────────────────────────────────────── */}
       <header className="fixed top-0 left-0 right-0 z-50 border-b border-border backdrop-blur-md bg-background/80">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16 sm:h-20 gap-2">
+        <div className="max-w-7xl mx-auto px-3 sm:px-5 lg:px-6 2xl:px-8">
+          <div className="flex items-center justify-between h-16 sm:h-20 gap-1.5">
 
             {/* Wordmark */}
             <Link href="/" data-testid="link-home">
-              <span className="text-xl sm:text-2xl font-display font-bold tracking-tight hover-elevate cursor-pointer px-2 sm:px-3 py-2 rounded-md transition-colors whitespace-nowrap">
+              <span className="text-lg sm:text-2xl font-display font-bold tracking-tight hover-elevate cursor-pointer px-1.5 sm:px-2.5 py-2 rounded-md transition-colors whitespace-nowrap">
                 VANTA COLD
               </span>
             </Link>
 
-            {/* Desktop nav */}
-            <nav className="hidden md:flex items-center gap-1" aria-label="Main navigation">
+            {/* Wide desktop nav — all primary links fit at 2xl and above. */}
+            <nav className="hidden 2xl:flex flex-1 min-w-0 items-center justify-center gap-0.5" aria-label="Main navigation">
               {navLinks.map(({ href, label }) => (
                 <Link key={href} href={href} data-testid={`link-nav-${label.toLowerCase()}`}>
                   <Button
                     variant="ghost"
-                    className={`text-sm uppercase tracking-wide font-medium ${
+                    className={`h-9 shrink-0 px-2.5 text-[11px] uppercase tracking-[0.08em] font-medium ${
                       location === href ? "text-foreground" : "text-muted-foreground"
                     }`}
                   >
@@ -157,54 +158,41 @@ export function Header() {
                 </Link>
               ))}
 
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
+              <OsMenu active={osLinks.some(l => l.href === location)} />
+            </nav>
+
+            {/* Laptop nav — preserve the high-priority links and keep the
+                secondary discovery destinations in the OS menu. */}
+            <nav className="hidden lg:flex 2xl:hidden flex-1 min-w-0 items-center gap-0.5" aria-label="Compact main navigation">
+              {compactNavLinks.map(({ href, label }) => (
+                <Link key={href} href={href} data-testid={`link-nav-compact-${label.toLowerCase()}`}>
                   <Button
                     variant="ghost"
-                    className={`text-sm uppercase tracking-wide font-medium gap-1.5 ${
-                      osLinks.some(l => l.href === location) ? "text-foreground" : "text-muted-foreground"
+                    className={`h-9 shrink-0 px-1.5 text-[10px] uppercase tracking-[0.04em] font-medium ${
+                      location === href ? "text-foreground" : "text-muted-foreground"
                     }`}
-                    aria-label="Vanta OS apps"
                   >
-                    <Terminal className="w-3.5 h-3.5" />
-                    OS
-                    <ChevronDown className="w-3.5 h-3.5" />
+                    {label}
                   </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-64">
-                  <DropdownMenuLabel className="font-mono text-[10px] uppercase tracking-[0.25em] text-muted-foreground/60">
-                    Vanta OS
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  {osLinks.map(({ href, label, desc, Icon }) => (
-                    <DropdownMenuItem key={href} asChild className="gap-3 cursor-pointer">
-                      <Link href={href}>
-                        <Icon className="w-4 h-4 text-muted-foreground/60 flex-shrink-0" />
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium leading-tight">{label}</p>
-                          <p className="text-[11px] text-muted-foreground/50 font-mono leading-tight mt-0.5">{desc}</p>
-                        </div>
-                      </Link>
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
+                </Link>
+              ))}
+              <OsMenu compact active={osLinks.some(l => l.href === location)} />
             </nav>
 
             {/* Right-side actions */}
-            <div className="flex items-center gap-1 sm:gap-2">
-              <form onSubmit={handleSearch} className="relative hidden lg:block">
+            <div className="flex shrink-0 items-center gap-0.5 sm:gap-1.5">
+              <form onSubmit={handleSearch} className="relative hidden 2xl:block">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   type="text"
                   placeholder="Search transmissions..."
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  className="pl-10 w-64"
+                  className="pl-10 w-56"
                 />
               </form>
 
-              <div className="hidden sm:block">
+              <div className="hidden xl:block">
                 <ThemeToggle />
               </div>
 
@@ -216,7 +204,7 @@ export function Header() {
                 onClick={() => setGuideOpen(true)}
                 aria-label="Open Vanta Guide"
                 title="Vanta Guide (⌘K / Ctrl+K)"
-                className="hidden sm:inline-flex gap-1.5 text-[10px] font-mono uppercase tracking-widest text-muted-foreground/70"
+                 className="hidden sm:inline-flex shrink-0 gap-1.5 text-[10px] font-mono uppercase tracking-widest text-muted-foreground/70"
               >
                 <BookOpen className="h-3.5 w-3.5" />
                 <span className="hidden lg:inline">Guide</span>
@@ -229,7 +217,7 @@ export function Header() {
                 onClick={() => setLauncherOpen(o => !o)}
                 aria-label="App launcher"
                 title="App launcher"
-                className={`text-muted-foreground/50 hover:text-muted-foreground ${launcherOpen ? "text-foreground bg-muted" : ""}`}
+                 className={`shrink-0 text-muted-foreground/50 hover:text-muted-foreground ${launcherOpen ? "text-foreground bg-muted" : ""}`}
               >
                 <Grid3x3 className="w-4 h-4" />
               </Button>
@@ -239,7 +227,7 @@ export function Header() {
                   variant="ghost"
                   size="icon"
                   title="Vault"
-                  className={`text-muted-foreground/50 hover:text-muted-foreground ${location === "/vault" ? "text-foreground" : ""}`}
+                   className={`shrink-0 text-muted-foreground/50 hover:text-muted-foreground ${location === "/vault" ? "text-foreground" : ""}`}
                 >
                   <LockKeyhole className="w-4 h-4" />
                 </Button>
@@ -249,7 +237,7 @@ export function Header() {
               {isUser && user ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" title={`@${user.username}`} className="hidden sm:inline-flex">
+                     <Button variant="ghost" size="icon" title={`@${user.username}`} className="hidden sm:inline-flex shrink-0">
                       <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center overflow-hidden">
                         {user.avatar_url ? (
                           <img src={user.avatar_url} alt="" className="w-full h-full object-cover" />
@@ -295,7 +283,7 @@ export function Header() {
                 </DropdownMenu>
               ) : !isUser && !isAdmin && (
                 <Link href="/login" className="hidden sm:inline-flex">
-                  <Button variant="ghost" size="sm" className="text-xs text-muted-foreground/70">
+                   <Button variant="ghost" size="sm" className="shrink-0 text-xs text-muted-foreground/70">
                     Sign In
                   </Button>
                 </Link>
@@ -330,7 +318,7 @@ export function Header() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="md:hidden ml-1"
+                 className="lg:hidden ml-1 shrink-0"
                 aria-label={mobileOpen ? "Close menu" : "Open menu"}
                 aria-expanded={mobileOpen}
                 aria-controls="mobile-nav-drawer"
@@ -376,7 +364,7 @@ export function Header() {
           transition: "transform 0.25s cubic-bezier(0.32,0,0.67,0)",
           willChange: "transform",
         }}
-        className="md:hidden"
+        className="lg:hidden"
       >
         {/* Drawer header */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: "1px solid hsl(var(--border))", minHeight: 64 }}>
