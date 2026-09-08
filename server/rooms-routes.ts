@@ -22,6 +22,12 @@ export function registerRoomsRoutes(app: Express) {
         `SELECT r.id, r.name, r.slug, r.description, r.category, r.visibility,
                 r.owner_user_id, r.created_at,
                 COUNT(DISTINCT m.id)::int AS member_count,
+                 (SELECT COUNT(*)::int
+                  FROM creator_work_items w
+                  WHERE w.room_id=r.id) AS work_count,
+                 (SELECT COUNT(*)::int
+                  FROM marketplace_listings l
+                  WHERE l.room_id=r.id AND l.status='active') AS listing_count,
                 CASE WHEN $2::uuid IS NULL THEN false
                      ELSE EXISTS (SELECT 1 FROM room_memberships x WHERE x.room_id=r.id AND x.user_id=$2::uuid)
                 END AS joined
