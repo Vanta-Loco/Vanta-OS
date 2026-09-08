@@ -50,6 +50,25 @@ export async function createActivity(input: CreateActivityInput) {
   return result.rows[0];
 }
 
+export async function emitActivitySafely(
+  input: CreateActivityInput,
+  context: string,
+): Promise<Record<string, unknown> | null> {
+  try {
+    return await createActivity(input);
+  } catch (error) {
+    console.error(`[activity] ${context} emission failed`, error instanceof Error ? error.message : "Unknown error");
+    return null;
+  }
+}
+
+export async function emitActivitiesSafely(
+  inputs: CreateActivityInput[],
+  context: string,
+): Promise<void> {
+  await Promise.all(inputs.map(input => emitActivitySafely(input, context)));
+}
+
 type ActivityListOptions = {
   limit: number;
   offset: number;

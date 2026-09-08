@@ -1,6 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { pool } from "./db";
 import { getRequestUser, requireUser } from "./user-auth";
+import { emitActivitySafely } from "./activity-service";
 
 const CATEGORIES = ["Music", "Visual", "Fashion", "Media"] as const;
 
@@ -128,14 +129,37 @@ export function registerRoomsRoutes(app: Express) {
   });
 
   app.post("/api/rooms/:id/join", requireUser, async (req: Request, res: Response) => {
-    const user = (req as any).currentUser as { userId: string };
+    const user = (req as any).currentUser as { userId: string; username: string };
     try {
-      const room = await pool.query("SELECT id FROM rooms WHERE id=$1 AND visibility='public'", [req.params.id]);
+      const room = await pool.query(
+        `SELECT r.id, r.name, r.owner_user_id
+         FROM rooms r
+         WHERE r.id=$1 AND r.visibility='public'`,
+        [req.params.id],
+      );
       if (!room.rows[0]) return res.status(404).json({ error: "Public Room not found" });
-      await pool.query(
+      const joined = await pool.query(
         `INSERT INTO room_memberships (room_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
         [req.params.id, user.userId],
       );
+
+      if (joined.rowCount && room.rows[0].owner_user_id && room.rows[0].owner_user_id !== user.userId) {
+        await emitActivitySafely(
+          {
+            recipientUserId: room.rows[0].owner_user_id,
+            actorUserId: user.userId,
+            eventType: "room_member_joined",
+            title: "New Room member",
+            body: `${user.username} joined ${room.rows[0].name}`,
+            targetUrl: `/rooms/${room.rows[0].id}`,
+            entityType: "room",
+            entityId: room.rows[0].id,
+            dedupeKey: `roomjoin:${room.rows[0].id}:${user.userId}`,
+          },
+          "Room member join",
+        );
+      }
+
       res.json({ joined: true });
     } catch (error) {
       console.error("[rooms] join:", error);

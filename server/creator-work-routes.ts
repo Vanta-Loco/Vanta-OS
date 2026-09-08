@@ -1,6 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { pool } from "./db";
 import { requireUser } from "./user-auth";
+import { emitActivitiesSafely } from "./activity-service";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const WORK_TYPES = new Set([
@@ -232,6 +233,38 @@ export function registerCreatorWorkRoutes(app: Express) {
         [user.userId, ...Object.values(parsed.values!)],
       );
       await client.query("COMMIT");
+
+      const createdWork = result.rows[0];
+      if (createdWork.room_id) {
+        try {
+          const members = await pool.query(
+            `SELECT rm.user_id, r.name
+             FROM room_memberships rm
+             JOIN rooms r ON r.id=rm.room_id
+             WHERE rm.room_id=$1
+               AND rm.user_id<>$2`,
+            [createdWork.room_id, user.userId],
+          );
+
+          await emitActivitiesSafely(
+            members.rows.map(member => ({
+              recipientUserId: member.user_id,
+              actorUserId: user.userId,
+              eventType: "creator_work_added" as const,
+              title: `New Work in ${member.name}`,
+              body: `@${user.username} added ${createdWork.title}`,
+              targetUrl: `/rooms/${createdWork.room_id}`,
+              entityType: "creator_work",
+              entityId: createdWork.id,
+              dedupeKey: `roomwork:${createdWork.id}:${member.user_id}`,
+            })),
+            "Creator Work",
+          );
+        } catch (error) {
+          console.error("[activity] Creator Work recipient lookup failed", error instanceof Error ? error.message : "Unknown error");
+        }
+      }
+
       return res.status(201).json(publicWork(result.rows[0]));
     } catch (error) {
       await client.query("ROLLBACK").catch(() => undefined);

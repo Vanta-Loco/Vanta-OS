@@ -1,4 +1,5 @@
 import { pool } from "./db";
+import { emitActivitySafely } from "./activity-service";
 
 type PassportEventInput = {
   userId: string;
@@ -214,6 +215,22 @@ if (!passport) {
     }
 
     await client.query("COMMIT");
+
+    if (unlockedAchievement) {
+      await emitActivitySafely(
+        {
+          recipientUserId: userId,
+          eventType: "passport_achievement_unlocked",
+          title: "Achievement unlocked",
+          body: unlockedAchievement.title || null,
+          targetUrl: "/passport",
+          entityType: "passport_achievement",
+          entityId: unlockedAchievement.id,
+          dedupeKey: `achievement:${userId}:${unlockedAchievement.id}`,
+        },
+        "passport achievement",
+      );
+    }
 
     return {
   event: eventResult.rows[0],

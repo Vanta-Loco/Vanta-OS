@@ -2,6 +2,7 @@ import type { Express, Request, Response } from "express";
 import { pool } from "./db";
 import { requireUser } from "./user-auth";
 import { requireAdmin } from "./admin-auth";
+import { emitActivitySafely } from "./activity-service";
 
 const DISCIPLINES = new Set([
   "Artist", "Producer", "Engineer", "Photographer", "Filmmaker", "Model",
@@ -223,6 +224,15 @@ export function registerCreatorRoutes(app: Express) {
         return res.status(400).json({ error: "certified must be a boolean" });
       }
       const certified = req.body.certified;
+      const previous = await pool.query(
+        `SELECT user_id, is_certified
+         FROM creator_profiles
+         WHERE id=$1
+         LIMIT 1`,
+        [id],
+      );
+      if (!previous.rows[0]) return res.status(404).json({ error: "Creator profile not found" });
+
       const result = await pool.query(
         `UPDATE creator_profiles
          SET is_certified=$2, certified_at=CASE WHEN $2 THEN NOW() ELSE NULL END, updated_at=NOW()
@@ -230,6 +240,23 @@ export function registerCreatorRoutes(app: Express) {
         [id, certified],
       );
       if (!result.rows[0]) return res.status(404).json({ error: "Creator profile not found" });
+
+      if (!previous.rows[0].is_certified && certified) {
+        await emitActivitySafely(
+          {
+            recipientUserId: previous.rows[0].user_id,
+            eventType: "creator_certified",
+            title: "Creator status updated",
+            body: "You are now a Certified Creator on Vanta.",
+            targetUrl: "/creator",
+            entityType: "creator_profile",
+            entityId: result.rows[0].id,
+            dedupeKey: `certified:${result.rows[0].id}`,
+          },
+          "creator certification",
+        );
+      }
+
       return res.json(result.rows[0]);
     } catch (error) {
       console.error("[creator-routes] certification:", error);
