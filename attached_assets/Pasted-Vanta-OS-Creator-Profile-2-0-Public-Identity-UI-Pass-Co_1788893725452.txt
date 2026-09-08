@@ -1,0 +1,154 @@
+Vanta OS — Creator Profile 2.0: Public Identity UI Pass
+Continue in Free Mode. Do not switch to Max/Power.
+Creator Discovery Phase 1 is complete.
+This task is ONLY to improve the existing public:
+/creators/:username
+experience using data and functionality that already exists.
+Do not change Creator ownership, certification, Work, Marketplace, Rooms, authentication, schema, or production infrastructure.
+Goal
+Make a Vanta Creator Profile feel like a creator's digital identity / artist dossier / creative archive, not a generic user profile.
+Someone arriving from Creator Discovery or Black Index should quickly understand:
+who this Creator is
+what they do
+whether they are Certified
+what they have made
+which Vanta spaces they are connected to
+whether they offer services
+1. Strong Creator identity header
+Rework the existing profile header using available public Creator data.
+Prioritize:
+display name
+@username
+disciplines
+bio
+Certified Creator status where real
+Add restrained system metadata such as:
+VANTA CREATOR
+or:
+CREATOR PROFILE
+Certified profiles may show:
+CERTIFIED CREATOR
+Do not give non-certified Creators a fake/grey certification badge.
+2. Creator status strip
+Where real data exists, show compact profile information such as:
+number of Work items
+active Marketplace listings
+public Room associations
+Example visual concept:
+04 WORKS / 02 LISTINGS / MUSIC + FASHION
+Use real values only.
+Do not introduce follower counts, ratings, likes, fake statistics, or popularity scores.
+3. Overview tab
+Improve the existing Overview tab.
+Show:
+public bio
+disciplines
+Room associations where available
+a small Featured Work preview if Work exists
+active Marketplace presence where appropriate
+Keep this concise.
+The full archive belongs in the existing Work tab.
+4. Work tab
+Preserve the completed Creator Work system.
+Improve presentation only where necessary.
+Featured Work should remain clearly emphasized.
+Preserve:
+thumbnails
+Work-type placeholders
+descriptions
+Room association
+external View Work
+backend ordering
+Do not alter Creator Work CRUD.
+5. Listings tab
+Preserve existing real Marketplace listings.
+Make them visually feel connected to the Creator identity.
+Show available:
+listing title
+category
+price / price type
+associated Room
+CTA:
+View Listing
+Do not create direct booking or messaging yet.
+6. Rooms
+If public Room associations are already available safely, show them as part of the Creator identity.
+Example:
+SPACES
+MUSIC ROOM
+FASHION ROOM
+Clicking should open the existing Room.
+Do not expose private Rooms or private membership information.
+7. Profile navigation
+Keep the existing:
+Overview
+Work
+Listings
+structure unless the current layout strongly benefits from adding a small Rooms presentation.
+Do not create excessive tabs.
+8. Certified Creator treatment
+Certification should feel meaningful without dominating the profile.
+Use:
+Certified label/badge
+subtle stronger framing
+Vanta verification/status styling
+Avoid conventional social-media blue-check styling.
+Certification remains Admin-controlled.
+9. Visual direction
+Think:
+artist dossier
+underground magazine profile
+record-label roster page
+casting/creative archive
+PS2/Y2K digital identity
+Vanta OS
+Avoid:
+LinkedIn
+Instagram profile clone
+Fiverr seller page
+generic portfolio SaaS
+Preserve the existing dark Vanta visual language.
+10. No profile media uploads yet
+Do NOT build:
+avatar uploads
+banner uploads
+Member image uploader
+Vanta Media infrastructure exists, but Member-facing media uploads are a separate future stage.
+Use existing safe profile treatment/placeholders for now.
+11. Responsive
+Desktop should have a stronger editorial layout.
+Mobile should collapse cleanly without:
+horizontal overflow
+tiny tabs
+oversized Work images
+Preserve
+Do not modify:
+/creators Creator Discovery
+Creator Profile CRUD
+Certified Creator logic
+Creator Work backend
+Marketplace backend
+Rooms
+Activity Center
+Black Index
+Vanta Guide
+Passport
+Member/Admin auth
+database schema
+media infrastructure
+Verification
+Run:
+npm run check
+npm run build
+git diff --check
+Verify:
+Regular Creator profile renders correctly.
+Certified Creator receives the proper treatment.
+Creator with Work shows real Work.
+Creator with no Work gets a proper empty state.
+Marketplace listings remain real and clickable.
+Room associations navigate correctly.
+Suspended Creators remain inaccessible/excluded according to existing behavior.
+Desktop and mobile both render cleanly.
+Stop after Creator Profile 2.0 UI.
+Do not begin follows, DMs, profile uploads, ratings, likes, or recommendations.

@@ -222,7 +222,7 @@ export function registerCreatorRoutes(app: Express) {
                 city, delivery_mode, status, created_at, updated_at,
                 r.name AS room_name, r.slug AS room_slug
          FROM marketplace_listings l
-         LEFT JOIN rooms r ON r.id=l.room_id
+          LEFT JOIN rooms r ON r.id=l.room_id AND r.visibility='public'
          WHERE creator_user_id=$1 AND status='active'
          ORDER BY created_at DESC`,
         [row.user_id],

@@ -195,7 +195,7 @@ export function registerCreatorWorkRoutes(app: Express) {
       const result = await pool.query(
         `SELECT w.*, r.name AS room_name, r.slug AS room_slug
          FROM creator_work_items w
-         LEFT JOIN rooms r ON r.id=w.room_id
+         LEFT JOIN rooms r ON r.id=w.room_id AND r.visibility='public'
          WHERE w.creator_user_id=$1
          ORDER BY w.is_featured DESC, w.sort_order ASC, w.created_at DESC`,
         [user.userId],
