@@ -6,11 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { SiSpotify, SiApplemusic, SiSoundcloud, SiYoutube } from "react-icons/si";
-import { Play, Square, ChevronDown, ChevronUp, Music, Plus } from "lucide-react";
-import { useState, useRef } from "react";
+import { Archive, ArrowRight, Play, Square, ChevronDown, ChevronUp, Music, Plus, Radio, Search } from "lucide-react";
+import { useMemo, useState, useRef } from "react";
 import { Link } from "wouter";
 import type { Release } from "@shared/schema";
 import { format } from "date-fns";
+import releasesEnvironment from "@assets/generated_images/releases_listening_archive_environment.png";
 
 const typeLabel: Record<string, string> = {
   album: "Album",
@@ -19,7 +20,19 @@ const typeLabel: Record<string, string> = {
   mixtape: "Mixtape",
 };
 
-function ReleaseCard({ release }: { release: Release }) {
+type PublicRoom = {
+  id: string;
+  name: string;
+  category: string;
+  owner_user_id: string | null;
+};
+
+function releaseDateLabel(date: string) {
+  const parsed = new Date(date);
+  return Number.isNaN(parsed.getTime()) ? date : format(parsed, "MMMM d, yyyy");
+}
+
+function ReleaseCard({ release, featured = false }: { release: Release; featured?: boolean }) {
   const [tracklistOpen, setTracklistOpen] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -67,18 +80,23 @@ function ReleaseCard({ release }: { release: Release }) {
   const tags = release.moodTags ?? [];
 
   return (
-    <Card className="overflow-hidden" data-testid={`card-release-${release.id}`}>
-      <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] gap-0">
+    <Card className={`overflow-hidden border-border/80 bg-card/75 backdrop-blur-sm ${featured ? "border-primary/45 shadow-[0_0_40px_rgba(150,100,220,.1)]" : ""}`} data-testid={`card-release-${release.id}`}>
+      <div className={`grid grid-cols-1 gap-0 ${featured ? "md:grid-cols-[390px_1fr]" : "md:grid-cols-[250px_1fr]"}`}>
         <div className="relative aspect-square md:aspect-auto overflow-hidden">
           <img
             src={release.coverImage}
             alt={release.title}
-            className="w-full h-full object-cover"
+            className={`w-full h-full object-cover ${featured ? "min-h-[390px]" : ""}`}
             data-testid={`img-release-${release.id}`}
           />
+          {featured && (
+            <div className="absolute left-4 top-4 border border-primary/50 bg-black/60 px-2.5 py-1 text-[9px] font-mono uppercase tracking-[0.22em] text-primary">
+              Latest signal
+            </div>
+          )}
         </div>
 
-        <CardContent className="p-6 md:p-8 flex flex-col gap-5">
+        <CardContent className={`flex flex-col gap-5 ${featured ? "p-6 md:p-10" : "p-5 md:p-7"}`}>
           <div>
             <div className="flex items-center gap-3 mb-3 flex-wrap">
               <Badge variant="outline" className="uppercase tracking-wide text-xs font-medium">
@@ -90,7 +108,7 @@ function ReleaseCard({ release }: { release: Release }) {
                 </Badge>
               )}
               <span className="text-xs text-muted-foreground" data-testid={`text-release-date-${release.id}`}>
-                {format(new Date(release.releaseDate), "MMMM d, yyyy")}
+                {releaseDateLabel(release.releaseDate)}
               </span>
             </div>
 
@@ -225,115 +243,198 @@ export default function Releases() {
     queryKey: ["/api/releases"],
   });
 
-  const [activeGenre, setActiveGenre] = useState<string>("All");
+  const { data: musicRoomData } = useQuery<{ rooms: PublicRoom[] }>({
+    queryKey: ["/api/rooms?category=Music"],
+  });
 
-  const availableGenres = releases
-    ? ["All", ...Array.from(new Set(releases.map((r) => r.genre).filter(Boolean)))]
-    : ["All"];
+  const [activeGenre, setActiveGenre] = useState("All");
+  const [activeType, setActiveType] = useState("All");
+  const [search, setSearch] = useState("");
 
-  const filtered = releases
-    ? activeGenre === "All"
-      ? releases
-      : releases.filter((r) => r.genre === activeGenre)
-    : [];
+  const orderedReleases = useMemo(() => {
+    return [...(releases ?? [])].sort((a, b) => {
+      const dateDiff = new Date(b.releaseDate).getTime() - new Date(a.releaseDate).getTime();
+      if (!Number.isNaN(dateDiff) && dateDiff !== 0) return dateDiff;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+  }, [releases]);
+
+  const availableGenres = useMemo(
+    () => ["All", ...Array.from(new Set(orderedReleases.map((release) => release.genre).filter(Boolean))).sort()],
+    [orderedReleases],
+  );
+  const availableTypes = useMemo(
+    () => ["All", ...Array.from(new Set(orderedReleases.map((release) => release.type).filter(Boolean)))],
+    [orderedReleases],
+  );
+
+  const filtered = useMemo(() => {
+    const needle = search.trim().toLowerCase();
+    return orderedReleases.filter((release) => {
+      const matchesGenre = activeGenre === "All" || release.genre === activeGenre;
+      const matchesType = activeType === "All" || release.type === activeType;
+      const matchesSearch =
+        !needle ||
+        [release.title, release.type, release.genre, release.subgenre, release.description]
+          .filter(Boolean)
+          .some((value) => value.toLowerCase().includes(needle));
+      return matchesGenre && matchesType && matchesSearch;
+    });
+  }, [activeGenre, activeType, orderedReleases, search]);
+
+  const featuredRelease = filtered.find((release) => release.featured === "true") ?? filtered[0];
+  const catalogReleases = filtered.filter((release) => release.id !== featuredRelease?.id);
+  const musicRoom = musicRoomData?.rooms?.find((room) => !room.owner_user_id) ?? null;
+  const hasFilters = activeGenre !== "All" || activeType !== "All" || search.trim().length > 0;
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-background">
       <ReturnToCity />
       <Header />
 
-      <main className="flex-1 bg-background pt-20">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8 py-16 md:py-24">
-
-          {/* Header row */}
-          <div className="flex items-end justify-between mb-10 flex-wrap gap-6">
-            <div>
-              <p className="text-xs uppercase tracking-widest text-muted-foreground mb-2 font-medium">
-                Discography
-              </p>
-              <h1
-                className="text-4xl md:text-5xl lg:text-6xl font-display font-bold"
-                data-testid="text-releases-title"
-              >
-                Releases
+      <main className="flex-1 pt-20">
+        <section className="relative isolate overflow-hidden border-b border-border">
+          <img
+            src={releasesEnvironment}
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 h-full w-full object-cover object-center opacity-70"
+          />
+          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(6,7,12,.97)_0%,rgba(6,7,12,.82)_42%,rgba(6,7,12,.35)_100%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_82%_20%,rgba(190,120,72,.16),transparent_33%),linear-gradient(180deg,rgba(7,8,14,.15),rgba(7,8,14,.82))]" />
+          <div className="relative mx-auto max-w-7xl px-6 py-16 lg:px-8 md:py-20">
+            <div className="max-w-2xl">
+              <div className="mb-6 flex flex-wrap items-center gap-3 text-[10px] font-mono uppercase tracking-[0.28em] text-primary/80">
+                <span className="flex items-center gap-2"><Radio className="h-3.5 w-3.5" /> Vanta Music Archive</span>
+                <span className="text-white/25">/</span>
+                <span className="text-white/50">Catalog / Archive / Signal</span>
+              </div>
+              <h1 className="font-display text-5xl font-bold tracking-tight text-white md:text-7xl" data-testid="text-releases-title">
+                Vanta Releases<span className="text-primary">.</span>
               </h1>
+              <p className="mt-5 max-w-lg text-base leading-relaxed text-white/65 md:text-lg">
+                The physical catalog room where Vanta stores and plays its music.
+              </p>
             </div>
-            <Link href="/releases/new" data-testid="link-add-release">
-              <Button variant="default" size="default" className="gap-2">
-                <Plus className="w-4 h-4" /> Add Release
-              </Button>
-            </Link>
+            <div className="mt-12 flex flex-col gap-4 border-t border-white/15 pt-5 md:flex-row md:items-center md:justify-between">
+              <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.24em] text-white/50">
+                <span className="h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_10px_rgba(185,120,220,.85)]" />
+                {orderedReleases.length} catalog {orderedReleases.length === 1 ? "entry" : "entries"}
+              </div>
+              {musicRoom ? (
+                <Link href={`/rooms/${musicRoom.id}`} className="inline-flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.22em] text-white/65 transition-colors hover:text-primary" data-testid="link-releases-music-room">
+                  Enter Music Room <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
+              ) : (
+                <span className="text-[10px] font-mono uppercase tracking-[0.22em] text-white/35">Music Room offline</span>
+              )}
+            </div>
+          </div>
+        </section>
+
+        <div className="mx-auto max-w-7xl px-6 py-12 lg:px-8 md:py-20">
+          <div className="mb-10 flex flex-col gap-6 border-b border-border pb-6">
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+              <div>
+                <p className="mb-2 text-[10px] font-mono uppercase tracking-[0.28em] text-primary/75">Listening station</p>
+                <h2 className="font-display text-3xl font-bold md:text-4xl">The catalog<span className="text-primary">.</span></h2>
+              </div>
+              <div className="flex w-full max-w-xl flex-col gap-3 sm:flex-row">
+                <label className="relative block min-w-0 flex-1">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
+                  <input
+                    type="search"
+                    value={search}
+                    onChange={(event) => setSearch(event.target.value)}
+                    placeholder="Search releases..."
+                    aria-label="Search releases"
+                    className="h-10 w-full border border-border bg-card/60 pl-10 pr-4 text-sm outline-none transition-colors placeholder:text-muted-foreground/45 focus:border-primary/60"
+                    data-testid="input-release-search"
+                  />
+                </label>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Release filters">
+              <span className="mr-1 text-[10px] font-mono uppercase tracking-[0.2em] text-muted-foreground/45">Format</span>
+              {availableTypes.map((type) => (
+                <Button key={type} type="button" size="sm" variant={activeType === type ? "default" : "outline"} onClick={() => setActiveType(type)} className="font-mono text-[10px] uppercase tracking-widest" data-testid={`filter-release-type-${type.toLowerCase()}`}>
+                  {type === "All" ? "All" : typeLabel[type] ?? type}
+                </Button>
+              ))}
+              {availableGenres.length > 1 && (
+                <>
+                  <span className="ml-2 mr-1 text-[10px] font-mono uppercase tracking-[0.2em] text-muted-foreground/45">Genre</span>
+                  {availableGenres.map((genre) => (
+                    <Button key={genre} type="button" size="sm" variant={activeGenre === genre ? "default" : "outline"} onClick={() => setActiveGenre(genre)} className="font-mono text-[10px] uppercase tracking-widest" data-testid={`filter-release-genre-${genre.toLowerCase().replace(/\s+/g, "-")}`}>
+                      {genre}
+                    </Button>
+                  ))}
+                </>
+              )}
+            </div>
           </div>
 
-          {/* Genre filter pills */}
-          {!isLoading && availableGenres.length > 1 && (
-            <div className="flex flex-wrap gap-2 mb-10" data-testid="genre-filter-pills">
-              {availableGenres.map((genre) => {
-                const active = activeGenre === genre;
-                return (
-                  <button
-                    key={genre}
-                    type="button"
-                    onClick={() => setActiveGenre(genre)}
-                    data-testid={`filter-pill-${genre.toLowerCase().replace(/\s+/g, "-")}`}
-                    className={[
-                      "px-4 py-1.5 text-xs rounded-sm border transition-colors font-medium tracking-wide",
-                      active
-                        ? "bg-foreground text-background border-foreground"
-                        : "bg-transparent text-muted-foreground border-border hover:border-foreground/40 hover:text-foreground",
-                    ].join(" ")}
-                  >
-                    {genre}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
           {isLoading ? (
-            <div className="space-y-6">
-              {[1, 2, 3].map((i) => (
-                <Card key={i} className="overflow-hidden animate-pulse">
-                  <div className="grid grid-cols-1 md:grid-cols-[280px_1fr]">
-                    <div className="aspect-square md:aspect-auto bg-muted" />
-                    <CardContent className="p-8">
-                      <div className="h-4 bg-muted rounded mb-4 w-20" />
-                      <div className="h-8 bg-muted rounded mb-3 w-64" />
-                      <div className="h-4 bg-muted rounded w-full" />
-                    </CardContent>
-                  </div>
-                </Card>
-              ))}
-            </div>
+            <ReleaseSkeleton />
           ) : !releases || releases.length === 0 ? (
-            <div className="text-center py-32 border border-border rounded-md">
-              <Music className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-xl text-muted-foreground mb-6" data-testid="text-no-releases">
-                No releases yet.
-              </p>
-              <Link href="/releases/new" data-testid="link-add-first-release">
-                <Button variant="default" size="default" className="gap-2">
-                  <Plus className="w-4 h-4" /> Add Your First Release
-                </Button>
-              </Link>
+            <div className="border border-dashed border-border px-6 py-32 text-center" data-testid="text-no-releases">
+              <Archive className="mx-auto h-9 w-9 text-muted-foreground/35" />
+              <p className="mt-6 font-display text-3xl font-semibold">NO RELEASES IN THE ARCHIVE</p>
+              <p className="mt-3 text-sm text-muted-foreground">The catalog is empty.</p>
             </div>
           ) : filtered.length === 0 ? (
-            <div className="text-center py-24 border border-border rounded-md">
-              <p className="text-muted-foreground" data-testid="text-no-filtered-releases">
-                No releases tagged as <span className="text-foreground font-medium">{activeGenre}</span>.
-              </p>
+            <div className="border border-dashed border-border px-6 py-24 text-center" data-testid="text-no-filtered-releases">
+              <Search className="mx-auto h-7 w-7 text-muted-foreground/35" />
+              <p className="mt-5 font-display text-3xl font-semibold">NO RELEASES FOUND</p>
+              <p className="mt-3 text-sm text-muted-foreground">Try another format, genre, or search term.</p>
             </div>
           ) : (
-            <div className="space-y-6" data-testid="list-releases">
-              {filtered.map((release) => (
-                <ReleaseCard key={release.id} release={release} />
-              ))}
-            </div>
+            <>
+              {featuredRelease && (
+                <section data-testid="section-featured-release">
+                  <div className="mb-6 flex items-end justify-between gap-4">
+                    <div>
+                      <p className="mb-2 text-[10px] font-mono uppercase tracking-[0.28em] text-muted-foreground/55">Featured listening</p>
+                      <h2 className="font-display text-2xl font-semibold">Latest release<span className="text-primary">.</span></h2>
+                    </div>
+                    {hasFilters && <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/45">{filtered.length} results</span>}
+                  </div>
+                  <ReleaseCard release={featuredRelease} featured />
+                </section>
+              )}
+
+              {catalogReleases.length > 0 && (
+                <section className="mt-16 border-t border-border pt-10" data-testid="list-releases">
+                  <div className="mb-7 flex items-center gap-3">
+                    <Archive className="h-4 w-4 text-primary/70" />
+                    <div>
+                      <p className="text-[10px] font-mono uppercase tracking-[0.28em] text-muted-foreground/55">Catalog drawers</p>
+                      <h2 className="font-display text-2xl font-semibold">Archive<span className="text-primary">.</span></h2>
+                    </div>
+                  </div>
+                  <div className="space-y-6">
+                    {catalogReleases.map((release) => <ReleaseCard key={release.id} release={release} />)}
+                  </div>
+                </section>
+              )}
+            </>
           )}
         </div>
       </main>
 
       <Footer />
+    </div>
+  );
+}
+
+function ReleaseSkeleton() {
+  return (
+    <div className="space-y-10 animate-pulse">
+      <div className="min-h-[420px] border border-border bg-card/40" />
+      <div className="space-y-6">
+        {[1, 2].map((item) => <div key={item} className="grid min-h-[260px] grid-cols-1 border border-border bg-card/40 md:grid-cols-[250px_1fr]" />)}
+      </div>
     </div>
   );
 }

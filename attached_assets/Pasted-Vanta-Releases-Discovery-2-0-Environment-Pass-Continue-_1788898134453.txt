@@ -1,0 +1,196 @@
+Vanta Releases — Discovery 2.0 + Environment Pass
+Continue in Free Mode. Do not switch to Max/Power.
+Releases already has working public release pages, cover artwork, metadata, audio behavior, and Vanta navigation.
+This task is primarily a public Releases discovery/catalog UI + environment pass.
+Do not change Release audio delivery, Vault behavior, playback logic, upload pipeline, media infrastructure, publishing schema, or existing release routes.
+Goal
+Make Releases feel like Vanta’s:
+record archive / listening station / catalog
+rather than a normal release list.
+A visitor should quickly understand:
+what Vanta has released
+what is newest
+who the artist is
+what project/single it belongs to
+when it came out
+where to open/listen
+1. Dedicated Releases environment
+Give the main /releases page its own rendered environment.
+Direction:
+underground record archive
+late-night listening room
+independent record shop backroom
+CD jewel cases
+vinyl crates
+cassette tapes
+old hi-fi equipment
+CRT monitors
+posters
+speakers
+headphones
+shelves and catalog drawers
+release flyers
+handwritten track sheets
+dim fluorescent/amber lighting
+early-2000s / PS2 / Y2K atmosphere
+It should feel like:
+the physical catalog room where Vanta stores and plays its music.
+Avoid:
+Spotify clone
+Apple Music clone
+luxury record store
+generic cyberpunk
+modern streaming-dashboard UI
+2. Releases header
+Present:
+VANTA RELEASES
+With restrained copy such as:
+Catalog / archive / signal.
+Optional metadata:
+VANTA MUSIC ARCHIVE
+Keep the header compact.
+3. Featured / latest release
+Use the newest real public release or existing featured release if the system already supports one.
+Do not add a featured schema.
+Present:
+cover artwork
+title
+artist
+format/type where available
+release date
+brief metadata
+existing open/listen action
+Give the newest/featured release stronger visual treatment.
+4. Release catalog
+Present remaining real releases as a proper archive.
+Show available:
+artwork
+title
+artist
+type/format
+release date
+track count where real
+Clicking should open the existing release route.
+Do not invent metadata.
+5. Artist connection
+If a release can be safely connected to an existing Creator Profile using current real data, show:
+VIEW CREATOR
+or link the artist identity to:
+/creators/:username
+Do not guess identity mappings.
+If no reliable Creator link exists, preserve the artist name as text only.
+6. Music Room connection
+Reinforce the relationship between Releases and the official Music Room.
+Add a subtle:
+ENTER MUSIC ROOM
+action.
+Resolve the real official Music Room through existing Room data.
+Do not hardcode a fake ID.
+Do not modify Rooms.
+7. Transmission connection
+If a release already has a genuine article/editorial connection, preserve it.
+Do not automatically create Transmission stories or fake editorial links.
+A future deeper integration can happen later.
+8. Lightweight filtering
+If existing Release data supports it cleanly, add frontend filters based on real values such as:
+All
+Singles
+EPs
+Albums
+only where those formats actually exist in the current data.
+Do not create a new release-type backend.
+9. Search
+Add lightweight Releases-only search if straightforward.
+Match real public data such as:
+title
+artist
+format/type
+Do not duplicate Black Index.
+Black Index remains universal search.
+10. Archive treatment
+Older releases should feel intentional rather than buried.
+Use:
+ARCHIVE
+or catalog-style numbering where safely derivable from ordering.
+Do not add fake issue numbers or catalog IDs to the database.
+11. Playback safety
+Preserve all current Release playback/audio behavior exactly.
+Do not:
+change audio URLs
+migrate audio
+touch Vault delivery
+modify previews
+alter compression
+add streaming infrastructure
+P0-C3 private audio infrastructure remains a separate future task.
+12. Existing media
+Preserve:
+App Storage artwork
+/media/assets/:id
+any remaining valid legacy image URLs
+Do not perform media migration during this task.
+13. Empty state
+If no public releases exist:
+NO RELEASES IN THE ARCHIVE
+Do not seed fake music.
+14. Visual direction
+Think:
+underground record shop
+indie label archive
+listening booth
+CD/vinyl catalog
+PS2 music-menu atmosphere
+Vanta OS
+Use:
+dark translucent HUD
+strong cover artwork
+compact metadata
+catalog labels
+editorial typography
+Avoid:
+Spotify
+Apple Music
+SoundCloud clone
+generic ecommerce grid
+15. Mobile
+Ensure:
+environment crops cleanly
+artwork scales correctly
+catalog cards stack safely
+search/filter controls remain usable
+no horizontal overflow
+16. Preserve
+Do not modify:
+Release schema
+Release CRUD
+audio playback
+Vault
+media infrastructure
+Member/Admin auth
+Creator systems
+Rooms
+Marketplace
+Play
+Transmission
+Activity Center
+Black Index
+Dashboard
+Guide
+Verification
+Run:
+npm run check
+npm run build
+git diff --check
+Verify:
+/releases shows the new archive environment.
+Real newest release gets featured treatment.
+Existing cover artwork renders correctly.
+Release links still work.
+Existing audio playback remains unchanged.
+Music Room link opens the real official Music Room.
+Filters/search use real data only.
+Empty state works.
+Mobile layout is clean.
+Stop after Releases Discovery 2.0 + Environment Pass.
+Do not begin audio migration, private streaming, recommendations, comments, likes, playlists, or another music backend.
+Do not recommend Max/Power unless there is a genuine blocker.
