@@ -99,7 +99,6 @@ type BootPhase = "loader" | "intro" | "boot" | "entry" | "done";
 
 function getInitialPhase(path: string): BootPhase {
   if (shouldSkipStartup(path)) return "done";
-  if (new URLSearchParams(window.location.search).get("preview") === "header") return "done";
 
   const loaderDone = !!sessionStorage.getItem(STARTUP_SESSION_KEY); // loader was shown
   const introDone  = !!sessionStorage.getItem(INTRO_SESSION_KEY);   // user clicked Enter
