@@ -18,12 +18,7 @@ interface RadioTrack {
 }
 
 const SKIP_KEY = "vanta-skip-os-boot";
-
-type RainEngine = {
-  context: AudioContext;
-  output: GainNode;
-  source: AudioBufferSourceNode;
-};
+const RAIN_AMBIENCE_URL = "/audio/vanta-rain-ambience.mp3";
 
 export function EnterVanta({ onEnter }: EnterVantaProps) {
   const [muted, setMuted] = useState(false);
@@ -32,7 +27,12 @@ export function EnterVanta({ onEnter }: EnterVantaProps) {
   const [radioState, setRadioState] = useState<"tuning" | "playing" | "no-signal">("tuning");
   const [exiting, setExiting] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const rainRef = useRef<RainEngine | null>(null);
+  const rainAudioRef = useRef<HTMLAudioElement | null>(null);
+  const rainLoadAttemptedRef = useRef(false);
+  const rainAudibleRef = useRef(false);
+  const rainVolumeRef = useRef(volume);
+  const rainMutedRef = useRef(muted);
+  const rainFadeRef = useRef<number | null>(null);
   const prefersReducedMotion =
     typeof window !== "undefined" &&
     window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -51,57 +51,71 @@ export function EnterVanta({ onEnter }: EnterVantaProps) {
     staleTime: 5 * 60 * 1000,
   });
 
-  // Build a small procedural rain bed so the fallback ambience does not need a
-  // separate media asset or a new storage system.
-  const createRainEngine = useCallback(() => {
-    if (typeof window === "undefined" || !window.AudioContext) return null;
-
-    const context = new window.AudioContext();
-    const output = context.createGain();
-    output.gain.value = 0.0001;
-    output.connect(context.destination);
-
-    const buffer = context.createBuffer(1, context.sampleRate * 2, context.sampleRate);
-    const noise = buffer.getChannelData(0);
-    for (let i = 0; i < noise.length; i += 1) {
-      noise[i] = (Math.random() * 2 - 1) * 0.45;
+  // A real recording can be added later at /audio/vanta-rain-ambience.mp3.
+  // Missing ambience is intentionally silent and does not log an error.
+  const ensureRainAudio = useCallback(() => {
+    if (typeof window === "undefined" || rainLoadAttemptedRef.current) {
+      return rainAudioRef.current;
     }
 
-    const source = context.createBufferSource();
-    source.buffer = buffer;
-    source.loop = true;
+    rainLoadAttemptedRef.current = true;
+    const rainAudio = new Audio(RAIN_AMBIENCE_URL);
+    rainAudio.preload = "auto";
+    rainAudio.loop = true;
+    rainAudio.volume = 0;
 
-    const lowPass = context.createBiquadFilter();
-    lowPass.type = "lowpass";
-    lowPass.frequency.value = 3600;
-    lowPass.Q.value = 0.45;
+    const handleMissingRain = () => {
+      if (rainAudioRef.current !== rainAudio) return;
+      rainAudio.pause();
+      rainAudio.removeAttribute("src");
+      rainAudioRef.current = null;
+    };
+    rainAudio.addEventListener("error", handleMissingRain, { once: true });
+    rainAudio.addEventListener("canplay", () => {
+      if (rainAudioRef.current !== rainAudio || !rainAudibleRef.current || rainMutedRef.current) return;
+      void rainAudio.play().catch(() => {});
+    }, { once: true });
 
-    const highPass = context.createBiquadFilter();
-    highPass.type = "highpass";
-    highPass.frequency.value = 650;
-    highPass.Q.value = 0.35;
+    rainAudioRef.current = rainAudio;
+    rainAudio.load();
+    return rainAudio;
+  }, []);
 
-    source.connect(lowPass);
-    lowPass.connect(output);
-    source.connect(highPass);
-    highPass.connect(output);
-    source.start();
+  const fadeRain = useCallback((audible: boolean) => {
+    const rainAudio = rainAudioRef.current;
+    if (!rainAudio) return;
 
-    return { context, output, source };
+    if (rainFadeRef.current !== null) cancelAnimationFrame(rainFadeRef.current);
+    const startVolume = rainAudio.volume;
+    const targetVolume = rainMutedRef.current
+      ? 0
+      : (audible ? 0.14 : 0.002) * rainVolumeRef.current;
+    const startedAt = performance.now();
+
+    const step = (now: number) => {
+      const progress = Math.min(1, (now - startedAt) / 450);
+      rainAudio.volume = startVolume + (targetVolume - startVolume) * progress;
+      if (progress < 1) {
+        rainFadeRef.current = requestAnimationFrame(step);
+      } else if (targetVolume === 0) {
+        rainAudio.pause();
+        rainFadeRef.current = null;
+      } else {
+        rainFadeRef.current = null;
+      }
+    };
+    rainFadeRef.current = requestAnimationFrame(step);
+
+    if (audible && !rainMutedRef.current) {
+      void rainAudio.play().catch(() => {});
+    }
   }, []);
 
   const setRainAudible = useCallback((audible: boolean) => {
-    const engine = rainRef.current ?? createRainEngine();
-    if (!engine) return;
-    rainRef.current = engine;
-
-    const now = engine.context.currentTime;
-    engine.output.gain.cancelScheduledValues(now);
-    engine.output.gain.setTargetAtTime(audible ? 0.12 : 0.0001, now, 0.25);
-    if (engine.context.state === "suspended") {
-      void engine.context.resume();
-    }
-  }, [createRainEngine]);
+    rainAudibleRef.current = audible;
+    ensureRainAudio();
+    fadeRain(audible);
+  }, [ensureRainAudio, fadeRain]);
 
   // Setup the designated radio track. Autoplay may be blocked until the
   // user's Enter Vanta click, so that gesture retries playback below.
@@ -144,7 +158,7 @@ export function EnterVanta({ onEnter }: EnterVantaProps) {
       })
       .catch(() => {
         // A browser gesture is required in some preview environments.
-        setRadioState("playing");
+        setRadioState("no-signal");
         setRainAudible(true);
       });
 
@@ -159,10 +173,14 @@ export function EnterVanta({ onEnter }: EnterVantaProps) {
 
   // Sync volume/mute
   useEffect(() => {
-    if (!audioRef.current) return;
-    audioRef.current.volume = muted ? 0 : volume;
-    audioRef.current.muted = muted;
-  }, [muted, volume]);
+    if (audioRef.current) {
+      audioRef.current.volume = muted ? 0 : volume;
+      audioRef.current.muted = muted;
+    }
+    rainVolumeRef.current = volume;
+    rainMutedRef.current = muted;
+    fadeRain(rainAudibleRef.current);
+  }, [muted, volume, fadeRain]);
 
   // Stop generated ambience and music when the startup overlay exits.
   useEffect(() => {
@@ -171,10 +189,14 @@ export function EnterVanta({ onEnter }: EnterVantaProps) {
         audioRef.current.pause();
         audioRef.current.src = "";
       }
-      if (rainRef.current) {
-        rainRef.current.source.stop();
-        void rainRef.current.context.close();
-        rainRef.current = null;
+      if (rainFadeRef.current !== null) {
+        cancelAnimationFrame(rainFadeRef.current);
+        rainFadeRef.current = null;
+      }
+      if (rainAudioRef.current) {
+        rainAudioRef.current.pause();
+        rainAudioRef.current.removeAttribute("src");
+        rainAudioRef.current = null;
       }
     };
   }, []);
@@ -216,6 +238,7 @@ export function EnterVanta({ onEnter }: EnterVantaProps) {
   };
 
   const activateRadio = () => {
+    if (radioState === "no-signal") return;
     if (!audioRef.current) {
       setRainAudible(true);
       return;

@@ -232,8 +232,6 @@ function App() {
       }, 60_000);
     } else if (phase === "boot") {
       t = setTimeout(() => setPhase("entry"), 10_000);
-    } else if (phase === "entry") {
-      t = setTimeout(() => setPhase("done"), 30_000);
     }
     return () => clearTimeout(t);
   }, [phase]);
