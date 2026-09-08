@@ -1,9 +1,8 @@
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
-import { PostCard } from "@/components/post-card";
-import { SkeletonPostCard } from "@/components/skeleton-post-card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,7 +10,9 @@ import type { Post, Release } from "@shared/schema";
 import heroImage from "@assets/generated_images/Music_studio_lifestyle_hero_cf7ae2f2.png";
 import cityImage from "@assets/generated_images/Urban_night_cityscape_mood_2c3c2c61.png";
 import { SiSpotify, SiApplemusic, SiSoundcloud, SiYoutube } from "react-icons/si";
-import { ArrowRight, Globe, Lock, Music, Plus } from "lucide-react";
+import { Archive, ArrowRight, Globe, Lock, Music, Plus, Radio, Search } from "lucide-react";
+import { format } from "date-fns";
+import transmissionEnvironment from "@assets/generated_images/transmission_editorial_broadcast_environment.png";
 
 const worlds = [
   {
@@ -62,17 +63,25 @@ const statusColor: Record<string, string> = {
   "Coming Soon": "bg-muted/40 text-muted-foreground border-border",
 };
 
+type PublicRoom = {
+  id: string;
+  name: string;
+  category: string;
+  owner_user_id: string | null;
+};
+
 export default function Home() {
   const { data: posts, isLoading } = useQuery<Post[]>({
     queryKey: ["/api/posts"],
   });
 
+  const { data: mediaRoomData } = useQuery<{ rooms: PublicRoom[] }>({
+    queryKey: ["/api/rooms?category=Media"],
+  });
+
   const { data: releases, isLoading: releasesLoading } = useQuery<Release[]>({
     queryKey: ["/api/releases"],
   });
-
-  const featuredPost = posts?.find((p) => p.featured === "true");
-  const regularPosts = posts?.filter((p) => p.featured !== "true") || [];
 
   const featuredRelease =
     releases?.find((r) => r.featured === "true") ?? releases?.[0] ?? null;
@@ -120,51 +129,11 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── TRANSMISSIONS / POSTS — unchanged ── */}
-      <main className="flex-1 bg-background">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8 py-16 md:py-24">
-          {featuredPost && (
-            <section className="mb-16">
-              <h2
-                className="text-3xl md:text-4xl font-display font-bold mb-8"
-                data-testid="text-featured-heading"
-              >
-                Featured
-              </h2>
-              <PostCard post={featuredPost} featured />
-            </section>
-          )}
-
-          <section>
-            <h2
-              className="text-3xl md:text-4xl font-display font-bold mb-8"
-              data-testid="text-latest-heading"
-            >
-              {featuredPost ? "Latest Transmissions" : "All Transmissions"}
-            </h2>
-
-            {isLoading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-                {[1, 2, 3, 4, 5, 6].map((i) => (
-                  <SkeletonPostCard key={i} />
-                ))}
-              </div>
-            ) : regularPosts.length === 0 ? (
-              <div className="text-center py-24">
-                <p className="text-xl text-muted-foreground" data-testid="text-no-posts">
-                  No posts yet. Start creating your music journey.
-                </p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-                {regularPosts.map((post) => (
-                  <PostCard key={post.id} post={post} />
-                ))}
-              </div>
-            )}
-          </section>
-        </div>
-      </main>
+      <TransmissionFeed
+        posts={posts ?? []}
+        isLoading={isLoading}
+        mediaRoom={mediaRoomData?.rooms?.find((room) => !room.owner_user_id) ?? null}
+      />
 
       {/* ── FEATURED RELEASE — dynamic ── */}
       <section className="bg-card border-t border-border py-20" data-testid="section-featured-release">
@@ -364,6 +333,268 @@ export default function Home() {
       </section>
 
       <Footer />
+    </div>
+  );
+}
+
+function TransmissionFeed({
+  posts,
+  isLoading,
+  mediaRoom,
+}: {
+  posts: Post[];
+  isLoading: boolean;
+  mediaRoom: PublicRoom | null;
+}) {
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("All");
+
+  const categories = useMemo(
+    () => ["All", ...Array.from(new Set(posts.map((post) => post.category).filter(Boolean))).sort()],
+    [posts],
+  );
+  const hasFilters = search.trim().length > 0 || category !== "All";
+  const filteredPosts = useMemo(() => {
+    const needle = search.trim().toLowerCase();
+    return posts.filter((post) => {
+      const matchesCategory = category === "All" || post.category === category;
+      const matchesSearch =
+        !needle ||
+        [post.title, post.category, post.excerpt, post.content]
+          .filter(Boolean)
+          .some((value) => value.toLowerCase().includes(needle));
+      return matchesCategory && matchesSearch;
+    });
+  }, [category, posts, search]);
+
+  const featuredPost = filteredPosts.find((post) => post.featured === "true") ?? filteredPosts[0];
+  const latestPosts = filteredPosts.filter((post) => post.id !== featuredPost?.id).slice(0, 4);
+  const archivePosts = filteredPosts.filter(
+    (post) => post.id !== featuredPost?.id && !latestPosts.some((latest) => latest.id === post.id),
+  );
+
+  return (
+    <main className="flex-1 bg-background" data-testid="section-transmission">
+      <section className="relative isolate overflow-hidden border-y border-border">
+        <img
+          src={transmissionEnvironment}
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 h-full w-full object-cover object-center opacity-70"
+        />
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(6,7,12,.97)_0%,rgba(6,7,12,.82)_38%,rgba(6,7,12,.5)_100%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_78%_28%,rgba(150,78,84,.18),transparent_32%),linear-gradient(180deg,rgba(7,8,14,.15),rgba(7,8,14,.8))]" />
+
+        <div className="relative mx-auto max-w-7xl px-6 py-16 lg:px-8 md:py-24">
+          <div className="max-w-2xl">
+            <div className="mb-6 flex flex-wrap items-center gap-3 text-[10px] font-mono uppercase tracking-[0.28em] text-primary/80">
+              <span className="flex items-center gap-2"><Radio className="h-3.5 w-3.5" /> Vanta Editorial Network</span>
+              <span className="text-white/25">/</span>
+              <span className="text-white/50">Signal / Archive</span>
+            </div>
+            <h2 className="font-display text-5xl font-bold tracking-tight text-white md:text-7xl">
+              Transmission<span className="text-primary">.</span>
+            </h2>
+            <p className="mt-5 max-w-lg text-base leading-relaxed text-white/65 md:text-lg">
+              Culture received. Signal transmitted.
+            </p>
+          </div>
+
+          <div className="mt-12 flex flex-col gap-4 border-t border-white/15 pt-5 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.24em] text-white/50">
+              <span className="h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_10px_rgba(185,120,220,.85)]" />
+              {posts.length} published {posts.length === 1 ? "signal" : "signals"}
+            </div>
+            {mediaRoom ? (
+              <Link
+                href={`/rooms/${mediaRoom.id}`}
+                className="inline-flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.22em] text-white/65 transition-colors hover:text-primary"
+                data-testid="link-transmission-media-room"
+              >
+                Enter Media Room <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            ) : (
+              <span className="text-[10px] font-mono uppercase tracking-[0.22em] text-white/35">Media Room offline</span>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <div className="mx-auto max-w-7xl px-6 py-12 lg:px-8 md:py-20">
+        <div className="mb-10 flex flex-col gap-6 border-b border-border pb-6">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <p className="mb-2 text-[10px] font-mono uppercase tracking-[0.28em] text-primary/75">Editorial desk</p>
+              <h3 className="font-display text-3xl font-bold md:text-4xl" data-testid="text-featured-heading">Latest signal<span className="text-primary">.</span></h3>
+            </div>
+            <label className="relative block w-full max-w-md">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
+              <input
+                type="search"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Search transmissions..."
+                aria-label="Search transmissions"
+                className="h-10 w-full border border-border bg-card/60 pl-10 pr-4 text-sm outline-none transition-colors placeholder:text-muted-foreground/45 focus:border-primary/60"
+                data-testid="input-transmission-search"
+              />
+            </label>
+          </div>
+          <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Transmission categories">
+            {categories.map((item) => (
+              <Button
+                key={item}
+                type="button"
+                size="sm"
+                variant={category === item ? "default" : "outline"}
+                onClick={() => setCategory(item)}
+                className="font-mono text-[10px] uppercase tracking-widest"
+                data-testid={`button-transmission-category-${item.toLowerCase().replace(/\s+/g, "-")}`}
+              >
+                {item}
+              </Button>
+            ))}
+          </div>
+        </div>
+
+        {isLoading ? (
+          <TransmissionSkeleton />
+        ) : filteredPosts.length === 0 ? (
+          <div className="border border-dashed border-border px-6 py-24 text-center" data-testid="text-no-posts">
+            <Radio className="mx-auto h-7 w-7 text-muted-foreground/35" />
+            <p className="mt-5 font-display text-3xl font-semibold">{posts.length ? "NO MATCHING SIGNAL" : "NO SIGNAL"}</p>
+            <p className="mt-3 text-sm text-muted-foreground">
+              {posts.length ? "Try another category or search term." : "Nothing has been transmitted yet."}
+            </p>
+          </div>
+        ) : (
+          <>
+            {featuredPost && (
+              <Link href={`/post/${featuredPost.id}`} data-testid={`link-featured-transmission-${featuredPost.id}`}>
+                <article className="group relative isolate min-h-[430px] overflow-hidden border border-border bg-card/40 transition-colors hover:border-primary/50 md:min-h-[520px]">
+                  <img
+                    src={featuredPost.coverImage}
+                    alt={featuredPost.title}
+                    className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.02]"
+                    style={{ objectPosition: featuredPost.coverImagePosition || "50% 50%" }}
+                    data-testid={`img-featured-transmission-${featuredPost.id}`}
+                  />
+                  <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(5,6,12,.96)_0%,rgba(5,6,12,.75)_45%,rgba(5,6,12,.15)_100%)]" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/10" />
+                  <div className="relative flex min-h-[430px] flex-col justify-end p-6 md:min-h-[520px] md:max-w-2xl md:p-10">
+                    <div className="mb-4 flex flex-wrap items-center gap-3 text-[10px] font-mono uppercase tracking-[0.2em] text-white/60">
+                      <Badge variant="outline" className="border-primary/50 bg-primary/10 text-primary">{featuredPost.category}</Badge>
+                      <span>{format(new Date(featuredPost.createdAt), "MMM d, yyyy")}</span>
+                      <span>{featuredPost.readTime}</span>
+                    </div>
+                    <h4 className="font-display text-3xl font-bold leading-tight text-white md:text-5xl">{featuredPost.title}</h4>
+                    <p className="mt-4 line-clamp-3 max-w-xl text-sm leading-relaxed text-white/65 md:text-base">{featuredPost.excerpt}</p>
+                    <span className="mt-7 inline-flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.25em] text-primary transition-transform group-hover:translate-x-1">
+                      Read Transmission <ArrowRight className="h-3.5 w-3.5" />
+                    </span>
+                  </div>
+                </article>
+              </Link>
+            )}
+
+            {latestPosts.length > 0 && (
+              <section className="mt-16">
+                <div className="mb-7 flex items-end justify-between gap-4">
+                  <div>
+                    <p className="mb-2 text-[10px] font-mono uppercase tracking-[0.28em] text-muted-foreground/55">Live desk</p>
+                    <h3 className="font-display text-2xl font-semibold" data-testid="text-latest-heading">Latest Transmissions<span className="text-primary">.</span></h3>
+                  </div>
+                  {hasFilters && <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/45">{filteredPosts.length} results</span>}
+                </div>
+                <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+                  {latestPosts.map((post) => <TransmissionCard key={post.id} post={post} />)}
+                </div>
+              </section>
+            )}
+
+            {archivePosts.length > 0 && (
+              <section className="mt-16 border-t border-border pt-10">
+                <div className="mb-7 flex items-center gap-3">
+                  <Archive className="h-4 w-4 text-primary/70" />
+                  <div>
+                    <p className="text-[10px] font-mono uppercase tracking-[0.28em] text-muted-foreground/55">Tape library</p>
+                    <h3 className="font-display text-2xl font-semibold">Archive<span className="text-primary">.</span></h3>
+                  </div>
+                </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  {archivePosts.map((post) => <ArchiveTransmission key={post.id} post={post} />)}
+                </div>
+              </section>
+            )}
+          </>
+        )}
+      </div>
+    </main>
+  );
+}
+
+function TransmissionCard({ post }: { post: Post }) {
+  return (
+    <Link href={`/post/${post.id}`} data-testid={`link-transmission-${post.id}`}>
+      <article className="group h-full overflow-hidden border border-border bg-card/45 transition-colors hover:border-primary/50">
+        <div className="relative aspect-[4/3] overflow-hidden bg-muted">
+          <img
+            src={post.coverImage}
+            alt={post.title}
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+            style={{ objectPosition: post.coverImagePosition || "50% 50%" }}
+            data-testid={`img-transmission-${post.id}`}
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+          <Badge variant="outline" className="absolute left-3 top-3 border-white/25 bg-black/35 text-[9px] uppercase tracking-widest text-white/80">{post.category}</Badge>
+        </div>
+        <div className="p-4">
+          <div className="flex items-center justify-between gap-3 text-[9px] font-mono uppercase tracking-widest text-muted-foreground/55">
+            <span>{format(new Date(post.createdAt), "MMM d, yyyy")}</span>
+            <span>{post.readTime}</span>
+          </div>
+          <h4 className="mt-3 line-clamp-2 font-display text-xl font-semibold leading-tight">{post.title}</h4>
+          <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-muted-foreground">{post.excerpt}</p>
+          <span className="mt-4 inline-flex items-center gap-2 text-[9px] font-mono uppercase tracking-widest text-primary/75 group-hover:text-primary">Read <ArrowRight className="h-3 w-3" /></span>
+        </div>
+      </article>
+    </Link>
+  );
+}
+
+function ArchiveTransmission({ post }: { post: Post }) {
+  return (
+    <Link href={`/post/${post.id}`} data-testid={`link-archive-transmission-${post.id}`}>
+      <article className="group flex min-h-32 gap-4 border border-border bg-card/30 p-3 transition-colors hover:border-primary/50 sm:p-4">
+        <div className="relative h-24 w-32 shrink-0 overflow-hidden bg-muted sm:h-28 sm:w-44">
+          <img
+            src={post.coverImage}
+            alt={post.title}
+            className="h-full w-full object-cover grayscale-[.35] transition-all duration-500 group-hover:scale-105 group-hover:grayscale-0"
+            style={{ objectPosition: post.coverImagePosition || "50% 50%" }}
+          />
+          <span className="absolute bottom-2 left-2 bg-black/70 px-1.5 py-1 text-[8px] font-mono uppercase tracking-widest text-white/70">Archive</span>
+        </div>
+        <div className="min-w-0 py-1">
+          <div className="flex flex-wrap items-center gap-3 text-[9px] font-mono uppercase tracking-widest text-muted-foreground/55">
+            <span>{post.category}</span>
+            <span>{format(new Date(post.createdAt), "MMM d, yyyy")}</span>
+          </div>
+          <h4 className="mt-2 line-clamp-2 font-display text-lg font-semibold leading-tight">{post.title}</h4>
+          <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-muted-foreground">{post.excerpt}</p>
+        </div>
+      </article>
+    </Link>
+  );
+}
+
+function TransmissionSkeleton() {
+  return (
+    <div className="space-y-10 animate-pulse">
+      <div className="min-h-[430px] border border-border bg-card/40 md:min-h-[520px]" />
+      <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, index) => <div key={index} className="h-80 border border-border bg-card/40" />)}
+      </div>
     </div>
   );
 }
