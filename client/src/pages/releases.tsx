@@ -288,49 +288,49 @@ export default function Releases() {
   const hasFilters = activeGenre !== "All" || activeType !== "All" || search.trim().length > 0;
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <ReturnToCity />
-      <Header />
+    <div className="relative min-h-screen overflow-hidden bg-[#07080e] text-foreground">
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0">
+        <img src={releasesEnvironment} alt="" className="absolute inset-0 h-full w-full object-cover object-center opacity-45" />
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(7,8,14,.92)_0%,rgba(7,8,14,.55)_28%,rgba(7,8,14,.78)_72%,rgba(7,8,14,.97)_100%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_58%_28%,rgba(190,120,72,.18),transparent_45%)]" />
+      </div>
 
-      <main className="flex-1 pt-20">
-        <section className="relative isolate overflow-hidden border-b border-border">
-          <img
-            src={releasesEnvironment}
-            alt=""
-            aria-hidden="true"
-            className="absolute inset-0 h-full w-full object-cover object-center opacity-70"
-          />
-          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(6,7,12,.97)_0%,rgba(6,7,12,.82)_42%,rgba(6,7,12,.35)_100%)]" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_82%_20%,rgba(190,120,72,.16),transparent_33%),linear-gradient(180deg,rgba(7,8,14,.15),rgba(7,8,14,.82))]" />
-          <div className="relative mx-auto max-w-7xl px-6 py-16 lg:px-8 md:py-20">
-            <div className="max-w-2xl">
-              <div className="mb-6 flex flex-wrap items-center gap-3 text-[10px] font-mono uppercase tracking-[0.28em] text-primary/80">
-                <span className="flex items-center gap-2"><Radio className="h-3.5 w-3.5" /> Vanta Music Archive</span>
-                <span className="text-white/25">/</span>
-                <span className="text-white/50">Catalog / Archive / Signal</span>
+      <div className="relative z-10 flex min-h-screen flex-col">
+        <ReturnToCity />
+        <Header />
+
+        <main className="flex-1 pt-20">
+          <section className="relative isolate overflow-hidden border-b border-border">
+            <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(6,7,12,.72)_0%,rgba(6,7,12,.5)_42%,rgba(6,7,12,.18)_100%)]" />
+            <div className="relative mx-auto max-w-7xl px-6 py-16 lg:px-8 md:py-20">
+              <div className="max-w-2xl">
+                <div className="mb-6 flex flex-wrap items-center gap-3 text-[10px] font-mono uppercase tracking-[0.28em] text-primary/80">
+                  <span className="flex items-center gap-2"><Radio className="h-3.5 w-3.5" /> Vanta Music Archive</span>
+                  <span className="text-white/25">/</span>
+                  <span className="text-white/50">Catalog / Archive / Signal</span>
+                </div>
+                <h1 className="font-display text-5xl font-bold tracking-tight text-white md:text-7xl" data-testid="text-releases-title">
+                  Vanta Releases<span className="text-primary">.</span>
+                </h1>
+                <p className="mt-5 max-w-lg text-base leading-relaxed text-white/65 md:text-lg">
+                  The physical catalog room where Vanta stores and plays its music.
+                </p>
               </div>
-              <h1 className="font-display text-5xl font-bold tracking-tight text-white md:text-7xl" data-testid="text-releases-title">
-                Vanta Releases<span className="text-primary">.</span>
-              </h1>
-              <p className="mt-5 max-w-lg text-base leading-relaxed text-white/65 md:text-lg">
-                The physical catalog room where Vanta stores and plays its music.
-              </p>
-            </div>
-            <div className="mt-12 flex flex-col gap-4 border-t border-white/15 pt-5 md:flex-row md:items-center md:justify-between">
-              <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.24em] text-white/50">
-                <span className="h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_10px_rgba(185,120,220,.85)]" />
-                {orderedReleases.length} catalog {orderedReleases.length === 1 ? "entry" : "entries"}
+              <div className="mt-12 flex flex-col gap-4 border-t border-white/15 pt-5 md:flex-row md:items-center md:justify-between">
+                <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.24em] text-white/50">
+                  <span className="h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_10px_rgba(185,120,220,.85)]" />
+                  {orderedReleases.length} catalog {orderedReleases.length === 1 ? "entry" : "entries"}
+                </div>
+                {musicRoom ? (
+                  <Link href={`/rooms/${musicRoom.id}`} className="inline-flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.22em] text-white/65 transition-colors hover:text-primary" data-testid="link-releases-music-room">
+                    Enter Music Room <ArrowRight className="h-3.5 w-3.5" />
+                  </Link>
+                ) : (
+                  <span className="text-[10px] font-mono uppercase tracking-[0.22em] text-white/35">Music Room offline</span>
+                )}
               </div>
-              {musicRoom ? (
-                <Link href={`/rooms/${musicRoom.id}`} className="inline-flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.22em] text-white/65 transition-colors hover:text-primary" data-testid="link-releases-music-room">
-                  Enter Music Room <ArrowRight className="h-3.5 w-3.5" />
-                </Link>
-              ) : (
-                <span className="text-[10px] font-mono uppercase tracking-[0.22em] text-white/35">Music Room offline</span>
-              )}
             </div>
-          </div>
-        </section>
+          </section>
 
         <div className="mx-auto max-w-7xl px-6 py-12 lg:px-8 md:py-20">
           <div className="mb-10 flex flex-col gap-6 border-b border-border pb-6">
@@ -421,9 +421,10 @@ export default function Releases() {
             </>
           )}
         </div>
-      </main>
+        </main>
 
-      <Footer />
+        <Footer />
+      </div>
     </div>
   );
 }

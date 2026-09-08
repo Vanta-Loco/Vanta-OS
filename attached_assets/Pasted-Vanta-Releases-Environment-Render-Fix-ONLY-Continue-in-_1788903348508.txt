@@ -1,0 +1,74 @@
+Vanta Releases — Environment Render Fix ONLY
+Continue in Free Mode. Do not switch to Max/Power.
+Releases Discovery 2.0 is otherwise working correctly, but the dedicated Releases environment is not appearing on /releases.
+Existing generated asset:
+attached_assets/generated_images/releases_listening_archive_environment.png
+The asset and existing Releases 2.0 design are approved.
+This task is ONLY to make the existing Releases environment render correctly behind the /releases page.
+1. Inspect current Releases background wiring
+Check the /releases page/component and confirm:
+the generated asset is actually imported/resolved
+the background/environment layer is mounted
+it is not hidden by an opaque page/container background
+z-index ordering is correct
+absolute/fixed positioning is correct
+the environment fills the intended viewport/page area
+Compare with the working environment implementation on:
+Marketplace
+Vanta Play
+Transmission
+official Rooms
+Reuse the same proven layering pattern where appropriate.
+2. Preserve the existing asset
+Do NOT:
+regenerate the Releases environment
+replace it
+restyle it
+crop it unnecessarily
+Reuse exactly:
+releases_listening_archive_environment.png
+3. Required presentation
+/releases should visibly show the listening-room / record-archive environment behind the existing Releases UI.
+Keep:
+featured/latest release
+catalog/archive
+filters
+search
+cover artwork
+Music Room link
+playback
+tracklists
+Use the existing dark/translucent HUD treatment so content remains readable over the background.
+Do not make the page fully opaque over the environment.
+4. Mobile
+Preserve intentional object-cover/background-cover behavior where appropriate.
+Environment should crop cleanly on mobile without horizontal overflow.
+5. Preserve
+Do not modify:
+Release schema
+Release CRUD
+audio playback
+preview URLs
+Vault
+media infrastructure
+Music Room integration
+search/filter behavior
+Creator systems
+Transmission
+Marketplace
+Play
+This is a visual environment-render fix only.
+Verification
+Run:
+npm run check
+npm run build
+git diff --check
+Verify:
+/releases clearly shows the existing Releases environment.
+Content remains readable.
+Featured/latest release still renders correctly.
+Search and filters still work.
+Existing playback behavior is unchanged.
+Mobile layout is clean.
+Stop after the Releases environment render is fixed.
+Do not recommend Max/Power again.
