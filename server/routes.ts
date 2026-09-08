@@ -20,6 +20,7 @@ import { registerMarketplaceRoutes } from "./marketplace-routes";
 import { registerCreatorRoutes } from "./creator-routes";
 import { registerCreatorWorkRoutes } from "./creator-work-routes";
 import { registerMemberManagementRoutes } from "./member-management-routes";
+import { registerSearchRoutes } from "./search-routes";
 
 declare module "express-session" {
   interface SessionData {
@@ -78,6 +79,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerCreatorRoutes(app);
   registerCreatorWorkRoutes(app);
   registerMemberManagementRoutes(app);
+  registerSearchRoutes(app);
 
   // ── Admin Auth ───────────────────────────────────────────────────
   app.get("/api/admin/me", async (req, res) => {
