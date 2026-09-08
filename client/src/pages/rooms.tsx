@@ -19,6 +19,8 @@ import { useToast } from "@/hooks/use-toast";
 import { getUserToken, useUser } from "@/hooks/use-user";
 import fashionWarehouseImage from "@assets/generated_images/fashion_warehouse_environment.png";
 import musicBedroomStudioImage from "@assets/generated_images/music_bedroom_studio_environment.png";
+import visualStudioImage from "@assets/generated_images/visual_studio_environment.png";
+import mediaArchiveImage from "@assets/generated_images/media_archive_environment.png";
 
 type Room = {
   id: string;
@@ -150,15 +152,24 @@ export default function Rooms() {
 }
 
 function RoomCard({ room }: { room: Room }) {
-  const officialEnvironment = !room.owner_user_id && (room.category === "Music" || room.category === "Fashion");
-  const environment = room.category === "Music" ? musicBedroomStudioImage : room.category === "Fashion" ? fashionWarehouseImage : null;
+  const environment = !room.owner_user_id
+    ? room.category === "Music"
+      ? musicBedroomStudioImage
+      : room.category === "Fashion"
+        ? fashionWarehouseImage
+        : room.category === "Visual"
+          ? visualStudioImage
+          : room.category === "Media"
+            ? mediaArchiveImage
+            : null
+    : null;
 
   return (
     <Link href={`/rooms/${room.id}`}>
       <article className={`group relative min-h-[390px] cursor-pointer overflow-hidden border transition-all duration-300 hover:-translate-y-1 ${
         room.joined ? "border-primary/55 shadow-[0_0_32px_rgba(150,100,220,.12)]" : "border-border hover:border-primary/50"
       }`}>
-        {environment && officialEnvironment ? (
+        {environment ? (
           <img src={environment} alt="" className="absolute inset-0 h-full w-full object-cover object-center opacity-75 transition-transform duration-700 group-hover:scale-105" />
         ) : (
           <div className={`absolute inset-0 ${room.category === "Visual" ? "bg-[radial-gradient(circle_at_70%_20%,rgba(70,130,180,.28),transparent_38%),linear-gradient(135deg,hsl(var(--muted)),hsl(var(--background)))]" : room.category === "Media" ? "bg-[radial-gradient(circle_at_25%_18%,rgba(190,100,70,.24),transparent_36%),linear-gradient(135deg,hsl(var(--background)),hsl(var(--muted)))]" : "bg-[radial-gradient(circle_at_75%_15%,rgba(130,80,180,.25),transparent_36%),linear-gradient(135deg,hsl(var(--muted)),hsl(var(--background)))]"}`} />
