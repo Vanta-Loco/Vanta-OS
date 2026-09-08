@@ -1,0 +1,174 @@
+Vanta OS — Activity Center Phase 1A: Backend Foundation ONLY
+Continue in Free Mode. Do not switch to Max/Power.
+The authenticated Dashboard, NEXT MOVE, Vanta Guide, and Black Index Phase 1 are complete.
+This task is ONLY to build the backend/database foundation for a future global Vanta Activity Center.
+Do not build the Activity UI yet.
+Do not begin wiring every Vanta feature into notifications yet.
+Core idea
+Activity Center answers:
+“What happened around my Vanta account?”
+Future examples:
+someone joins your Room
+new post in a Room you belong to
+achievement unlocked
+XP gained
+Creator certification granted
+new Creator Work appears in a Room
+Marketplace activity
+Vanta Play updates
+Vanta system notices
+Phase 1A should only create the durable foundation these systems can use later.
+1. Additive activity table
+Add a versioned forward-only migration for a table such as:
+activity_events
+Suggested fields:
+id UUID primary key
+recipient_user_id
+actor_user_id nullable
+event_type
+title
+body nullable
+target_url nullable
+entity_type nullable
+entity_id nullable
+is_read default false
+created_at
+Optional:
+dedupe_key nullable/unique where useful for later idempotency
+Keep this table focused.
+Do not build reactions, comments, notification preferences, push notifications, email notifications, or moderation logs.
+2. Ownership
+Every Activity item belongs to exactly one recipient Member.
+recipient_user_id must reference the existing Vanta Member identity.
+actor_user_id may be null for system-generated events.
+Do not expose private Member fields through Activity.
+3. Activity service
+Add a small isolated backend service such as:
+server/activity-service.ts
+Provide a reusable internal function conceptually like:
+createActivity(...)
+This will later be called by Rooms, Passport, Creator, Marketplace, Play, etc.
+Do not copy raw INSERT logic into every feature.
+Phase 1A does NOT need to connect those systems yet.
+4. Member Activity API
+Add protected endpoints using the existing requireUser.
+Prefer:
+GET /api/activity
+Return the current Member's Activity only.
+Support:
+newest first
+bounded results
+sensible default such as 30
+Also add:
+GET /api/activity/unread-count
+Return only the signed-in Member's unread total.
+5. Read state
+Add:
+PATCH /api/activity/:id/read
+The signed-in Member may mark only their own Activity item as read.
+Add:
+POST /api/activity/read-all
+Marks the current Member's Activity items as read.
+A Member must never alter another Member's Activity.
+6. Public-safe Actor information
+Where an Activity item has an Actor and that Actor has public Creator/Profile identity available, return only the minimal safe identity needed later for UI, such as:
+username
+Creator display name where available
+certification state where relevant
+Do not return:
+email
+password/hash
+session information
+account secrets
+Admin information
+If Actor enrichment complicates Phase 1A significantly, keep the core response minimal and report what should be added during the UI stage.
+7. Event types
+Do not build a database-managed event-type system.
+Use stable strings so the system can expand later.
+Reserve sensible concepts such as:
+room_member_joined
+room_post_created
+passport_achievement_unlocked
+passport_xp_gained
+creator_certified
+creator_work_added
+marketplace_activity
+play_update
+system_notice
+These are future-compatible identifiers.
+Do NOT start emitting all of these yet.
+8. No fake Activity
+Do not seed:
+fake notifications
+fake users
+fake Room events
+fake Marketplace activity
+Empty Activity Center data is correct until real systems begin emitting events.
+9. Pagination / bounds
+Keep Activity reads bounded.
+Support a simple limit/cursor or limit/offset pattern if it fits the current backend conventions.
+Prevent unbounded Activity queries.
+No infinite-scroll frontend is required yet.
+10. Indexes
+Add practical indexes for:
+recipient + created date
+recipient + unread state
+Avoid speculative indexing.
+11. Suspended Members
+Activity APIs must use existing centralized:
+requireUser
+Suspended Members should therefore already be blocked.
+Do not add separate suspension logic.
+12. Admin separation
+Activity Center is a Member system.
+Do not mix it with:
+Admin audit logs
+Admin sessions
+Admin notifications
+A future Admin audit trail is a separate production/security feature.
+13. Migration discipline
+Add schema only through the current versioned migration system.
+Suggested migration:
+0005_activity_center_foundation
+Do not add schema initialization back into application startup.
+14. Preserve
+Do not modify:
+Dashboard
+NEXT MOVE
+Vanta Guide
+Black Index
+Member/Admin auth
+durable sessions
+suspension
+Passport behavior
+XP/achievement logic
+Creator Work
+Creator certification
+Rooms behavior
+Marketplace behavior
+Vanta Play
+Transmission
+Vault
+media infrastructure
+World
+navigation
+Verification
+Run:
+npm run db:migrate
+npm run check
+npm run build
+git diff --check
+Verify:
+activity_events migration applies successfully.
+Application restart does not modify Activity data.
+A manually inserted/test Activity event can be read only by its recipient.
+Another Member cannot access or modify it.
+Unread count is correct.
+Mark-one-as-read works.
+Read-all works.
+Results return newest first.
+No private Member/auth fields appear.
+Remove disposable verification Activity after testing if safe.
+Stop after Activity Center Phase 1A backend foundation.
+Do not begin UI or event wiring.
+Do not recommend Max/Power unless there is a genuine blocker that cannot be completed in Free Mode.

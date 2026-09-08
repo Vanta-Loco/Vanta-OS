@@ -43,6 +43,23 @@ export const insertPostSchema = createInsertSchema(posts).omit({
 export type InsertPost = z.infer<typeof insertPostSchema>;
 export type Post = typeof posts.$inferSelect;
 
+export const activityEvents = pgTable("activity_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  recipientUserId: varchar("recipient_user_id").notNull(),
+  actorUserId: varchar("actor_user_id"),
+  eventType: text("event_type").notNull(),
+  title: text("title").notNull(),
+  body: text("body"),
+  targetUrl: text("target_url"),
+  entityType: text("entity_type"),
+  entityId: text("entity_id"),
+  isRead: boolean("is_read").notNull().default(false),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  dedupeKey: text("dedupe_key").unique(),
+});
+
+export type ActivityEvent = typeof activityEvents.$inferSelect;
+
 export const GENRE_OPTIONS = [
   "Trap",
   "Alternative Rock",

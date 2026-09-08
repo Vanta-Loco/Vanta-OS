@@ -111,6 +111,31 @@ const migrations: Migration[] = [
       `);
     },
   },
+  {
+    id: "0005_activity_center_foundation",
+    apply: async () => {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS activity_events (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          recipient_user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          actor_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+          event_type TEXT NOT NULL,
+          title TEXT NOT NULL,
+          body TEXT,
+          target_url TEXT,
+          entity_type TEXT,
+          entity_id TEXT,
+          is_read BOOLEAN NOT NULL DEFAULT false,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          dedupe_key TEXT UNIQUE
+        );
+        CREATE INDEX IF NOT EXISTS activity_events_recipient_created_idx
+          ON activity_events(recipient_user_id, created_at DESC);
+        CREATE INDEX IF NOT EXISTS activity_events_recipient_unread_idx
+          ON activity_events(recipient_user_id, is_read, created_at DESC);
+      `);
+    },
+  },
 ];
 
 async function runMigrations() {
