@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { getUserToken, useUser } from "@/hooks/use-user";
 import { MarketplaceForm, MARKETPLACE_CATEGORIES, MarketplaceRoom, ListingFormValue } from "@/components/marketplace-form";
+import marketplaceEnvironmentImage from "@assets/generated_images/marketplace_trade_floor_environment.png";
 
 type Listing = {
   id: string; title: string; description: string; category: string; creator_user_id: string;
@@ -95,7 +96,13 @@ export default function Marketplace() {
     }
   }
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="relative min-h-screen overflow-hidden bg-[#07080e]">
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0">
+        <img src={marketplaceEnvironmentImage} alt="" className="absolute inset-0 h-full w-full object-cover object-center opacity-45" />
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(7,8,14,.9)_0%,rgba(7,8,14,.48)_30%,rgba(7,8,14,.78)_72%,rgba(7,8,14,.96)_100%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_35%,rgba(120,84,170,.15),transparent_48%)]" />
+      </div>
+      <div className="relative z-10 flex min-h-screen flex-col">
       <Header />
       <main className="flex-1 pt-20">
         <section className="border-b border-border bg-[radial-gradient(circle_at_78%_20%,rgba(105,74,145,.17),transparent_34%)]">
@@ -179,6 +186,7 @@ export default function Marketplace() {
           </div> : listings.length ? <EmptyMarketplaceState title="NO LISTINGS FOUND" description="Try another category, search, delivery mode, or price type." /> : <EmptyMarketplaceState title="THE BOARD IS QUIET" description="No listings are active yet." action={isAuthenticated ? "Post Listing" : undefined} onAction={() => isAuthenticated ? setShowForm(true) : navigate("/login")} />}
         </div>
       </main><Footer />
+      </div>
     </div>
   );
 }
