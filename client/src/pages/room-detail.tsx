@@ -9,6 +9,8 @@ import { useToast } from "@/hooks/use-toast";
 import { WorkCard, type WorkItem } from "@/components/creator-work";
 import fashionWarehouseImage from "@assets/generated_images/fashion_warehouse_environment.png";
 import musicBedroomStudioImage from "@assets/generated_images/music_bedroom_studio_environment.png";
+import visualStudioImage from "@assets/generated_images/visual_studio_environment.png";
+import mediaArchiveImage from "@assets/generated_images/media_archive_environment.png";
 
 type Room = {
   id: string; name: string; description: string; category: string;
@@ -23,11 +25,13 @@ type MarketplaceListing = {
   price_type: string; city?: string | null; delivery_mode: string;
 };
 
-type RoomTheme = "warehouse" | "studio" | "default";
+type RoomTheme = "warehouse" | "studio" | "visual-studio" | "media-archive" | "default";
 
 function getRoomTheme(room: Room): RoomTheme {
   if (room.category === "Fashion" && !room.owner_user_id) return "warehouse";
   if (room.category === "Music" && !room.owner_user_id) return "studio";
+  if (room.category === "Visual" && !room.owner_user_id) return "visual-studio";
+  if (room.category === "Media" && !room.owner_user_id) return "media-archive";
   return "default";
 }
 
@@ -39,6 +43,24 @@ function EnvironmentDecor({ theme }: { theme: RoomTheme }) {
         <img src={fashionWarehouseImage} alt="" className="absolute inset-0 h-full w-full object-cover object-center opacity-75 md:object-center" />
         <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(8,8,10,.78)_0%,rgba(8,8,10,.35)_34%,rgba(8,8,10,.62)_100%)]" />
         <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(8,8,10,.48),transparent_48%,rgba(30,12,44,.2))]" />
+      </div>
+    );
+  }
+  if (theme === "visual-studio") {
+    return (
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+        <img src={visualStudioImage} alt="" className="absolute inset-0 h-full w-full object-cover object-center opacity-75 md:object-center" />
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(7,8,12,.82)_0%,rgba(7,8,12,.3)_34%,rgba(7,8,12,.72)_100%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(7,8,12,.58),transparent_48%,rgba(47,20,70,.25))]" />
+      </div>
+    );
+  }
+  if (theme === "media-archive") {
+    return (
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+        <img src={mediaArchiveImage} alt="" className="absolute inset-0 h-full w-full object-cover object-center opacity-75 md:object-center" />
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(8,8,9,.84)_0%,rgba(8,8,9,.28)_34%,rgba(8,8,9,.75)_100%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(8,8,9,.58),transparent_48%,rgba(55,20,16,.24))]" />
       </div>
     );
   }
@@ -159,7 +181,7 @@ export default function RoomDetail() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className={`relative isolate max-w-5xl mx-auto overflow-hidden px-6 lg:px-8 pt-28 pb-20 ${theme === "warehouse" ? "bg-stone-950/30" : theme === "studio" ? "bg-slate-950/20" : ""}`}>
+      <main className={`relative isolate max-w-5xl mx-auto overflow-hidden px-6 lg:px-8 pt-28 pb-20 ${theme === "warehouse" ? "bg-stone-950/30" : theme === "studio" ? "bg-slate-950/20" : theme === "visual-studio" ? "bg-zinc-950/30" : theme === "media-archive" ? "bg-stone-950/30" : ""}`}>
         <EnvironmentDecor theme={theme} />
         <div className="relative z-10">
         <Link href="/rooms"><Button variant="ghost" size="sm" className="gap-2 mb-8 -ml-3"><ArrowLeft className="w-4 h-4" /> All Rooms</Button></Link>
