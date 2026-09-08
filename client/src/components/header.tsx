@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { AppLauncher } from "@/components/app-launcher";
+import { VantaGuide } from "@/components/vanta-guide";
 import { useAdmin } from "@/hooks/use-admin";
 import { useUser } from "@/hooks/use-user";
 import {
@@ -47,6 +48,7 @@ export function Header() {
   const [searchQuery, setSearchQuery]   = useState("");
   const [mobileOpen, setMobileOpen]     = useState(false);
   const [launcherOpen, setLauncherOpen] = useState(false);
+  const [guideOpen, setGuideOpen]       = useState(false);
   const backdropRef                     = useRef<HTMLDivElement>(null);
   const { isAuthenticated: isAdmin, logout: adminLogout } = useAdmin();
   const { user, isAuthenticated: isUser, logout: userLogout } = useUser();
@@ -84,6 +86,7 @@ export function Header() {
   return (
     <>
       <AppLauncher open={launcherOpen} onClose={() => setLauncherOpen(false)} />
+      <VantaGuide open={guideOpen} onOpen={() => setGuideOpen(true)} onClose={() => setGuideOpen(false)} />
 
       {/* ── Fixed header bar ──────────────────────────────────────── */}
       <header className="fixed top-0 left-0 right-0 z-50 border-b border-border backdrop-blur-md bg-background/80">
@@ -162,6 +165,18 @@ export function Header() {
               <div className="hidden sm:block">
                 <ThemeToggle />
               </div>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setGuideOpen(true)}
+                aria-label="Open Vanta Guide"
+                title="Vanta Guide (⌘K / Ctrl+K)"
+                className="hidden sm:inline-flex gap-1.5 text-[10px] font-mono uppercase tracking-widest text-muted-foreground/70"
+              >
+                <BookOpen className="h-3.5 w-3.5" />
+                <span className="hidden xl:inline">Guide</span>
+              </Button>
 
               {/* App Launcher */}
               <Button
@@ -352,6 +367,13 @@ export function Header() {
         <div style={{ padding: "12px 20px", borderBottom: "1px solid hsl(var(--border))", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <span style={{ fontSize: 12, color: "hsl(var(--muted-foreground))", fontFamily: "monospace", textTransform: "uppercase", letterSpacing: "0.1em" }}>Theme</span>
           <ThemeToggle />
+        </div>
+
+        <div style={{ padding: "12px 20px", borderBottom: "1px solid hsl(var(--border))" }}>
+          <Button variant="outline" size="sm" className="w-full justify-between text-xs" onClick={() => { setGuideOpen(true); close(); }}>
+            <span className="flex items-center gap-2"><BookOpen className="h-3.5 w-3.5" /> Vanta Guide</span>
+            <span className="text-[10px] font-mono text-muted-foreground/55">⌘K</span>
+          </Button>
         </div>
 
         {/* Main nav */}
