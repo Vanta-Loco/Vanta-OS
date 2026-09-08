@@ -25,7 +25,7 @@ export default function Marketplace() {
   const { toast } = useToast();
   const [listings, setListings] = useState<Listing[]>([]);
   const [rooms, setRooms] = useState<MarketplaceRoom[]>([]);
-  const [category, setCategory] = useState("");
+  const [category, setCategory] = useState(() => new URLSearchParams(window.location.search).get("category") || "");
   const [delivery, setDelivery] = useState("");
   const [city, setCity] = useState("");
   const [showForm, setShowForm] = useState(false);

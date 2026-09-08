@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useRoute } from "wouter";
-import { ArrowLeft, Lock, Send, Users, Wrench, MapPin, Radio, ArrowRight } from "lucide-react";
+import { Archive, ArrowLeft, Camera, Clapperboard, Lock, Music2, Palette, PenLine, Radio, Search, Send, Shirt, Store, Users, Wrench, MapPin, ArrowRight } from "lucide-react";
 import { Header } from "@/components/header";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -70,6 +70,80 @@ function EnvironmentDecor({ theme }: { theme: RoomTheme }) {
       <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(7,8,14,.78)_0%,rgba(7,8,14,.3)_36%,rgba(7,8,14,.68)_100%)]" />
       <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(7,8,14,.5),transparent_48%,rgba(41,19,66,.24))]" />
     </div>
+  );
+}
+
+type RoomTool = {
+  label: string;
+  detail: string;
+  icon: typeof Music2;
+  href?: string;
+  tab?: string;
+};
+
+function toolsForOfficialRoom(category: string): RoomTool[] {
+  if (category === "Music") {
+    return [
+      { label: "Music Work", detail: "Open the Room archive", icon: Music2, tab: "Work" },
+      { label: "Find Creators", detail: "Artist · Producer · Engineer", icon: Search, href: "/creators?discipline=Artist" },
+      { label: "Music Services", detail: "Beats · Recording · Mixing", icon: Store, href: "/marketplace?category=Recording" },
+      { label: "Releases", detail: "Open the release log", icon: Radio, href: "/releases" },
+      { label: "Vault", detail: "Enter the private archive", icon: Archive, href: "/vault" },
+    ];
+  }
+  if (category === "Fashion") {
+    return [
+      { label: "Fashion Work", detail: "Open the Room archive", icon: Shirt, tab: "Work" },
+      { label: "Find Creators", detail: "Designer · Model · Stylist", icon: Search, href: "/creators?discipline=Designer" },
+      { label: "Fashion Services", detail: "Fashion Design · Styling · Modeling", icon: Store, href: "/marketplace?category=Fashion%20Design" },
+    ];
+  }
+  if (category === "Visual") {
+    return [
+      { label: "Visual Work", detail: "Open the Room archive", icon: Palette, tab: "Work" },
+      { label: "Find Creators", detail: "Photographer · Filmmaker · Designer", icon: Search, href: "/creators?discipline=Photographer" },
+      { label: "Visual Services", detail: "Photography · Video · Artwork", icon: Store, href: "/marketplace?category=Photography" },
+    ];
+  }
+  return [
+    { label: "Media Work", detail: "Open the Room archive", icon: PenLine, tab: "Work" },
+    { label: "Transmission", detail: "Open the public signal", icon: Radio, href: "/" },
+    { label: "Find Creators", detail: "Writer · Journalist · Curator", icon: Search, href: "/creators?discipline=Writer" },
+    { label: "Media Services", detail: "Writing · Video · Artwork", icon: Store, href: "/marketplace" },
+  ];
+}
+
+function RoomTools({ category, onOpenWork }: { category: string; onOpenWork: () => void }) {
+  const tools = toolsForOfficialRoom(category);
+  return (
+    <section className="mt-8 border border-white/15 bg-black/25 p-4 backdrop-blur-md md:p-5" aria-label={`${category} Room Tools`}>
+      <div className="mb-4 flex items-end justify-between gap-4 border-b border-white/10 pb-3">
+        <div>
+          <p className="text-[9px] font-mono uppercase tracking-[0.28em] text-primary/80">Official Room</p>
+          <h2 className="mt-1 font-display text-lg font-semibold tracking-wide">Room Tools<span className="text-primary">.</span></h2>
+        </div>
+        <span className="hidden text-[9px] font-mono uppercase tracking-[0.2em] text-muted-foreground/50 sm:block">Context menu // {category}</span>
+      </div>
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        {tools.map(tool => {
+          const Icon = tool.icon;
+          const content = (
+            <>
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center border border-primary/25 bg-primary/[0.08] text-primary/80"><Icon className="h-4 w-4" /></span>
+              <span className="min-w-0">
+                <span className="block text-[10px] font-mono uppercase tracking-[0.16em] text-foreground">{tool.label}</span>
+                <span className="mt-1 block truncate text-[10px] text-muted-foreground/65">{tool.detail}</span>
+              </span>
+              <ArrowRight className="ml-auto h-3.5 w-3.5 shrink-0 text-muted-foreground/45 transition-transform group-hover:translate-x-1 group-hover:text-primary" />
+            </>
+          );
+          if (tool.tab) {
+            return <button key={tool.label} type="button" onClick={onOpenWork} className="group flex min-w-0 items-center gap-3 border border-white/10 bg-white/[0.025] p-3 text-left transition-colors hover:border-primary/45 hover:bg-primary/[0.06]">{content}</button>;
+          }
+          return <Link key={tool.label} href={tool.href!} className="group flex min-w-0 items-center gap-3 border border-white/10 bg-white/[0.025] p-3 transition-colors hover:border-primary/45 hover:bg-primary/[0.06]">{content}</Link>;
+        })}
+      </div>
+    </section>
   );
 }
 
@@ -199,6 +273,7 @@ export default function RoomDetail() {
           </div>
           <div className="flex gap-5 mt-6 text-xs text-muted-foreground"><span className="flex gap-1 items-center"><Users className="w-3.5 h-3.5" /> {room.member_count} members</span>{room.visibility === "private" && <span className="flex gap-1 items-center"><Lock className="w-3.5 h-3.5" /> Invite only</span>}</div>
         </div>
+         {room.owner_user_id === null && <RoomTools category={room.category} onOpenWork={() => setTab("Work")} />}
         <div className="flex gap-1 border-b border-border mt-8 mb-8 overflow-x-auto">{tabs.map(item => <Button key={item} variant="ghost" onClick={() => setTab(item)} className={`rounded-none border-b-2 ${tab === item ? "border-primary text-foreground" : "border-transparent text-muted-foreground"}`}>{item}</Button>)}</div>
         {tab === "Feed" && <div className="max-w-2xl">
           {room.joined && <form onSubmit={publish} className="flex gap-3 mb-8"><Textarea value={body} onChange={e => setBody(e.target.value)} placeholder="Add a signal to the Room…" maxLength={2000} className="min-h-12" /><Button type="submit" size="icon" aria-label="Publish post" disabled={!body.trim()}><Send className="w-4 h-4" /></Button></form>}

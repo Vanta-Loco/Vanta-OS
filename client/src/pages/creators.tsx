@@ -56,9 +56,9 @@ const FILTERS: { value: DirectoryFilter; label: string; detail: string }[] = [
 ];
 
 export default function Creators() {
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(() => new URLSearchParams(window.location.search).get("q") || "");
   const [filter, setFilter] = useState<DirectoryFilter>("all");
-  const [discipline, setDiscipline] = useState("");
+  const [discipline, setDiscipline] = useState(() => new URLSearchParams(window.location.search).get("discipline") || "");
   const [creators, setCreators] = useState<Creator[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
