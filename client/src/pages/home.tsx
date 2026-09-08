@@ -13,6 +13,7 @@ import { SiSpotify, SiApplemusic, SiSoundcloud, SiYoutube } from "react-icons/si
 import { Archive, ArrowRight, Globe, Lock, Music, Plus, Radio, Search } from "lucide-react";
 import { format } from "date-fns";
 import transmissionEnvironment from "@assets/generated_images/transmission_editorial_broadcast_environment.png";
+import { getImageLayout } from "@/components/image-layout-picker";
 
 const worlds = [
   {
@@ -372,6 +373,7 @@ function TransmissionFeed({
   const archivePosts = filteredPosts.filter(
     (post) => post.id !== featuredPost?.id && !latestPosts.some((latest) => latest.id === post.id),
   );
+  const featuredLayout = getImageLayout(featuredPost?.imageLayout);
 
   return (
     <main className="flex-1 bg-background" data-testid="section-transmission">
@@ -471,17 +473,18 @@ function TransmissionFeed({
           <>
             {featuredPost && (
               <Link href={`/post/${featuredPost.id}`} data-testid={`link-featured-transmission-${featuredPost.id}`}>
-                <article className="group relative isolate min-h-[430px] overflow-hidden border border-border bg-card/40 transition-colors hover:border-primary/50 md:min-h-[520px]">
-                  <img
-                    src={featuredPost.coverImage}
-                    alt={featuredPost.title}
-                    className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.02]"
-                    style={{ objectPosition: featuredPost.coverImagePosition || "50% 50%" }}
-                    data-testid={`img-featured-transmission-${featuredPost.id}`}
-                  />
-                  <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(5,6,12,.96)_0%,rgba(5,6,12,.75)_45%,rgba(5,6,12,.15)_100%)]" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/10" />
-                  <div className="relative flex min-h-[430px] flex-col justify-end p-6 md:min-h-[520px] md:max-w-2xl md:p-10">
+                <article className="group relative isolate overflow-hidden border border-border bg-card/40 transition-colors hover:border-primary/50">
+                  <div className={`relative overflow-hidden ${featuredLayout.value === "original" ? "max-h-[70vh]" : featuredLayout.className}`}>
+                    <img
+                      src={featuredPost.coverImage}
+                      alt={featuredPost.title}
+                      className={`w-full ${featuredLayout.value === "original" ? "h-auto max-h-[70vh] object-contain" : "h-full object-cover"} transition-transform duration-700 group-hover:scale-[1.02]`}
+                      style={{ objectPosition: featuredPost.coverImagePosition || "50% 50%" }}
+                      data-testid={`img-featured-transmission-${featuredPost.id}`}
+                    />
+                    <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(5,6,12,.96)_0%,rgba(5,6,12,.75)_45%,rgba(5,6,12,.15)_100%)]" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/10" />
+                  <div className="absolute inset-0 flex flex-col justify-end p-6 md:max-w-2xl md:p-10">
                     <div className="mb-4 flex flex-wrap items-center gap-3 text-[10px] font-mono uppercase tracking-[0.2em] text-white/60">
                       <Badge variant="outline" className="border-primary/50 bg-primary/10 text-primary">{featuredPost.category}</Badge>
                       <span>{format(new Date(featuredPost.createdAt), "MMM d, yyyy")}</span>
@@ -492,6 +495,7 @@ function TransmissionFeed({
                     <span className="mt-7 inline-flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.25em] text-primary transition-transform group-hover:translate-x-1">
                       Read Transmission <ArrowRight className="h-3.5 w-3.5" />
                     </span>
+                  </div>
                   </div>
                 </article>
               </Link>
@@ -534,14 +538,16 @@ function TransmissionFeed({
 }
 
 function TransmissionCard({ post }: { post: Post }) {
+  const layout = getImageLayout(post.imageLayout);
+
   return (
     <Link href={`/post/${post.id}`} data-testid={`link-transmission-${post.id}`}>
       <article className="group h-full overflow-hidden border border-border bg-card/45 transition-colors hover:border-primary/50">
-        <div className="relative aspect-[4/3] overflow-hidden bg-muted">
+        <div className={`relative overflow-hidden bg-muted ${layout.value === "original" ? "max-h-[70vh]" : layout.className}`}>
           <img
             src={post.coverImage}
             alt={post.title}
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+            className={`w-full ${layout.value === "original" ? "h-auto max-h-[70vh] object-contain" : "h-full object-cover"} transition-transform duration-500 group-hover:scale-105`}
             style={{ objectPosition: post.coverImagePosition || "50% 50%" }}
             data-testid={`img-transmission-${post.id}`}
           />
@@ -563,14 +569,16 @@ function TransmissionCard({ post }: { post: Post }) {
 }
 
 function ArchiveTransmission({ post }: { post: Post }) {
+  const layout = getImageLayout(post.imageLayout);
+
   return (
     <Link href={`/post/${post.id}`} data-testid={`link-archive-transmission-${post.id}`}>
       <article className="group flex min-h-32 gap-4 border border-border bg-card/30 p-3 transition-colors hover:border-primary/50 sm:p-4">
-        <div className="relative h-24 w-32 shrink-0 overflow-hidden bg-muted sm:h-28 sm:w-44">
+        <div className={`relative w-32 shrink-0 overflow-hidden bg-muted sm:w-44 ${layout.value === "original" ? "" : layout.className}`}>
           <img
             src={post.coverImage}
             alt={post.title}
-            className="h-full w-full object-cover grayscale-[.35] transition-all duration-500 group-hover:scale-105 group-hover:grayscale-0"
+            className={`w-full ${layout.value === "original" ? "h-auto max-h-[70vh] object-contain" : "h-full object-cover"} grayscale-[.35] transition-all duration-500 group-hover:scale-105 group-hover:grayscale-0`}
             style={{ objectPosition: post.coverImagePosition || "50% 50%" }}
           />
           <span className="absolute bottom-2 left-2 bg-black/70 px-1.5 py-1 text-[8px] font-mono uppercase tracking-widest text-white/70">Archive</span>

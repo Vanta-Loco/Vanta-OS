@@ -1,0 +1,82 @@
+Transmission 2.0 — Cover Image Proportion Regression Fix ONLY
+Continue in Free Mode. Do not switch to Max/Power.
+Transmission Discovery 2.0 introduced a visual regression in the existing published Transmission cover image.
+The underlying image/media asset is correct and must NOT be changed, regenerated, re-uploaded, recompressed, or migrated.
+The problem is presentation/proportions on the public Transmission feed.
+Current problem
+The existing VONSTER X VANTA COLD Transmission cover looked correct before the 2.0 feed redesign.
+After Transmission 2.0, the featured/latest presentation is forcing the image into a different proportion/crop and the composition no longer displays correctly.
+Inspect the new featured/latest Transmission image container and compare it with the existing saved cover-image layout system.
+Existing cover-layout system must remain source of truth
+Transmission already supports saved cover layouts including:
+Original
+Square 1:1
+Portrait 4:5
+Landscape 16:9
+Wide 1.91:1
+Story 9:16
+and persisted image_layout metadata.
+The public feed must respect the saved layout for each post.
+Do NOT introduce a new independent crop/aspect system for Transmission 2.0.
+Fix featured/latest cover rendering
+Remove any new hardcoded aspect ratio, height, width, object-cover, or cropping behavior that overrides the post's saved image_layout.
+Reuse the same existing helper/component/layout logic that correctly renders cover images elsewhere in Transmission where practical.
+Required behavior:
+Original
+Preserve the image's natural aspect ratio.
+Do not crop it simply to fill a hero container.
+Formatted ratios
+For saved:
+1:1
+4:5
+16:9
+1.91:1
+9:16
+use the corresponding intentional aspect container and the project's existing formatted-cover behavior.
+Do not reinterpret the saved layout.
+Featured card composition
+Keep the new Transmission 2.0 editorial styling:
+environment
+Featured Transmission
+title overlay/presentation
+category
+date
+excerpt
+READ TRANSMISSION
+archive
+search/filtering
+Only fix the image presentation.
+The featured card can adapt its surrounding layout to the image instead of destructively forcing the image to fit the card.
+Other Transmission images
+Confirm the same regression does not affect:
+Latest Transmissions cards
+Archive cards
+/post/:id
+gallery images
+Do not change gallery formatting or article-detail image behavior unless the same confirmed cover-layout bug exists there.
+Important media safety
+Preserve:
+current App Storage object
+/media/assets/:id URL
+existing database media reference
+image quality
+image bytes
+saved image_layout
+Do not touch the upload pipeline or Sharp.
+Verification
+Specifically inspect the real:
+VONSTER X VANTA COLD
+post before finishing.
+Confirm:
+Its saved image_layout is read.
+The public Transmission feed respects that layout.
+The image no longer appears unnaturally stretched/cropped.
+The source media asset was not changed.
+/post/:id still renders correctly.
+Other saved cover ratios continue working.
+Run:
+npm run check
+npm run build
+git diff --check
+Stop after the Transmission cover proportion regression fix.
+Do not redesign Transmission 2.0.
