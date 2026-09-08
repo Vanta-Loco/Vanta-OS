@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Activity, ArrowRight, BadgeCheck, CalendarDays, Check, Clock3, MapPin, Plus, Trophy, Users } from "lucide-react";
+import { Activity, ArrowRight, CalendarDays, Check, Clock3, MapPin, Plus, Trophy, Users } from "lucide-react";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { useToast } from "@/hooks/use-toast";
@@ -48,7 +48,7 @@ const cities = [
 
 export default function VantaPlay() {
   const [, navigate] = useLocation();
-  const [selectedCity, setSelectedCity] = useState("Johannesburg");
+  const [selectedCity, setSelectedCity] = useState("All Cities");
   const [selectedSport, setSelectedSport] = useState("All Sports");
   const [gameScope, setGameScope] = useState<"all" | "joined">("all");
   const [games, setGames] = useState<Game[]>([]);
@@ -251,351 +251,198 @@ const response = await fetch(`/api/play/games/${gameId}/join`, {
   }
 
   return (
-    <main className="min-h-screen bg-background text-foreground">
-      <section className="mx-auto max-w-6xl px-5 py-14 md:py-20">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-  <div>
-    <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">
-      Vanta Play
-    </p>
+    <div className="relative min-h-screen overflow-hidden bg-[#07080e] text-foreground">
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0">
+        <img src={playEnvironmentImage} alt="" className="absolute inset-0 h-full w-full object-cover object-center opacity-45" />
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(7,8,14,.92)_0%,rgba(7,8,14,.55)_28%,rgba(7,8,14,.78)_72%,rgba(7,8,14,.97)_100%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_58%_28%,rgba(125,85,185,.18),transparent_45%)]" />
+      </div>
 
-    <p className="mt-2 text-sm text-muted-foreground">
-      Powered by Vanta Passport
-    </p>
-  </div>
+      <div className="relative z-10 flex min-h-screen flex-col">
+        <Header />
+        <main className="flex-1 pt-20">
+          <section className="mx-auto max-w-7xl px-6 py-14 lg:px-8 md:py-20">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <p className="text-[10px] font-mono uppercase tracking-[0.32em] text-primary/80">VANTA PLAY // PICKUP NETWORK</p>
+                <p className="mt-2 text-xs font-mono uppercase tracking-[0.2em] text-muted-foreground/60">Passport-connected activity layer</p>
+              </div>
+              <div className="border border-white/15 bg-black/25 px-3 py-1.5 text-[10px] font-mono uppercase tracking-widest text-muted-foreground/70">South Africa Alpha · v0.2</div>
+            </div>
 
-  <div className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">
-    South Africa Alpha · v0.2
-  </div>
-</div>
+            <div className="mt-12 max-w-4xl">
+              <h1 className="font-display text-5xl font-bold tracking-tight md:text-8xl">VANTA PLAY<span className="text-primary">.</span></h1>
+              <p className="mt-5 max-w-2xl text-lg leading-8 text-muted-foreground md:text-xl">Find a game. Show up. Play.</p>
+              <p className="mt-3 max-w-2xl text-sm leading-7 text-muted-foreground/70">Real pickup sessions, neighborhood courts, and a sporting identity that moves with your Passport.</p>
+            </div>
 
-        <h1 className="mt-4 max-w-4xl text-5xl font-semibold tracking-tight md:text-7xl">
-          Vanta Play
-        </h1>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <a href="#games" className="inline-flex items-center gap-2 bg-primary px-5 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"><Trophy className="h-4 w-4" /> Find a Game</a>
+              <button type="button" onClick={() => setShowHostForm(current => !current)} className="inline-flex items-center gap-2 border border-white/20 bg-black/25 px-5 py-3 text-sm font-medium transition-colors hover:border-primary/60"><Plus className="h-4 w-4" /> {showHostForm ? "Close Form" : "Host Game"}</button>
+            </div>
 
-        <p className="mt-6 max-w-2xl text-base leading-7 text-muted-foreground md:text-lg">
-          Find real-world games, host local sessions and build a respected
-          sporting identity across South Africa.
-        </p>
+            <div className="mt-10 grid max-w-3xl grid-cols-2 gap-px border border-white/10 bg-white/10 sm:grid-cols-4">
+              <PlayMetric label="Open games" value={String(games.length)} />
+              <PlayMetric label="Cities" value={String(new Set(games.map(game => game.city)).size)} />
+              <PlayMetric label="Sports" value={String(new Set(games.map(game => game.sport)).size)} />
+              <PlayMetric label="Your games" value={isAuthenticated ? String(joinedGameRecords.length) : "—"} />
+            </div>
 
-        <div className="mt-9 flex flex-wrap gap-3">
-          <a
-            href="#games"
-            className="rounded-md bg-primary px-5 py-3 text-sm font-medium text-primary-foreground"
-          >
-            Find a Game
-          </a>
+            {gamesLoading ? (
+              <PlayPanel className="mt-12">
+                <PlayEyebrow>Signal scan</PlayEyebrow>
+                <p className="mt-4 text-sm text-muted-foreground">Loading live games…</p>
+              </PlayPanel>
+            ) : featuredGame ? (
+              <section className="mt-12 border border-primary/35 bg-black/45 p-5 shadow-[0_18px_70px_rgba(0,0,0,.28)] backdrop-blur-md md:p-8">
+                <div className="flex flex-col gap-7 md:flex-row md:items-center md:justify-between">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2 text-[10px] font-mono uppercase tracking-[0.24em]">
+                      <span className="flex items-center gap-1.5 text-primary"><Activity className="h-3.5 w-3.5" /> Featured pickup</span>
+                      <span className="text-muted-foreground/45">//</span>
+                      <span className="text-emerald-300/75">{gameStatus(featuredGame, joinedGames.includes(featuredGame.id))}</span>
+                    </div>
+                    <h2 className="mt-4 truncate font-display text-3xl font-semibold md:text-4xl">{featuredGame.venue}<span className="text-primary">.</span></h2>
+                    <p className="mt-2 flex items-center gap-2 text-sm text-muted-foreground"><MapPin className="h-4 w-4 text-primary/75" />{featuredGame.city} · {featuredGame.sport}</p>
+                    <div className="mt-5 flex flex-wrap gap-2 text-[10px] font-mono uppercase tracking-widest text-muted-foreground/70">
+                      <span className="border border-white/15 px-2.5 py-1.5">{featuredGame.date}</span>
+                      <span className="border border-white/15 px-2.5 py-1.5">{featuredGame.time}</span>
+                      <span className="border border-white/15 px-2.5 py-1.5">{featuredGame.players}/{featuredGame.capacity} Players</span>
+                      <span className="border border-white/15 px-2.5 py-1.5">{featuredGame.skill}</span>
+                    </div>
+                  </div>
+                  <PlayGameAction game={featuredGame} joined={joinedGames.includes(featuredGame.id)} isAuthenticated={isAuthenticated} onAction={joinGame} featured />
+                </div>
+              </section>
+            ) : null}
 
-          <button
-            type="button"
-            onClick={() => setShowHostForm((current) => !current)}
-            className="rounded-md border border-border px-5 py-3 text-sm font-medium"
-          >
-            {showHostForm ? "Close Form" : "Host a Game"}
-          </button>
-        </div>
+            {isAuthenticated && (
+              <section className="mt-6 border border-white/10 bg-black/30 p-5 backdrop-blur-md">
+                <div className="flex flex-wrap items-end justify-between gap-3">
+                  <div>
+                    <PlayEyebrow>Your games</PlayEyebrow>
+                    <h2 className="mt-2 font-display text-2xl font-semibold">YOUR GAMES<span className="text-primary">.</span></h2>
+                  </div>
+                  <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/55">{joinedGameRecords.length} joined</span>
+                </div>
+                {joinedGameRecords.length ? (
+                  <div className="mt-4 grid gap-2 md:grid-cols-2">
+                    {joinedGameRecords.slice(0, 4).map(game => <div key={game.id} className="flex min-w-0 items-center justify-between gap-4 border border-white/10 bg-white/[0.03] px-3 py-3"><div className="min-w-0"><p className="truncate text-sm">{game.sport} · {game.venue}</p><p className="mt-1 truncate text-[10px] font-mono uppercase tracking-widest text-muted-foreground/55">{game.city} · {game.date} · {game.time}</p></div><span className="shrink-0 text-[9px] font-mono uppercase tracking-widest text-emerald-300/75">You&apos;re in</span></div>)}
+                  </div>
+                ) : <p className="mt-4 text-sm text-muted-foreground">You haven&apos;t joined a game yet.</p>}
+              </section>
+            )}
 
- {gamesLoading ? (
-   <section className="mt-12 rounded-2xl border border-border bg-card p-6 md:p-8">
-     <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">
-       Featured Game
-     </p>
-     <p className="mt-4 text-sm text-muted-foreground">Loading live games…</p>
-   </section>
- ) : featuredGame ? (
- <section className="mt-12 rounded-2xl border border-border bg-card p-6 md:p-8">
-  <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-    <div>
-      <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">
-         🔥 Featured Game · Live
-      </p>
+            {showHostForm && (
+              <section className="mt-8 border border-white/15 bg-black/55 p-5 backdrop-blur-md md:p-8">
+                <PlayEyebrow>New signal // host a session</PlayEyebrow>
+                <div className="mt-3 flex flex-wrap items-end justify-between gap-3">
+                  <h2 className="font-display text-2xl font-semibold">HOST GAME<span className="text-primary">.</span></h2>
+                  <p className="text-xs text-muted-foreground">Can&apos;t find a game? Host one.</p>
+                </div>
+                <form onSubmit={hostGame} className="mt-7 grid gap-4 md:grid-cols-2">
+                  <PlayField label="Sport"><select name="sport" required className="play-input">{sports.filter(sport => sport !== "All Sports").map(sport => <option key={sport}>{sport}</option>)}</select></PlayField>
+                  <PlayField label="City"><select name="city" required className="play-input">{cities.filter(city => city !== "All Cities").map(city => <option key={city}>{city}</option>)}</select></PlayField>
+                  <PlayField label="Venue" wide><input name="venue" required placeholder="Park, school, university or sports facility" className="play-input" /></PlayField>
+                  <PlayField label="Date"><input name="date" type="date" required className="play-input" /></PlayField>
+                  <PlayField label="Time"><input name="time" type="time" required className="play-input" /></PlayField>
+                  <PlayField label="Skill level"><select name="skill" className="play-input"><option>All levels</option><option>Casual</option><option>Intermediate</option><option>Competitive</option></select></PlayField>
+                  <PlayField label="Maximum players"><input name="capacity" type="number" min="2" max="100" defaultValue="10" required className="play-input" /></PlayField>
+                  <button type="submit" className="inline-flex items-center justify-center gap-2 bg-primary px-5 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 md:col-span-2"><Plus className="h-4 w-4" /> Create Game</button>
+                </form>
+              </section>
+            )}
 
-      <h2 className="mt-3 text-3xl font-semibold">
-         {featuredGame.venue}
-      </h2>
+            <section id="games" className="mt-16 scroll-mt-24">
+              <div className="flex flex-col gap-5 border-b border-white/15 pb-5 md:flex-row md:items-end md:justify-between">
+                <div>
+                  <PlayEyebrow>Local activity // discovery</PlayEyebrow>
+                  <h2 className="mt-3 font-display text-3xl font-semibold">FIND A GAME<span className="text-primary">.</span></h2>
+                </div>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <PlaySelect ariaLabel="Filter by city" value={selectedCity} onChange={setSelectedCity}>{cities.map(city => <option key={city}>{city}</option>)}</PlaySelect>
+                  <PlaySelect ariaLabel="Filter by sport" value={selectedSport} onChange={setSelectedSport}>{sports.map(sport => <option key={sport}>{sport}</option>)}</PlaySelect>
+                  {isAuthenticated && <div className="flex border border-white/15 bg-black/35 p-1"><button type="button" onClick={() => setGameScope("all")} className={`px-3 py-2 text-[10px] font-mono uppercase tracking-widest ${gameScope === "all" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}>All</button><button type="button" onClick={() => setGameScope("joined")} className={`px-3 py-2 text-[10px] font-mono uppercase tracking-widest ${gameScope === "joined" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}>My Games</button></div>}
+                </div>
+              </div>
 
-      <p className="mt-2 text-muted-foreground">
-         {featuredGame.city}
-      </p>
+              <div className="mt-6 grid gap-4">
+                {gamesLoading ? <PlayPanel><p className="text-sm text-muted-foreground">Loading live games…</p></PlayPanel> : filteredGames.length === 0 ? <PlayEmpty genuine={games.length === 0} city={selectedCity} sport={selectedSport} onHost={() => setShowHostForm(true)} /> : filteredGames.map(game => {
+                  const joined = joinedGames.includes(game.id);
+                  const full = game.players >= game.capacity && !joined;
+                  return (
+                    <article key={game.id} className={`border bg-black/45 p-5 backdrop-blur-md transition-colors md:p-6 ${joined ? "border-primary/55 shadow-[0_0_28px_rgba(150,100,220,.1)]" : "border-white/10 hover:border-primary/40"}`}>
+                      <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2 text-[10px] font-mono uppercase tracking-[0.2em]">
+                            <span className="text-primary/80">{game.sport}</span><span className="text-muted-foreground/35">//</span><span className="text-muted-foreground/60">{gameStatus(game, joined)}</span>{game.skill && <><span className="text-muted-foreground/35">//</span><span className="text-muted-foreground/60">{game.skill}</span></>}
+                          </div>
+                          <h3 className="mt-3 truncate font-display text-2xl font-semibold">{game.venue}<span className="text-primary">.</span></h3>
+                          <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted-foreground">
+                            <span className="flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5 text-primary/75" />{game.city}</span>
+                            <span className="flex items-center gap-1.5"><CalendarDays className="h-3.5 w-3.5 text-primary/75" />{game.date}</span>
+                            <span className="flex items-center gap-1.5"><Clock3 className="h-3.5 w-3.5 text-primary/75" />{game.time}</span>
+                            <span className="flex items-center gap-1.5"><Users className="h-3.5 w-3.5 text-primary/75" />{game.players}/{game.capacity} players</span>
+                          </div>
+                        </div>
+                        <PlayGameAction game={game} joined={joined} isAuthenticated={isAuthenticated} onAction={joinGame} />
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            </section>
 
-      <div className="mt-4 flex flex-wrap gap-2">
-        <span className="rounded-full border border-border px-3 py-1 text-xs">
-           {featuredGame.sport}
-        </span>
+            <section className="mt-12 grid gap-4 md:grid-cols-2">
+              <PlayPanel><PlayEyebrow>Passport connection</PlayEyebrow><h2 className="mt-3 font-display text-2xl font-semibold">GAME ON<span className="text-primary">.</span></h2><p className="mt-3 text-sm leading-6 text-muted-foreground">A successful join is recorded through Vanta Passport. Your Game On achievement stays backend-driven.</p><Link href="/passport" className="mt-5 inline-flex items-center gap-2 text-[10px] font-mono uppercase tracking-widest text-primary/80 hover:text-primary">Open Passport <ArrowRight className="h-3 w-3" /></Link></PlayPanel>
+              <PlayPanel><PlayEyebrow>On the court</PlayEyebrow><h2 className="mt-3 font-display text-2xl font-semibold">SHOW UP<span className="text-primary">.</span></h2><p className="mt-3 text-sm leading-6 text-muted-foreground">Check the venue, arrive ready, and keep the pickup network moving through real sessions.</p><p className="mt-5 text-[10px] font-mono uppercase tracking-widest text-muted-foreground/55">Pickup network // member activity</p></PlayPanel>
+            </section>
 
-        <span className="rounded-full border border-border px-3 py-1 text-xs">
-           {featuredGame.date}
-        </span>
-
-        <span className="rounded-full border border-border px-3 py-1 text-xs">
-           {featuredGame.time}
-        </span>
-
-        <span className="rounded-full border border-border px-3 py-1 text-xs">
-           {featuredGame.skill}
-        </span>
-
-        <span className="rounded-full border border-border px-3 py-1 text-xs">
-           {featuredGame.players} / {featuredGame.capacity} Players
-        </span>
+            <Link href="/" className="mt-10 inline-flex items-center gap-2 text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground"><ArrowRight className="h-3 w-3 rotate-180" /> Return to Vanta OS</Link>
+          </section>
+        </main>
+        <Footer />
       </div>
     </div>
-
-    <button
-      type="button"
-       onClick={() => isAuthenticated
-         ? joinGame(featuredGame.id)
-         : navigate("/login")}
-      className="rounded-md bg-primary px-6 py-3 text-sm font-medium text-primary-foreground"
-    >
-       {isAuthenticated
-         ? joinedGames.includes(featuredGame.id) ? "Leave Featured Game" : "Join Featured Game"
-         : "Sign In to Join"}
-    </button>
-  </div>
- </section>
- ) : null}
-
-        {showHostForm && (
-          <section className="mt-14 rounded-xl border border-border bg-card p-6 md:p-8">
-            <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">
-              Create activity
-            </p>
-
-            <h2 className="mt-3 text-2xl font-medium">Host a game</h2>
-
-            <form
-              onSubmit={hostGame}
-              className="mt-7 grid gap-4 md:grid-cols-2"
-            >
-              <label className="grid gap-2 text-sm">
-                Sport
-                <select
-                  name="sport"
-                  required
-                  className="rounded-md border border-border bg-background px-3 py-3"
-                >
-                  {sports
-                    .filter((sport) => sport !== "All Sports")
-                    .map((sport) => (
-                      <option key={sport}>{sport}</option>
-                    ))}
-                </select>
-              </label>
-
-              <label className="grid gap-2 text-sm">
-                City
-                <select
-                  name="city"
-                  required
-                  className="rounded-md border border-border bg-background px-3 py-3"
-                >
-                  {cities.map((city) => (
-                    <option key={city}>{city}</option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="grid gap-2 text-sm md:col-span-2">
-                Venue
-                <input
-                  name="venue"
-                  required
-                  placeholder="Park, school, university or sports facility"
-                  className="rounded-md border border-border bg-background px-3 py-3"
-                />
-              </label>
-
-              <label className="grid gap-2 text-sm">
-                Date
-                <input
-                  name="date"
-                  type="date"
-                  required
-                  className="rounded-md border border-border bg-background px-3 py-3"
-                />
-              </label>
-
-              <label className="grid gap-2 text-sm">
-                Time
-                <input
-                  name="time"
-                  type="time"
-                  required
-                  className="rounded-md border border-border bg-background px-3 py-3"
-                />
-              </label>
-
-              <label className="grid gap-2 text-sm">
-                Skill level
-                <select
-                  name="skill"
-                  className="rounded-md border border-border bg-background px-3 py-3"
-                >
-                  <option>All levels</option>
-                  <option>Casual</option>
-                  <option>Intermediate</option>
-                  <option>Competitive</option>
-                </select>
-              </label>
-
-              <label className="grid gap-2 text-sm">
-                Maximum players
-                <input
-                  name="capacity"
-                  type="number"
-                  min="2"
-                  max="100"
-                  defaultValue="10"
-                  required
-                  className="rounded-md border border-border bg-background px-3 py-3"
-                />
-              </label>
-
-              <button
-                type="submit"
-                className="rounded-md bg-primary px-5 py-3 text-sm font-medium text-primary-foreground md:col-span-2"
-              >
-                Create Game
-              </button>
-            </form>
-          </section>
-        )}
-
-        <section id="games" className="mt-16">
-          <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
-            <div>
-              <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">
-                Local activity
-              </p>
-              <h2 className="mt-3 text-3xl font-medium">Games near you</h2>
-            </div>
-
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <select
-                value={selectedCity}
-                onChange={(event) => setSelectedCity(event.target.value)}
-                className="rounded-md border border-border bg-background px-4 py-3 text-sm"
-              >
-                {cities.map((city) => (
-                  <option key={city}>{city}</option>
-                ))}
-              </select>
-
-              <select
-                value={selectedSport}
-                onChange={(event) => setSelectedSport(event.target.value)}
-                className="rounded-md border border-border bg-background px-4 py-3 text-sm"
-              >
-                {sports.map((sport) => (
-                  <option key={sport}>{sport}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-           <div className="mt-8 grid gap-4">
-             {gamesLoading ? (
-               <div className="rounded-xl border border-dashed border-border p-8">
-                 <p className="text-sm text-muted-foreground">Loading live games…</p>
-               </div>
-             ) : filteredGames.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-border p-8">
-                <h3 className="text-lg font-medium">No games found</h3>
-                <p className="mt-2 text-muted-foreground">
-                  Host the first {selectedSport.toLowerCase()} session in{" "}
-                  {selectedCity}.
-                </p>
-              </div>
-            ) : (
-              filteredGames.map((game) => {
-                const joined = joinedGames.includes(game.id);
-                const full = game.players >= game.capacity && !joined;
-
-                return (
-                  <article
-                    key={game.id}
-                    className="grid gap-5 rounded-xl border border-border bg-card p-6 md:grid-cols-[1fr_auto] md:items-center"
-                  >
-                    <div>
-                      <div className="flex flex-wrap gap-2 text-xs uppercase tracking-[0.18em] text-muted-foreground">
-                        <span>{game.sport}</span>
-                        <span>•</span>
-                        <span>{game.skill}</span>
-                        <span>•</span>
-                        <span>{game.city}</span>
-                      </div>
-
-                      <h3 className="mt-3 text-xl font-medium">{game.venue}</h3>
-
-                      <p className="mt-2 text-sm text-muted-foreground">
-                        {game.date} at {game.time} · {game.players}/
-                        {game.capacity} players
-                      </p>
-                    </div>
-
-                    <button
-                      type="button"
-                      disabled={full}
-                       onClick={() => isAuthenticated ? joinGame(game.id) : navigate("/login")}
-                      className="rounded-md border border-border px-5 py-3 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                       {isAuthenticated
-                         ? joined ? "Leave Game" : full ? "Game Full" : "Join Game"
-                         : "Sign In to Join"}
-                    </button>
-                  </article>
-                );
-              })
-            )}
-          </div>
-        </section>
-
-        <section className="mt-16 grid gap-4 md:grid-cols-2">
-          <article className="rounded-xl border border-border p-6">
-            <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">
-              Before activity
-            </p>
-            <h2 className="mt-3 text-2xl font-medium">Prepare</h2>
-            <ul className="mt-5 space-y-3 text-sm text-muted-foreground">
-              <li>Drink water before leaving.</li>
-              <li>Complete a five-minute dynamic warm-up.</li>
-              <li>Check equipment, footwear and weather.</li>
-              <li>Tell someone where the session is taking place.</li>
-            </ul>
-          </article>
-
-          <article className="rounded-xl border border-border p-6">
-            <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">
-              After activity
-            </p>
-            <h2 className="mt-3 text-2xl font-medium">Recover</h2>
-            <ul className="mt-5 space-y-3 text-sm text-muted-foreground">
-              <li>Rehydrate gradually after playing.</li>
-              <li>Cool down before static stretching.</li>
-              <li>Record the result and sportsmanship rating.</li>
-              <li>Rest when pain feels abnormal or persistent.</li>
-            </ul>
-          </article>
-        </section>
-
-        <section className="mt-16 rounded-xl border border-border p-6 md:p-8">
-          <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">
-            Alpha rollout
-          </p>
-          <h2 className="mt-3 text-2xl font-medium">South Africa first</h2>
-          <p className="mt-3 max-w-2xl leading-7 text-muted-foreground">
-            Initial testing begins with Johannesburg and Pretoria before
-            expanding through Cape Town, Durban, Gqeberha and other cities.
-          </p>
-        </section>
-
-        <Link href="/">
-          <a className="mt-10 inline-block text-sm underline underline-offset-4">
-            Return to Vanta OS
-          </a>
-        </Link>
-      </section>
-    </main>
   );
+}
+
+function gameStatus(game: Game, joined: boolean) {
+  if (joined) return "YOU'RE IN";
+  if (game.players >= game.capacity) return "FULL";
+  return "OPEN";
+}
+
+function PlayMetric({ label, value }: { label: string; value: string }) {
+  return <div className="bg-black/45 px-4 py-3 backdrop-blur-md"><p className="text-lg font-display text-foreground">{value}</p><p className="mt-1 text-[9px] font-mono uppercase tracking-widest text-muted-foreground/55">{label}</p></div>;
+}
+
+function PlayEyebrow({ children }: { children: React.ReactNode }) {
+  return <p className="text-[10px] font-mono uppercase tracking-[0.25em] text-primary/75">{children}</p>;
+}
+
+function PlayPanel({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  return <div className={`border border-white/10 bg-black/45 p-5 backdrop-blur-md md:p-6 ${className}`}>{children}</div>;
+}
+
+function PlaySelect({ ariaLabel, value, onChange, children }: { ariaLabel: string; value: string; onChange: (value: string) => void; children: React.ReactNode }) {
+  return <select aria-label={ariaLabel} value={value} onChange={event => onChange(event.target.value)} className="h-10 w-full max-w-full border border-white/15 bg-black/55 px-3 text-sm text-foreground sm:w-auto">{children}</select>;
+}
+
+function PlayField({ label, wide, children }: { label: string; wide?: boolean; children: React.ReactNode }) {
+  return <label className={`grid gap-2 text-xs text-muted-foreground ${wide ? "md:col-span-2" : ""}`}>{label}{children}</label>;
+}
+
+function PlayGameAction({ game, joined, isAuthenticated, onAction, featured = false }: { game: Game; joined: boolean; isAuthenticated: boolean; onAction: (id: string) => void; featured?: boolean }) {
+  const full = game.players >= game.capacity && !joined;
+  return <div className={`flex shrink-0 flex-col gap-2 ${featured ? "w-full md:w-48" : "w-full lg:w-40"}`}>
+    <div className={`flex items-center justify-center gap-2 border px-3 py-2 text-[10px] font-mono uppercase tracking-widest ${joined ? "border-primary/50 bg-primary/10 text-primary" : full ? "border-white/15 text-muted-foreground/60" : "border-emerald-300/30 bg-emerald-300/5 text-emerald-300/80"}`}><span className={`h-1.5 w-1.5 rounded-full ${joined ? "bg-primary" : full ? "bg-muted-foreground/50" : "bg-emerald-300"}`} /> {gameStatus(game, joined)}</div>
+    <button type="button" disabled={full} onClick={() => onAction(game.id)} className={`inline-flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${joined ? "border border-primary/45 text-primary hover:bg-primary/10" : "bg-primary text-primary-foreground hover:bg-primary/90"}`}>
+      {isAuthenticated ? joined ? <><Check className="h-4 w-4" /> Leave Game</> : full ? "Full" : "Join Game" : full ? "Full" : "Sign In to Join"}
+    </button>
+  </div>;
+}
+
+function PlayEmpty({ genuine, city, sport, onHost }: { genuine: boolean; city: string; sport: string; onHost: () => void }) {
+  return <div className="border border-dashed border-white/20 bg-black/35 px-6 py-16 text-center backdrop-blur-md"><p className="font-display text-2xl">{genuine ? "THE COURT IS QUIET" : "NO GAMES FOUND"}</p><p className="mx-auto mt-3 max-w-md text-sm leading-6 text-muted-foreground">{genuine ? "No games are active yet. Host the first session." : `No ${sport === "All Sports" ? "games" : sport.toLowerCase()} sessions found${city === "All Cities" ? "" : ` in ${city}`}.`}</p><button type="button" onClick={onHost} className="mt-6 inline-flex items-center gap-2 border border-white/20 px-4 py-2.5 text-xs font-mono uppercase tracking-widest hover:border-primary/60"><Plus className="h-3.5 w-3.5" /> Host Game</button></div>;
 }
