@@ -1,0 +1,221 @@
+Vanta OS — Black Index Phase 1B: Universal Search Frontend ONLY
+Continue in Free Mode. Do not switch to Max/Power.
+Black Index Phase 1A backend is complete.
+Existing endpoint:
+GET /api/search?q=...
+Response groups:
+creators
+work
+rooms
+marketplace
+transmission
+releases
+play
+This task is ONLY to build the real Black Index frontend around that existing API.
+Do not modify backend search logic unless a verified response-contract bug blocks the UI.
+Do not build AI, embeddings, semantic search, recommendations, or chat.
+Goal
+Turn the existing Black Index/search route into a real Vanta-native ecosystem search engine.
+Black Index should help a user find:
+people
+work
+spaces
+services
+content
+releases
+games
+across Vanta.
+1. Main search experience
+Use the existing Black Index or /search route.
+Primary interface:
+BLACK INDEX
+SEARCH VANTA
+Include a prominent search input.
+Search should call:
+GET /api/search?q=...
+Use debouncing or another lightweight approach so it does not fire on every keystroke unnecessarily.
+Do not search on an empty query.
+2. Result groups
+Render backend groups separately:
+CREATORS
+WORK
+ROOMS
+MARKETPLACE
+TRANSMISSION
+RELEASES
+PLAY
+Hide empty groups when a real search is active.
+Do not flatten everything into one list.
+3. Creator results
+Show available public fields such as:
+display name
+@username
+disciplines
+short bio
+Certified Creator treatment only when actually certified
+Clicking should open:
+/creators/:username
+4. Work results
+Show:
+title
+Work type
+Creator identity
+thumbnail if available
+intentional type placeholder if not
+associated Room where available
+Link using the cleanest existing Creator Work/public profile behavior.
+Do not create a new Work detail system unless one already exists.
+5. Room results
+Show:
+Room name
+category
+public description/status where supplied
+Link:
+/rooms/:id
+If existing Music/Fashion environment imagery is already available cleanly in frontend mappings, it may be used subtly.
+Do not redesign Room environments.
+6. Marketplace results
+Show:
+listing title
+category
+Creator identity
+price / price type where available
+Link to the existing Marketplace detail route.
+Do not create fake pricing.
+7. Transmission results
+Show:
+post title
+cover image where available
+category/date where available
+short excerpt only if already safely provided
+Link to the existing Transmission/post route.
+8. Release results
+Show available public release metadata:
+title
+artist
+artwork where available
+release metadata/date where available
+Link to the existing Release page.
+Do not modify Release playback.
+9. Play results
+Show:
+game title
+sport
+location
+date/time where available
+Link into the existing Vanta Play experience.
+Do not modify game logic.
+10. Filters
+Add lightweight frontend filters:
+All
+Creators
+Work
+Rooms
+Marketplace
+Transmission
+Releases
+Play
+All shows grouped results.
+A category filter shows only that category from the same search response.
+Do not build new backend filtering endpoints.
+11. Empty state
+Before a query is entered, show:
+EXPLORE THE INDEX
+with useful categories:
+Creators
+Work
+Rooms
+Marketplace
+Transmission
+These can act as explanatory/visual entry points.
+Do not create fake trending searches or fake activity.
+12. No results
+Use:
+Nothing indexed under that search.
+Add a small suggestion such as:
+Try a broader name, category, discipline, location or title.
+Do not invent fallback results.
+13. Search status
+Include restrained system states:
+SEARCHING INDEX...
+result count if easy to derive client-side
+no-result state
+Avoid loading spinners that feel like generic SaaS.
+14. URL query support
+If straightforward, sync the search term to:
+/search?q=music
+so searches can be refreshed/shared.
+On page load, read the q parameter and run the search.
+Keep this frontend-only if possible.
+15. Visual direction
+Black Index should feel like:
+underground search terminal
+classified digital archive
+intelligence database
+early-web/Y2K index
+Vanta OS
+Avoid:
+Google clone
+ChatGPT clone
+generic SaaS cards
+bright modern search-engine styling
+Use:
+compact metadata
+dark surfaces
+subtle grid/terminal treatment
+restrained borders
+clear result-type labels
+16. Mobile
+Ensure:
+full-width search
+filter controls remain usable
+no horizontal overflow
+result cards remain readable and tappable
+17. Guide relationship
+Do not merge Black Index into Vanta Guide.
+Vanta Guide remains:
+How do I use Vanta?
+Black Index remains:
+Find something inside Vanta.
+Preserve the existing Guide.
+18. Preserve
+Do not modify:
+search backend unless contract bug is proven
+database schema
+Member/Admin auth
+sessions
+suspension
+Passport
+Creator CRUD
+Rooms behavior
+Marketplace behavior
+Play logic
+Transmission editor
+Releases backend
+Vault
+media infrastructure
+Dashboard
+NEXT MOVE
+Vanta Guide
+Verification
+Run:
+npm run check
+npm run build
+git diff --check
+Manually test:
+Open Black Index with no query.
+Search music.
+Search producer.
+Search fashion.
+Search a real Creator username.
+Search a real Work title.
+Search Johannesburg.
+Search a real Transmission post.
+Search a real Release.
+Test every result-type filter.
+Click results and verify destinations.
+Refresh a URL with ?q=.
+Test no-result state.
+Test mobile layout.
+Stop after Black Index Phase 1B frontend is complete.
+Do not begin AI or Black Index Phase 2.

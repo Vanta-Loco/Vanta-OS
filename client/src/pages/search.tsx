@@ -1,363 +1,490 @@
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useSearch, useLocation, Link } from "wouter";
-import { useState, useEffect, useMemo } from "react";
+import { Link, useLocation, useSearch } from "wouter";
+import {
+  ArrowRight,
+  BadgeCheck,
+  CalendarDays,
+  Database,
+  Disc3,
+  Gamepad2,
+  Image as ImageIcon,
+  MapPin,
+  Radio,
+  Search,
+  ShoppingBag,
+  Sparkles,
+  Trophy,
+  Users,
+  X,
+} from "lucide-react";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { ReturnToCity } from "@/components/return-to-city";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {
-  Search, X, Database, ArrowRight, FileText, Disc3, Globe, LockKeyhole, ScrollText, ShieldAlert,
-} from "lucide-react";
-import { useVault } from "@/hooks/use-vault";
-import { worlds } from "@/data/worlds";
-import type { Post, Release, VaultItem } from "@shared/schema";
 
-type Kind = "TRANSMISSION" | "RELEASE" | "WORLD" | "VAULT" | "LORE";
-
-interface ArchiveResult {
-  kind: Kind;
-  id: string;
-  title: string;
-  snippet: string;
-  meta?: string;
-  href: string;
-}
-
-const KIND_ORDER: Kind[] = ["TRANSMISSION", "RELEASE", "WORLD", "VAULT", "LORE"];
-
-const KIND_META: Record<Kind, { Icon: React.ElementType; badge: string }> = {
-  TRANSMISSION: { Icon: FileText, badge: "border-purple-500/30 text-purple-300 bg-purple-500/10" },
-  RELEASE: { Icon: Disc3, badge: "border-sky-500/30 text-sky-300 bg-sky-500/10" },
-  WORLD: { Icon: Globe, badge: "border-emerald-500/30 text-emerald-300 bg-emerald-500/10" },
-  VAULT: { Icon: LockKeyhole, badge: "border-red-500/30 text-red-300 bg-red-500/10" },
-  LORE: { Icon: ScrollText, badge: "border-amber-500/30 text-amber-300 bg-amber-500/10" },
+type CreatorResult = {
+  username: string;
+  display_name: string;
+  disciplines: string[];
+  bio: string | null;
+  city: string | null;
+  country: string | null;
+  profile_image_url: string | null;
+  is_certified: boolean;
 };
 
-// Placeholder lore fragments — surfaced from the wider Vanta mythology.
-const LORE_FRAGMENTS: { id: string; title: string; snippet: string; href: string }[] = [
-  { id: "lore-equinox-eye", title: "Equinox Eye", snippet: "An ancient lens that reads the seams between worlds. Dormant in the mountain shrine.", href: "/himalayas" },
-  { id: "lore-fractured-godhead", title: "Fractured Godhead", snippet: "A godhead split across timelines — the mythology archive of the Vanta universe.", href: "/fgh" },
-  { id: "lore-hidden-himalayas", title: "Hidden Himalayas", snippet: "A spiritual expansion buried in the cold. Access patch not yet deployed.", href: "/himalayas" },
-  { id: "lore-the-board", title: "The Board", snippet: "The unseen architects behind Vanta OS. They decide what comes online and what stays buried.", href: "/fgh" },
-  { id: "lore-fract", title: "FRACT Economy", snippet: "The reputation layer of the Vanta universe. Earned through participation, never bought.", href: "/fract" },
-  { id: "lore-wireline", title: "Wireline Relay", snippet: "A terminal dispatch system relaying public channels, announcements, and missions.", href: "/wireline" },
+type WorkResult = {
+  id: string;
+  title: string;
+  description: string | null;
+  work_type: string;
+  thumbnail_url: string | null;
+  is_featured: boolean;
+  created_at: string;
+  creator_username: string;
+  creator_display_name: string;
+  creator_is_certified: boolean;
+  room_name: string | null;
+};
+
+type RoomResult = {
+  id: string;
+  name: string;
+  category: string;
+  description: string | null;
+  member_count: number;
+  created_at: string;
+};
+
+type MarketplaceResult = {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  price_amount: string | null;
+  currency: string;
+  price_type: string;
+  city: string | null;
+  delivery_mode: string;
+  creator_username: string;
+  creator_display_name: string;
+};
+
+type TransmissionResult = {
+  id: string;
+  title: string;
+  excerpt: string;
+  cover_image: string;
+  category: string;
+  created_at: string;
+  read_time: string;
+};
+
+type ReleaseResult = {
+  id: string;
+  title: string;
+  type: string;
+  cover_image: string;
+  description: string;
+  release_date: string;
+  genre: string;
+  subgenre: string;
+  mood_tags: string[];
+};
+
+type PlayResult = {
+  id: string;
+  sport: string;
+  city: string;
+  venue: string;
+  date: string;
+  time: string;
+  skill: string;
+  capacity: number;
+  players: number;
+};
+
+type SearchResponse = {
+  query: string;
+  creators: CreatorResult[];
+  work: WorkResult[];
+  rooms: RoomResult[];
+  marketplace: MarketplaceResult[];
+  transmission: TransmissionResult[];
+  releases: ReleaseResult[];
+  play: PlayResult[];
+};
+
+type FilterKey = "all" | "creators" | "work" | "rooms" | "marketplace" | "transmission" | "releases" | "play";
+
+const FILTERS: { key: FilterKey; label: string }[] = [
+  { key: "all", label: "All" },
+  { key: "creators", label: "Creators" },
+  { key: "work", label: "Work" },
+  { key: "rooms", label: "Rooms" },
+  { key: "marketplace", label: "Marketplace" },
+  { key: "transmission", label: "Transmission" },
+  { key: "releases", label: "Releases" },
+  { key: "play", label: "Play" },
 ];
+
+const EXPLORE = [
+  { label: "Creators", detail: "People, disciplines, and public creative identities.", Icon: Sparkles },
+  { label: "Work", detail: "The public archive of what Members make.", Icon: ImageIcon },
+  { label: "Rooms", detail: "Persistent spaces and communities inside Vanta.", Icon: Users },
+  { label: "Marketplace", detail: "Services, collaborators, and creative exchange.", Icon: ShoppingBag },
+  { label: "Transmission", detail: "Public content, music, and editorial signals.", Icon: Radio },
+];
+
+function formatDate(value: string | null | undefined): string {
+  if (!value) return "—";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? value
+    : date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
+
+function formatPrice(result: MarketplaceResult): string {
+  if (result.price_type === "contact") return "Contact for price";
+  if (result.price_type === "negotiable") return result.price_amount
+    ? `From ${result.currency} ${result.price_amount}`
+    : "Negotiable";
+  return `${result.currency} ${result.price_amount || "—"}`;
+}
+
+function ResultShell({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="border border-border/70 bg-card/25" data-testid={`results-group-${label.toLowerCase()}`}>
+      <div className="flex items-center justify-between border-b border-border/60 px-4 py-3">
+        <h2 className="text-[10px] font-mono uppercase tracking-[0.25em] text-purple-300/80">{label}</h2>
+        <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/40">Index record</span>
+      </div>
+      <div className="divide-y divide-border/50">{children}</div>
+    </section>
+  );
+}
+
+function ResultLink({
+  href,
+  children,
+  testId,
+}: {
+  href: string;
+  children: React.ReactNode;
+  testId: string;
+}) {
+  return (
+    <Link href={href} data-testid={testId}>
+      <div className="group flex min-w-0 items-start gap-3 px-4 py-4 transition-colors hover:bg-purple-500/[0.045] sm:gap-4">
+        {children}
+        <ArrowRight className="mt-1 h-3.5 w-3.5 shrink-0 text-muted-foreground/25 transition-colors group-hover:text-purple-300/80" />
+      </div>
+    </Link>
+  );
+}
+
+function CreatorGroup({ results }: { results: CreatorResult[] }) {
+  return (
+    <ResultShell label="Creators">
+      {results.map(result => (
+        <ResultLink key={result.username} href={`/creators/${result.username}`} testId={`result-creator-${result.username}`}>
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-muted/50">
+            {result.profile_image_url ? <img src={result.profile_image_url} alt="" className="h-full w-full object-cover" /> : <Sparkles className="h-4 w-4 text-purple-300/60" />}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="truncate font-display text-base font-semibold">{result.display_name}</h3>
+              {result.is_certified && <span className="inline-flex items-center gap-1 rounded-full border border-purple-400/30 bg-purple-400/10 px-2 py-0.5 text-[9px] font-mono uppercase tracking-widest text-purple-200"><BadgeCheck className="h-3 w-3" /> Certified</span>}
+            </div>
+            <p className="mt-1 text-[11px] font-mono text-muted-foreground/60">@{result.username}{result.city ? ` · ${result.city}` : ""}</p>
+            <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-muted-foreground">{result.disciplines?.join(" · ") || result.bio || "Public Creator Profile"}</p>
+          </div>
+        </ResultLink>
+      ))}
+    </ResultShell>
+  );
+}
+
+function WorkGroup({ results }: { results: WorkResult[] }) {
+  return (
+    <ResultShell label="Work">
+      {results.map(result => (
+        <ResultLink key={result.id} href={`/creators/${result.creator_username}`} testId={`result-work-${result.id}`}>
+          <div className="flex h-14 w-20 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-muted/50">
+            {result.thumbnail_url ? <img src={result.thumbnail_url} alt="" className="h-full w-full object-cover" /> : <ImageIcon className="h-5 w-5 text-cyan-300/45" />}
+          </div>
+          <div className="min-w-0 flex-1">
+            <h3 className="truncate font-display text-base font-semibold">{result.title}</h3>
+            <p className="mt-1 text-[10px] font-mono uppercase tracking-widest text-cyan-200/60">{result.work_type}{result.is_featured ? " · Featured" : ""}</p>
+            <p className="mt-2 truncate text-xs text-muted-foreground">{result.creator_display_name} <span className="text-muted-foreground/45">· @{result.creator_username}</span>{result.room_name ? ` · ${result.room_name}` : ""}</p>
+          </div>
+        </ResultLink>
+      ))}
+    </ResultShell>
+  );
+}
+
+function RoomsGroup({ results }: { results: RoomResult[] }) {
+  return (
+    <ResultShell label="Rooms">
+      {results.map(result => (
+        <ResultLink key={result.id} href={`/rooms/${result.id}`} testId={`result-room-${result.id}`}>
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-border bg-muted/50 text-amber-200/70"><Users className="h-4 w-4" /></div>
+          <div className="min-w-0 flex-1">
+            <h3 className="truncate font-display text-base font-semibold">{result.name}</h3>
+            <p className="mt-1 text-[10px] font-mono uppercase tracking-widest text-amber-200/60">{result.category} · {result.member_count} members</p>
+            <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-muted-foreground">{result.description || "Public Room inside Vanta."}</p>
+          </div>
+        </ResultLink>
+      ))}
+    </ResultShell>
+  );
+}
+
+function MarketplaceGroup({ results }: { results: MarketplaceResult[] }) {
+  return (
+    <ResultShell label="Marketplace">
+      {results.map(result => (
+        <ResultLink key={result.id} href={`/marketplace/${result.id}`} testId={`result-marketplace-${result.id}`}>
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-border bg-muted/50 text-emerald-200/70"><ShoppingBag className="h-4 w-4" /></div>
+          <div className="min-w-0 flex-1">
+            <h3 className="truncate font-display text-base font-semibold">{result.title}</h3>
+            <p className="mt-1 text-[10px] font-mono uppercase tracking-widest text-emerald-200/60">{result.category} · {formatPrice(result)}</p>
+            <p className="mt-2 truncate text-xs text-muted-foreground">{result.creator_display_name} <span className="text-muted-foreground/45">· @{result.creator_username}</span>{result.city ? ` · ${result.city}` : ""}</p>
+          </div>
+        </ResultLink>
+      ))}
+    </ResultShell>
+  );
+}
+
+function TransmissionGroup({ results }: { results: TransmissionResult[] }) {
+  return (
+    <ResultShell label="Transmission">
+      {results.map(result => (
+        <ResultLink key={result.id} href={`/post/${result.id}`} testId={`result-transmission-${result.id}`}>
+          <img src={result.cover_image} alt="" className="h-14 w-20 shrink-0 rounded-md border border-border object-cover" />
+          <div className="min-w-0 flex-1">
+            <h3 className="line-clamp-2 font-display text-base font-semibold">{result.title}</h3>
+            <p className="mt-1 text-[10px] font-mono uppercase tracking-widest text-rose-200/60">{result.category} · {formatDate(result.created_at)}</p>
+            <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-muted-foreground">{result.excerpt}</p>
+          </div>
+        </ResultLink>
+      ))}
+    </ResultShell>
+  );
+}
+
+function ReleasesGroup({ results }: { results: ReleaseResult[] }) {
+  return (
+    <ResultShell label="Releases">
+      {results.map(result => (
+        <ResultLink key={result.id} href="/releases" testId={`result-release-${result.id}`}>
+          <img src={result.cover_image} alt="" className="h-14 w-14 shrink-0 rounded-md border border-border object-cover" />
+          <div className="min-w-0 flex-1">
+            <h3 className="truncate font-display text-base font-semibold">{result.title}</h3>
+            <p className="mt-1 text-[10px] font-mono uppercase tracking-widest text-sky-200/60">{result.type} · {result.genre || result.subgenre || "Release"} · {formatDate(result.release_date)}</p>
+            <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-muted-foreground">{result.description}</p>
+          </div>
+        </ResultLink>
+      ))}
+    </ResultShell>
+  );
+}
+
+function PlayGroup({ results }: { results: PlayResult[] }) {
+  return (
+    <ResultShell label="Play">
+      {results.map(result => (
+        <ResultLink key={result.id} href="/play" testId={`result-play-${result.id}`}>
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-border bg-muted/50 text-orange-200/70"><Gamepad2 className="h-4 w-4" /></div>
+          <div className="min-w-0 flex-1">
+            <h3 className="truncate font-display text-base font-semibold">{result.venue}</h3>
+            <p className="mt-1 text-[10px] font-mono uppercase tracking-widest text-orange-200/60">{result.sport} · {result.city}</p>
+            <p className="mt-2 text-xs text-muted-foreground"><CalendarDays className="mr-1 inline h-3 w-3" />{formatDate(result.date)} · {result.time} · {result.players}/{result.capacity} players</p>
+          </div>
+        </ResultLink>
+      ))}
+    </ResultShell>
+  );
+}
 
 export default function SearchPage() {
   const rawSearch = useSearch();
   const [, navigate] = useLocation();
-  const { isAuthorized, isLoading: authLoading } = useVault();
+  const urlQuery = new URLSearchParams(rawSearch).get("q")?.trim() || "";
+  const [inputValue, setInputValue] = useState(urlQuery);
+  const [filter, setFilter] = useState<FilterKey>("all");
 
-  const params = new URLSearchParams(rawSearch);
-  const urlQ = params.get("q") ?? "";
+  useEffect(() => {
+    setInputValue(urlQuery);
+    setFilter("all");
+  }, [urlQuery]);
 
-  const [inputVal, setInputVal] = useState(urlQ);
-  const [kindFilter, setKindFilter] = useState<Kind | "ALL">("ALL");
+  useEffect(() => {
+    if (inputValue.trim() === urlQuery) return;
+    const timer = window.setTimeout(() => {
+      const query = inputValue.trim();
+      navigate(query ? `/search?q=${encodeURIComponent(query)}` : "/search");
+    }, 350);
+    return () => window.clearTimeout(timer);
+  }, [inputValue, navigate, urlQuery]);
 
-  useEffect(() => { setInputVal(urlQ); }, [urlQ]);
-  useEffect(() => { setKindFilter("ALL"); }, [urlQ]);
-
-  // ── Sources ──────────────────────────────────────────────────────────────
-  const { data: posts, isLoading: postsLoading } = useQuery<Post[]>({
-    queryKey: ["/api/posts/search", urlQ],
-    enabled: !!urlQ,
+  const { data, isLoading, isError } = useQuery<SearchResponse>({
+    queryKey: ["/api/search", urlQuery],
     queryFn: async () => {
-      const res = await fetch(`/api/posts/search?q=${encodeURIComponent(urlQ)}`);
-      if (!res.ok) throw new Error("Search failed");
-      return res.json();
+      const response = await fetch(`/api/search?q=${encodeURIComponent(urlQuery)}`);
+      if (!response.ok) throw new Error("Search failed");
+      return response.json();
     },
+    enabled: Boolean(urlQuery),
   });
 
-  const { data: releases, isLoading: releasesLoading } = useQuery<Release[]>({
-    queryKey: ["/api/releases"],
-    enabled: !!urlQ,
-  });
+  const totalCount = useMemo(() => {
+    if (!data) return 0;
+    return Object.entries(data)
+      .filter(([key]) => key !== "query")
+      .reduce((sum, [, value]) => sum + (Array.isArray(value) ? value.length : 0), 0);
+  }, [data]);
 
-  const { data: vaultItems, isLoading: vaultLoading } = useQuery<VaultItem[]>({
-    queryKey: ["/api/vault/items"],
-    enabled: !!urlQ && isAuthorized,
-  });
+  const filterCounts: Record<FilterKey, number> = {
+    all: totalCount,
+    creators: data?.creators.length || 0,
+    work: data?.work.length || 0,
+    rooms: data?.rooms.length || 0,
+    marketplace: data?.marketplace.length || 0,
+    transmission: data?.transmission.length || 0,
+    releases: data?.releases.length || 0,
+    play: data?.play.length || 0,
+  };
 
-  const isLoading = !!urlQ && (authLoading || postsLoading || releasesLoading || (isAuthorized && vaultLoading));
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    const query = inputValue.trim();
+    navigate(query ? `/search?q=${encodeURIComponent(query)}` : "/search");
+  };
 
-  // ── Aggregate results ──────────────────────────────────────────────────────
-  const allResults = useMemo<ArchiveResult[]>(() => {
-    if (!urlQ) return [];
-    const q = urlQ.toLowerCase();
-    const hit = (...vals: (string | null | undefined)[]) =>
-      vals.some((v) => v != null && v.toLowerCase().includes(q));
+  const clearSearch = () => {
+    setInputValue("");
+    navigate("/search");
+  };
 
-    const out: ArchiveResult[] = [];
-
-    for (const p of posts ?? []) {
-      out.push({ kind: "TRANSMISSION", id: p.id, title: p.title, snippet: p.excerpt, meta: p.category, href: `/post/${p.id}` });
-    }
-    for (const r of releases ?? []) {
-      if (hit(r.title, r.description, r.type)) {
-        out.push({ kind: "RELEASE", id: r.id, title: r.title, snippet: r.description, meta: r.type, href: "/releases" });
-      }
-    }
-    for (const w of worlds) {
-      if (hit(w.name, w.tagline, w.description, w.detail)) {
-        out.push({ kind: "WORLD", id: w.id, title: w.name, snippet: w.description, meta: w.tagline, href: w.href });
-      }
-    }
-    if (isAuthorized) {
-      for (const v of vaultItems ?? []) {
-        if (hit(v.title, v.description, v.category, v.type)) {
-          out.push({ kind: "VAULT", id: v.id, title: v.title, snippet: v.description || "Restricted vault artifact.", meta: v.category || v.type, href: "/vault" });
-        }
-      }
-    }
-    for (const l of LORE_FRAGMENTS) {
-      if (hit(l.title, l.snippet)) {
-        out.push({ kind: "LORE", id: l.id, title: l.title, snippet: l.snippet, meta: "Encrypted fragment", href: l.href });
-      }
-    }
-    return out;
-  }, [urlQ, posts, releases, vaultItems, isAuthorized]);
-
-  const counts = useMemo(() => {
-    const c: Record<string, number> = {};
-    for (const r of allResults) c[r.kind] = (c[r.kind] ?? 0) + 1;
-    return c;
-  }, [allResults]);
-
-  const visibleResults = kindFilter === "ALL" ? allResults : allResults.filter((r) => r.kind === kindFilter);
-
-  function push(q: string) {
-    const p = new URLSearchParams();
-    if (q) p.set("q", q);
-    navigate(`/search?${p.toString()}`);
-  }
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    push(inputVal);
-  }
-
-  const activeKinds = KIND_ORDER.filter((k) => (counts[k] ?? 0) > 0);
+  const show = (key: FilterKey) => filter === "all" || filter === key;
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen bg-background">
       <ReturnToCity />
       <Header />
-
-      <main className="flex-1 bg-background pt-20">
-
-        {/* ── Black Index hero ── */}
-        <section className="relative border-b border-border overflow-hidden">
-          <div
-            className="absolute inset-0 opacity-[0.03]"
-            style={{
-              backgroundImage: "linear-gradient(#a855f7 1px, transparent 1px), linear-gradient(90deg, #a855f7 1px, transparent 1px)",
-              backgroundSize: "40px 40px",
-            }}
-          />
-          <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-background to-transparent" />
-
-          <div className="relative max-w-7xl mx-auto px-6 lg:px-8 py-20 md:py-28">
-            <p className="text-xs uppercase tracking-widest text-purple-500/70 mb-4 font-mono font-medium" data-testid="text-black-index-label">
-              Vanta OS / Archive Search
-            </p>
-
-            <div className="flex items-end gap-5 mb-4">
-              <h1 className="text-5xl md:text-6xl lg:text-7xl font-display font-bold leading-none tracking-tight" data-testid="text-page-title">
-                BLACK INDEX
-              </h1>
-              <div className="mb-2 hidden md:flex items-center gap-2">
-                <span className="inline-block w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
-                <span className="text-xs font-mono text-muted-foreground tracking-widest">LIVE</span>
-              </div>
+      <main className="pt-20">
+        <section className="relative overflow-hidden border-b border-border">
+          <div className="absolute inset-0 opacity-[0.035]" style={{ backgroundImage: "linear-gradient(#a855f7 1px, transparent 1px), linear-gradient(90deg, #a855f7 1px, transparent 1px)", backgroundSize: "40px 40px" }} />
+          <div className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 md:py-24 lg:px-8">
+            <p className="mb-4 text-[10px] font-mono uppercase tracking-[0.3em] text-purple-300/70">Vanta OS / Universal Ecosystem Search</p>
+            <div className="flex items-end gap-4">
+              <h1 className="font-display text-5xl font-bold leading-none tracking-tight sm:text-6xl md:text-7xl">BLACK INDEX</h1>
+              <span className="mb-1.5 hidden items-center gap-2 text-[10px] font-mono uppercase tracking-widest text-muted-foreground/55 sm:flex"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-purple-400" />LIVE INDEX</span>
             </div>
-
-            <p className="text-muted-foreground font-mono text-sm max-w-xl leading-relaxed mb-10" data-testid="text-black-index-lore">
-              The encrypted archive of the entire Vanta system. Transmissions, releases, worlds,
-              vault artifacts, and lore — cross-referenced and retrievable. Query the record.
-            </p>
-
-            <form onSubmit={handleSubmit} className="relative max-w-2xl">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-purple-500/60 pointer-events-none" />
-              <Input
-                value={inputVal}
-                onChange={(e) => setInputVal(e.target.value)}
-                placeholder="Query the index…"
-                className="pl-11 pr-11 h-13 text-base font-mono bg-background/80 border-border/60 focus-visible:border-purple-500/40 focus-visible:ring-purple-500/10 placeholder:text-muted-foreground/40"
+            <p className="mt-5 max-w-2xl font-mono text-sm leading-relaxed text-muted-foreground">Find people, work, spaces, services, content, releases, and games that already exist inside Vanta.</p>
+            <form onSubmit={handleSubmit} className="relative mt-8 max-w-3xl">
+              <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-purple-300/70" />
+              <input
+                value={inputValue}
+                onChange={event => setInputValue(event.target.value)}
+                placeholder="SEARCH VANTA…"
+                aria-label="Search Vanta"
                 autoFocus
+                className="h-14 w-full rounded-md border border-border/80 bg-background/85 pl-11 pr-12 font-mono text-sm outline-none placeholder:text-muted-foreground/40 focus:border-purple-400/55 focus:ring-2 focus:ring-purple-400/10"
                 data-testid="input-search-page"
               />
-              {inputVal && (
-                <button
-                  type="button"
-                  onClick={() => { setInputVal(""); navigate("/search"); }}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                  aria-label="Clear search"
-                  data-testid="button-clear-search"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              )}
+              {inputValue && <button type="button" onClick={clearSearch} aria-label="Clear search" className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>}
             </form>
           </div>
         </section>
 
-        {/* ── Results area ── */}
-        <div className="max-w-7xl mx-auto px-6 lg:px-8 py-12 md:py-16">
-
-          {/* Idle */}
-          {!urlQ && (
-            <div className="text-center py-28 border border-border/50 rounded-sm" data-testid="text-search-prompt">
-              <Database className="w-10 h-10 text-purple-500/20 mx-auto mb-5" />
-              <p className="text-xs font-mono tracking-widest text-muted-foreground/50 uppercase mb-2">Archive ready</p>
-              <p className="text-muted-foreground/60 text-sm font-mono">
-                Enter a query above to search every layer of the index.
-              </p>
-            </div>
+        <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 md:py-14 lg:px-8">
+          {!urlQuery && (
+            <section className="border border-border/70 bg-card/20 p-5 sm:p-8" data-testid="text-search-prompt">
+              <div className="mb-6 flex items-center gap-3">
+                <Database className="h-5 w-5 text-purple-300/70" />
+                <div>
+                  <p className="text-[10px] font-mono uppercase tracking-[0.28em] text-purple-300/75">Explore the Index</p>
+                  <p className="mt-1 text-sm text-muted-foreground">Search the live public ecosystem. No invented activity, no private layers.</p>
+                </div>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+                {EXPLORE.map(({ label, detail, Icon }) => (
+                  <div key={label} className="border border-border/60 bg-background/25 p-4">
+                    <Icon className="h-4 w-4 text-muted-foreground/65" />
+                    <p className="mt-4 text-sm font-medium">{label}</p>
+                    <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground/65">{detail}</p>
+                  </div>
+                ))}
+              </div>
+            </section>
           )}
 
-          {urlQ && (
+          {urlQuery && (
             <>
-              {/* Terminal loading */}
+              <div className="mb-7 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-wrap gap-2" data-testid="search-type-filters">
+                  {FILTERS.map(({ key, label }) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setFilter(key)}
+                      data-testid={`filter-type-${key}`}
+                      className={`rounded-sm border px-3 py-2 text-[10px] font-mono uppercase tracking-widest transition-colors ${
+                        filter === key ? "border-purple-400/45 bg-purple-400/10 text-purple-200" : "border-border text-muted-foreground hover:border-purple-400/35 hover:text-foreground"
+                      }`}
+                    >
+                      {label}{data && <span className="ml-1.5 text-muted-foreground/45">{filterCounts[key]}</span>}
+                    </button>
+                  ))}
+                </div>
+                {isLoading ? <span className="text-[10px] font-mono uppercase tracking-widest text-purple-300/70">Searching index…</span> : data && <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/50">{totalCount} record{totalCount === 1 ? "" : "s"} retrieved</span>}
+              </div>
+
               {isLoading && (
-                <div className="border border-purple-500/20 rounded-sm bg-card/30 p-6 font-mono" data-testid="search-loading">
-                  <div className="flex items-center gap-2 text-purple-400/80 mb-5">
-                    <Database className="w-4 h-4 animate-pulse" />
-                    <span className="tracking-widest text-xs uppercase">Querying Black Index…</span>
-                  </div>
-                  <div className="space-y-2.5">
-                    {["Indexing transmissions", "Cross-referencing releases", "Scanning world registry", "Decrypting vault layer", "Recovering lore fragments"].map((l) => (
-                      <div key={l} className="flex items-center gap-3 text-xs text-muted-foreground/50">
-                        <span className="text-purple-500/60">›</span>
-                        <span>{l}</span>
-                        <span className="flex-1 border-b border-dashed border-border/40 mx-1" />
-                        <span className="text-purple-400/60 animate-pulse">···</span>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="mt-5 flex items-center gap-2 text-xs text-muted-foreground/40">
-                    <span>vanta@blackindex:~$</span>
-                    <span className="inline-block w-2 h-3.5 bg-purple-500/70 animate-pulse" />
+                <div className="border border-purple-400/20 bg-card/25 p-6 font-mono" data-testid="search-loading">
+                  <div className="flex items-center gap-3 text-xs uppercase tracking-[0.22em] text-purple-300/75"><Database className="h-4 w-4 animate-pulse" /> Searching index…</div>
+                  <div className="mt-5 space-y-2 text-xs text-muted-foreground/45">
+                    {["Cross-referencing public identities", "Scanning work and Rooms", "Reading live transmissions"].map(line => <p key={line}><span className="mr-3 text-purple-300/60">›</span>{line}<span className="float-right animate-pulse">···</span></p>)}
                   </div>
                 </div>
               )}
 
-              {!isLoading && (
-                <>
-                  {/* Type filter pills */}
-                  {allResults.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mb-8" data-testid="search-type-filters">
-                      <button
-                        type="button"
-                        onClick={() => setKindFilter("ALL")}
-                        data-testid="filter-type-all"
-                        className={[
-                          "px-4 py-1.5 text-xs rounded-sm border transition-colors font-mono tracking-wide",
-                          kindFilter === "ALL"
-                            ? "bg-purple-500/15 text-purple-300 border-purple-500/30"
-                            : "bg-transparent text-muted-foreground border-border hover:border-purple-500/25 hover:text-foreground",
-                        ].join(" ")}
-                      >
-                        All · {allResults.length}
-                      </button>
-                      {activeKinds.map((k) => {
-                        const active = kindFilter === k;
-                        const { Icon } = KIND_META[k];
-                        return (
-                          <button
-                            key={k}
-                            type="button"
-                            onClick={() => setKindFilter(active ? "ALL" : k)}
-                            data-testid={`filter-type-${k.toLowerCase()}`}
-                            className={[
-                              "px-4 py-1.5 text-xs rounded-sm border transition-colors font-mono tracking-wide inline-flex items-center gap-1.5",
-                              active
-                                ? "bg-purple-500/15 text-purple-300 border-purple-500/30"
-                                : "bg-transparent text-muted-foreground border-border hover:border-purple-500/25 hover:text-foreground",
-                            ].join(" ")}
-                          >
-                            <Icon className="w-3 h-3" /> {k} · {counts[k]}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
+              {isError && !isLoading && <div className="border border-red-400/20 bg-red-400/[0.03] p-8 text-center font-mono text-sm text-red-200/70">The index could not be reached. Try the search again.</div>}
 
-                  {/* Result count */}
-                  <p className="text-xs font-mono text-muted-foreground/60 mb-6 tracking-widest uppercase" data-testid="text-results-count">
-                    {allResults.length === 0
-                      ? `No signal found for "${urlQ}"`
-                      : `${visibleResults.length} signal${visibleResults.length === 1 ? "" : "s"} retrieved for "${urlQ}"`}
-                  </p>
+              {!isLoading && !isError && data && totalCount === 0 && (
+                <div className="border border-border/70 bg-card/20 px-5 py-20 text-center" data-testid="text-no-results">
+                  <Database className="mx-auto h-9 w-9 text-muted-foreground/20" />
+                  <p className="mt-5 font-mono text-sm uppercase tracking-[0.25em] text-red-200/70">Nothing indexed under that search.</p>
+                  <p className="mt-3 text-sm text-muted-foreground">Try a broader name, category, discipline, location, or title.</p>
+                </div>
+              )}
 
-                  {/* Vault clearance hint */}
-                  {!isAuthorized && !authLoading && (
-                    <Link href="/enter" data-testid="link-vault-clearance">
-                      <div className="flex items-center gap-2.5 mb-8 px-4 py-3 rounded-sm border border-red-500/20 bg-red-500/[0.03] hover-elevate cursor-pointer">
-                        <ShieldAlert className="w-3.5 h-3.5 text-red-400/70 flex-shrink-0" />
-                        <span className="text-xs font-mono text-muted-foreground/70">
-                          Vault layer hidden — clearance required to index restricted artifacts.
-                        </span>
-                        <ArrowRight className="w-3.5 h-3.5 text-red-400/50 ml-auto flex-shrink-0" />
-                      </div>
-                    </Link>
-                  )}
-
-                  {/* Results list */}
-                  {visibleResults.length > 0 && (
-                    <div className="space-y-3" data-testid="search-results">
-                      {visibleResults.map((r) => {
-                        const { Icon, badge } = KIND_META[r.kind];
-                        return (
-                          <Link key={`${r.kind}-${r.id}`} href={r.href} data-testid={`result-${r.kind.toLowerCase()}-${r.id}`}>
-                            <div className="group flex items-start gap-4 p-4 md:p-5 rounded-md border border-border/55 bg-card/30 hover-elevate cursor-pointer">
-                              <div className={`flex-shrink-0 inline-flex items-center gap-1.5 px-2 py-1 rounded-sm border text-[9px] font-mono tracking-widest ${badge}`}>
-                                <Icon className="w-3 h-3" />
-                                <span className="hidden sm:inline">{r.kind}</span>
-                              </div>
-                              <div className="min-w-0 flex-1">
-                                <div className="flex items-center gap-3 flex-wrap">
-                                  <h3 className="text-base font-display font-bold text-foreground truncate">{r.title}</h3>
-                                  {r.meta && (
-                                    <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/40">{r.meta}</span>
-                                  )}
-                                </div>
-                                <p className="text-sm text-muted-foreground/70 font-mono leading-relaxed mt-1.5 line-clamp-2">
-                                  {r.snippet}
-                                </p>
-                              </div>
-                              <ArrowRight className="w-4 h-4 text-muted-foreground/25 group-hover:text-purple-400/70 transition-colors flex-shrink-0 mt-1" />
-                            </div>
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  )}
-
-                  {/* No signal found */}
-                  {allResults.length === 0 && (
-                    <div className="text-center py-24 border border-border/50 rounded-sm" data-testid="text-no-results">
-                      <Database className="w-14 h-14 text-muted-foreground/20 mx-auto mb-5 opacity-40" />
-                      <p className="text-sm font-mono tracking-[0.3em] text-red-400/70 uppercase mb-3">
-                        No Signal Found
-                      </p>
-                      <p className="text-muted-foreground/60 text-sm font-mono mb-6">
-                        The index returned nothing for "{urlQ}". Try a different query string.
-                      </p>
-                      <Link href="/">
-                        <Button variant="outline" className="font-mono text-xs tracking-widest" data-testid="button-browse-all">
-                          Browse All Transmissions
-                        </Button>
-                      </Link>
-                    </div>
-                  )}
-                </>
+              {!isLoading && !isError && data && totalCount > 0 && (
+                <div className="space-y-4" data-testid="search-results">
+                  {show("creators") && data.creators.length > 0 && <CreatorGroup results={data.creators} />}
+                  {show("work") && data.work.length > 0 && <WorkGroup results={data.work} />}
+                  {show("rooms") && data.rooms.length > 0 && <RoomsGroup results={data.rooms} />}
+                  {show("marketplace") && data.marketplace.length > 0 && <MarketplaceGroup results={data.marketplace} />}
+                  {show("transmission") && data.transmission.length > 0 && <TransmissionGroup results={data.transmission} />}
+                  {show("releases") && data.releases.length > 0 && <ReleasesGroup results={data.releases} />}
+                  {show("play") && data.play.length > 0 && <PlayGroup results={data.play} />}
+                </div>
               )}
             </>
           )}
         </div>
       </main>
-
       <Footer />
     </div>
   );
