@@ -544,6 +544,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ── Vault Items ──────────────────────────────────────────────────
+  // Public startup radio is intentionally limited to the designated track.
+  // The full Vault catalog remains protected by the Vault session.
+  app.get("/api/vault/radio", async (_req, res) => {
+    try {
+      const items = await storage.getVaultItems();
+      const track = items.find((item) => {
+        const url = item.compressedUrl || item.fileUrl;
+        return item.title.trim().toLowerCase() === "degausser" &&
+          (item.type === "audio" || item.type === "demo") &&
+          !!url;
+      });
+
+      if (!track) {
+        return res.status(404).json({ error: "Vanta Radio track unavailable" });
+      }
+
+      res.json({
+        id: track.id,
+        title: track.title,
+        fileUrl: track.fileUrl,
+        compressedUrl: track.compressedUrl,
+      });
+    } catch (error) {
+      console.error("Error fetching startup radio track:", error);
+      res.status(500).json({ error: "Failed to tune Vanta Radio" });
+    }
+  });
+
   app.get("/api/vault/items", async (req, res) => {
     const canRead =
       (await hasValidAdminToken(req)) || req.session?.vaultAuthorized === true;
