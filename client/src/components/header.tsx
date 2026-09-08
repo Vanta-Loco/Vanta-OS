@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { AppLauncher } from "@/components/app-launcher";
 import { VantaGuide } from "@/components/vanta-guide";
+import { ActivityCenter } from "@/components/activity-center";
 import { useAdmin } from "@/hooks/use-admin";
 import { useUser } from "@/hooks/use-user";
 import {
@@ -165,6 +166,8 @@ export function Header() {
               <div className="hidden sm:block">
                 <ThemeToggle />
               </div>
+
+              <ActivityCenter />
 
               <Button
                 variant="ghost"
