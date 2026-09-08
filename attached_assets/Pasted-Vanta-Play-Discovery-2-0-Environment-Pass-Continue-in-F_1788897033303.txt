@@ -1,0 +1,218 @@
+Vanta Play — Discovery 2.0 + Environment Pass
+Continue in Free Mode. Do not switch to Max/Power.
+Vanta Play backend and Passport integration are already complete and stable.
+Existing functionality includes:
+/play
+real database-backed games
+host/create game
+join game
+leave game
+participant counts
+authenticated joined state
+guest browsing
+Passport Game On achievement after a real successful join
+This task is primarily a frontend/UI and environment pass.
+Do not change game ownership, join/leave behavior, Passport events, XP, authentication, schema, or existing backend logic unless a verified read-only data gap blocks the UI.
+Goal
+Make Vanta Play feel like the real-world sports/activity hub of Vanta rather than a plain game list.
+A user should immediately understand:
+what games are happening
+what sport
+where
+when
+how many people are involved
+whether they already joined
+how to host or join
+1. Vanta Play environment
+Give /play its own dedicated rendered environment.
+Direction:
+underground urban sports complex
+night-time pickup court atmosphere
+basketball court as the central visual anchor
+nearby multi-sport cues where appropriate
+chain-link fencing
+concrete
+benches
+old scoreboards
+fluorescent/flood lighting
+posters/flyers
+lockers/equipment bags
+vending machine or old sports-center details
+subtle city skyline or surrounding buildings
+early-2000s / PS2 sports-game atmosphere
+dark Vanta treatment
+It should feel like:
+a neighborhood sports hub
+pickup-game meeting point
+PS2 sports menu brought into a physical space
+a place Members actually arrive to play
+Avoid:
+luxury gym
+corporate fitness center
+Nike/Strava clone
+futuristic holographic arena
+giant professional stadium
+This is pickup/community sports, not pro sports.
+2. Environment integration
+Apply the environment only to the main /play experience.
+Keep the functional UI readable using dark/translucent Vanta HUD panels.
+Preserve:
+games
+Join
+Leave
+Host Game
+player counts
+Passport behavior
+Do not let the background overpower game information.
+3. Strong header
+Present:
+VANTA PLAY
+With restrained copy such as:
+Find a game. Show up. Play.
+Add subtle system metadata such as:
+PICKUP NETWORK
+if it fits the existing design.
+4. Real game cards
+Improve existing cards using only real game data.
+Show available fields such as:
+title
+sport
+location
+date/time
+participant count
+capacity where real
+joined state
+host/public identity where already safely available
+Do not invent:
+players
+ratings
+skill levels
+attendance
+“people nearby”
+online presence
+5. Game state
+Make real states visually clear:
+OPEN
+YOU'RE IN
+FULL where existing capacity data proves it
+Only show past/closed states if the current backend already has those semantics.
+Do not invent lifecycle states.
+6. Join / Leave
+Preserve current real actions.
+For joined games, give a stronger:
+YOU'RE IN
+treatment.
+Keep:
+LEAVE GAME
+clearly separate.
+Guests should preserve existing sign-in behavior before joining.
+Do not move Passport event creation to the frontend.
+7. Your Games
+For authenticated Members, use existing joined-state data to add:
+YOUR GAMES
+Show games the Member has joined.
+Keep it compact.
+Do not create another participant table/system.
+If there are no joined games:
+You haven't joined a game yet.
+8. Find Games
+Main discovery section:
+FIND A GAME
+Add lightweight filters based on real game data:
+All Sports
+sport values currently present
+location/city search or filter
+If easy, allow:
+Upcoming
+My Games
+using existing frontend data.
+Do not build maps/GPS yet.
+9. Upcoming ordering
+Where timestamps support it safely, emphasize upcoming/open games first.
+Do not rewrite records simply for display.
+If dates are incomplete or inconsistent, preserve current ordering instead of guessing.
+10. Host Game
+Keep:
+HOST GAME
+prominent but not dominant.
+Preserve the existing creation flow.
+A Member should understand:
+Can't find a game? Host one.
+Do not redesign the backend creation system.
+11. Empty states
+If no games match:
+NO GAMES FOUND
+If Vanta Play is genuinely empty:
+THE COURT IS QUIET
+Host the first game.
+Do not seed fake games.
+12. Passport connection
+Keep existing backend-driven:
+game_joined
+→ Game On
+achievement behavior untouched.
+Do not create XP from the frontend.
+Do not change achievement values.
+If the existing UI already shows Passport integration cleanly, preserve it.
+13. Visual direction
+Think:
+PS2 pickup sports menu
+neighborhood court board
+underground sports club
+early-2000s game lobby
+Vanta OS
+Use:
+dark HUD panels
+compact score/status metadata
+court-style labels
+restrained borders
+strong typography
+Avoid:
+Strava
+Peloton
+corporate wellness
+professional league UI
+14. Mobile
+Ensure:
+environment crops intentionally
+cards stack cleanly
+game actions are easy to tap
+filters wrap safely
+no horizontal overflow
+15. Preserve
+Do not modify:
+Vanta Play schema
+create/join/leave APIs
+participant persistence
+Passport events
+XP/achievements
+auth/sessions
+suspension
+Dashboard
+Activity Center
+Rooms
+Marketplace
+Creator systems
+Black Index
+Vanta Guide
+media infrastructure
+Verification
+Run:
+npm run check
+npm run build
+git diff --check
+Verify:
+/play shows the new sports environment.
+Guest can browse real games.
+Authenticated Member sees correct joined state.
+Join still works.
+Leave still works.
+Host Game still works.
+Game On remains backend-driven.
+Your Games uses real membership data.
+Filters use real data only.
+Empty states work.
+Mobile layout is clean.
+Stop after Vanta Play Discovery 2.0 + Environment Pass.
+Do not begin maps, GPS, rankings, messaging, betting, real-time presence, teams, tournaments, or new game mechanics.
+Do not recommend Max/Power unless there is a genuine blocker.

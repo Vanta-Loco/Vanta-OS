@@ -1,7 +1,11 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
+import { Activity, ArrowRight, BadgeCheck, CalendarDays, Check, Clock3, MapPin, Plus, Trophy, Users } from "lucide-react";
+import { Header } from "@/components/header";
+import { Footer } from "@/components/footer";
 import { useToast } from "@/hooks/use-toast";
 import { getUserToken, useUser } from "@/hooks/use-user";
+import playEnvironmentImage from "@assets/generated_images/play_pickup_court_environment.png";
 
 type Game = {
   id: string;
@@ -13,6 +17,9 @@ type Game = {
   skill: string;
   players: number;
   capacity: number;
+  status?: string;
+  host_user_id?: string | null;
+  created_at?: string;
   joined?: boolean;
 };
 
@@ -30,6 +37,7 @@ const sports = [
 ];
 
 const cities = [
+  "All Cities",
   "Johannesburg",
   "Pretoria",
   "Cape Town",
@@ -42,6 +50,7 @@ export default function VantaPlay() {
   const [, navigate] = useLocation();
   const [selectedCity, setSelectedCity] = useState("Johannesburg");
   const [selectedSport, setSelectedSport] = useState("All Sports");
+  const [gameScope, setGameScope] = useState<"all" | "joined">("all");
   const [games, setGames] = useState<Game[]>([]);
   const [joinedGames, setJoinedGames] = useState<string[]>([]);
   const [showHostForm, setShowHostForm] = useState(false);
@@ -80,12 +89,14 @@ export default function VantaPlay() {
       const cityMatches = game.city === selectedCity;
       const sportMatches =
         selectedSport === "All Sports" || game.sport === selectedSport;
+      const scopeMatches = gameScope === "all" || Boolean(game.joined) || joinedGames.includes(game.id);
 
-      return cityMatches && sportMatches;
+      return (selectedCity === "All Cities" || cityMatches) && sportMatches && scopeMatches;
     });
-  }, [games, selectedCity, selectedSport]);
+  }, [games, joinedGames, selectedCity, selectedSport, gameScope]);
 
   const featuredGame = games[0];
+  const joinedGameRecords = games.filter(game => game.joined || joinedGames.includes(game.id));
 
   async function joinGame(gameId: string) {
   if (!isAuthenticated) {
