@@ -93,16 +93,16 @@ export default function Home() {
       <Header />
 
       <VantaDepth className="relative flex h-[85vh] min-h-[600px] items-end overflow-hidden vanta-hero-depth">
-        <ParallaxLayer depth={-34} mobileDepth={-48} className="pointer-events-none absolute inset-[-4%] z-0">
+        <ParallaxLayer depth={-160} mobileDepth={-105} className="pointer-events-none absolute inset-[-4%] z-0">
           <div className="vanta-hero-camera h-full w-full">
             <img src={heroImage} alt="Vanta Cold Studio" className="vanta-hero-image h-full w-full object-cover" />
           </div>
         </ParallaxLayer>
-        <ParallaxLayer depth={-14} mobileDepth={-28} className="pointer-events-none absolute inset-[-5%] z-[1]">
+        <ParallaxLayer depth={-34} mobileDepth={-30} className="pointer-events-none absolute inset-[-5%] z-[1]">
           <AtmosphericOverlay className="absolute inset-0" />
         </ParallaxLayer>
         <div className="hero-gradient-overlay absolute inset-0 z-[2]" />
-        <ParallaxLayer depth={8} mobileDepth={16} className="relative z-10 w-full">
+        <ParallaxLayer depth={58} mobileDepth={36} className="relative z-10 w-full">
           <div className="mx-auto max-w-7xl px-6 pb-16 lg:px-8 md:pb-24">
             <div className="max-w-4xl">
               <h1
@@ -308,7 +308,7 @@ export default function Home() {
         className="relative overflow-hidden border-t border-border bg-card py-20 vanta-section-transition"
         data-testid="section-enter-system"
       >
-        <ParallaxLayer depth={-16} mobileDepth={-24} className="pointer-events-none absolute inset-[-5%]">
+        <ParallaxLayer depth={-52} mobileDepth={-30} className="pointer-events-none absolute inset-[-5%]">
           <img src={cityImage} alt="" aria-hidden="true" className="h-full w-full object-cover opacity-10" />
         </ParallaxLayer>
         <AtmosphericOverlay className="pointer-events-none absolute inset-0 vanta-cta-atmosphere" />

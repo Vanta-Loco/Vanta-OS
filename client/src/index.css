@@ -373,15 +373,15 @@
 
   .vanta-atmosphere::before {
     background:
-      radial-gradient(circle at 22% 34%, hsl(var(--primary) / .18), transparent 28%),
-      radial-gradient(circle at 78% 22%, rgba(74, 93, 126, .2), transparent 34%);
+      radial-gradient(circle at 22% 34%, hsl(var(--primary) / .22), transparent 28%),
+      radial-gradient(circle at 78% 22%, rgba(74, 93, 126, .24), transparent 34%);
     animation: vanta-atmosphere-drift 18s ease-in-out infinite alternate;
     mix-blend-mode: screen;
   }
 
   .vanta-atmosphere::after {
     background: repeating-linear-gradient(108deg, transparent 0 9px, rgba(255, 255, 255, .018) 10px 11px, transparent 12px 23px);
-    opacity: .42;
+    opacity: .48;
     animation: vanta-atmosphere-scan 14s linear infinite;
   }
 
