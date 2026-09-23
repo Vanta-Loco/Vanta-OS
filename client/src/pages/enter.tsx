@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "wouter";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { GlitchText } from "@/components/vanta-signal";
 import { useVault } from "@/hooks/use-vault";
 import {
   LockKeyhole, LockKeyholeOpen, Disc3, Globe,
@@ -96,7 +97,7 @@ export default function Enter() {
             className="text-4xl md:text-5xl font-display font-bold tracking-[0.12em]"
             data-testid="text-enter-title"
           >
-            VANTA OS
+            <GlitchText intensity="strong">VANTA OS</GlitchText>
           </h1>
           <p
             className={`text-[10px] uppercase tracking-[0.35em] font-mono mt-3 transition-colors duration-700 ${

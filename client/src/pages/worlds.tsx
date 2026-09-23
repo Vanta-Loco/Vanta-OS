@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { worlds, worldStatusStyle as statusStyle } from "@/data/worlds";
 import cityImage from "@assets/generated_images/Urban_night_cityscape_mood_2c3c2c61.png";
 import { ParallaxLayer, VantaDepth } from "@/components/vanta-depth";
+import { GlitchText } from "@/components/vanta-signal";
 
 export default function Worlds() {
   return (
@@ -29,7 +30,7 @@ export default function Worlds() {
           </ParallaxLayer>
           <div className="relative max-w-7xl mx-auto px-6 lg:px-8 z-10">
             <p className="text-xs uppercase tracking-widest text-muted-foreground mb-3 font-medium">
-              Projects & Universes
+              <GlitchText intensity="medium">PROJECTS & UNIVERSES</GlitchText>
             </p>
             <h1
               className="text-4xl md:text-5xl lg:text-6xl font-display font-bold mb-6"

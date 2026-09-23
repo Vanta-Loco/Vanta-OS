@@ -12,6 +12,7 @@ import { Link } from "wouter";
 import type { Release } from "@shared/schema";
 import { format } from "date-fns";
 import releasesEnvironment from "@assets/generated_images/releases_listening_archive_environment.png";
+import { GlitchText } from "@/components/vanta-signal";
 
 const typeLabel: Record<string, string> = {
   album: "Album",
@@ -305,7 +306,7 @@ export default function Releases() {
             <div className="relative mx-auto max-w-7xl px-6 py-16 lg:px-8 md:py-20">
               <div className="max-w-2xl">
                 <div className="mb-6 flex flex-wrap items-center gap-3 text-[10px] font-mono uppercase tracking-[0.28em] text-primary/80">
-                  <span className="flex items-center gap-2"><Radio className="h-3.5 w-3.5" /> Vanta Music Archive</span>
+                  <span className="flex items-center gap-2"><Radio className="h-3.5 w-3.5" /> <GlitchText intensity="subtle">VANTA MUSIC ARCHIVE</GlitchText></span>
                   <span className="text-white/25">/</span>
                   <span className="text-white/50">Catalog / Archive / Signal</span>
                 </div>

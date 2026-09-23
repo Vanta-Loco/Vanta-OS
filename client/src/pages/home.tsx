@@ -15,6 +15,7 @@ import { format } from "date-fns";
 import transmissionEnvironment from "@assets/generated_images/transmission_editorial_broadcast_environment.png";
 import { getImageLayout } from "@/components/image-layout-picker";
 import { AtmosphericOverlay, ParallaxLayer, VantaDepth } from "@/components/vanta-depth";
+import { GlitchText, SignalGlitch, TransmissionFrame } from "@/components/vanta-signal";
 
 const worlds = [
   {
@@ -115,7 +116,7 @@ export default function Home() {
                 className="mt-4 mb-6 font-mono text-[11px] uppercase tracking-[0.28em] text-muted-foreground/50"
                 data-testid="text-hero-system-label"
               >
-                Vanta&nbsp;OS&nbsp;—&nbsp;a digital interface for music, fashion, and worldbuilding.
+                 <GlitchText intensity="subtle">VANTA OS — A DIGITAL INTERFACE FOR MUSIC, FASHION, AND WORLDBUILDING.</GlitchText>
               </p>
               <h2
                 className="mb-4 text-2xl font-display font-semibold leading-snug text-foreground md:text-3xl"
@@ -474,29 +475,31 @@ function TransmissionFeed({
             {featuredPost && (
               <Link href={`/post/${featuredPost.id}`} data-testid={`link-featured-transmission-${featuredPost.id}`}>
                 <article className="group relative isolate overflow-hidden border border-border bg-card/40 transition-colors hover:border-primary/50">
-                  <div className={`relative overflow-hidden ${featuredLayout.value === "original" ? "max-h-[70vh]" : featuredLayout.className}`}>
-                    <img
-                      src={featuredPost.coverImage}
-                      alt={featuredPost.title}
-                      className={`w-full ${featuredLayout.value === "original" ? "h-auto max-h-[70vh] object-contain" : "h-full object-cover"} transition-transform duration-700 group-hover:scale-[1.02]`}
-                      style={{ objectPosition: featuredPost.coverImagePosition || "50% 50%" }}
-                      data-testid={`img-featured-transmission-${featuredPost.id}`}
-                    />
-                    <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(5,6,12,.96)_0%,rgba(5,6,12,.75)_45%,rgba(5,6,12,.15)_100%)]" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/10" />
-                  <div className="absolute inset-0 flex flex-col justify-end p-6 md:max-w-2xl md:p-10">
-                    <div className="mb-4 flex flex-wrap items-center gap-3 text-[10px] font-mono uppercase tracking-[0.2em] text-white/60">
-                      <Badge variant="outline" className="border-primary/50 bg-primary/10 text-primary">{featuredPost.category}</Badge>
-                      <span>{format(new Date(featuredPost.createdAt), "MMM d, yyyy")}</span>
-                      <span>{featuredPost.readTime}</span>
-                    </div>
-                    <h4 className="font-display text-3xl font-bold leading-tight text-white md:text-5xl">{featuredPost.title}</h4>
-                    <p className="mt-4 line-clamp-3 max-w-xl text-sm leading-relaxed text-white/65 md:text-base">{featuredPost.excerpt}</p>
-                    <span className="mt-7 inline-flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.25em] text-primary transition-transform group-hover:translate-x-1">
-                      Read Transmission <ArrowRight className="h-3.5 w-3.5" />
-                    </span>
-                  </div>
-                  </div>
+                   <TransmissionFrame label="VANTA TRANSMISSION // FEED" metadata="NOW RECEIVING" intensity="subtle">
+                     <div className={`relative overflow-hidden ${featuredLayout.value === "original" ? "max-h-[70vh]" : featuredLayout.className}`}>
+                       <img
+                         src={featuredPost.coverImage}
+                         alt={featuredPost.title}
+                         className={`w-full ${featuredLayout.value === "original" ? "h-auto max-h-[70vh] object-contain" : "h-full object-cover"} transition-transform duration-700 group-hover:scale-[1.02]`}
+                         style={{ objectPosition: featuredPost.coverImagePosition || "50% 50%" }}
+                         data-testid={`img-featured-transmission-${featuredPost.id}`}
+                       />
+                       <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(5,6,12,.96)_0%,rgba(5,6,12,.75)_45%,rgba(5,6,12,.15)_100%)]" />
+                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/10" />
+                       <div className="absolute inset-0 flex flex-col justify-end p-6 md:max-w-2xl md:p-10">
+                         <div className="mb-4 flex flex-wrap items-center gap-3 text-[10px] font-mono uppercase tracking-[0.2em] text-white/60">
+                           <Badge variant="outline" className="border-primary/50 bg-primary/10 text-primary">{featuredPost.category}</Badge>
+                           <span>{format(new Date(featuredPost.createdAt), "MMM d, yyyy")}</span>
+                           <span>{featuredPost.readTime}</span>
+                         </div>
+                         <h4 className="font-display text-3xl font-bold leading-tight text-white md:text-5xl">{featuredPost.title}</h4>
+                         <p className="mt-4 line-clamp-3 max-w-xl text-sm leading-relaxed text-white/65 md:text-base">{featuredPost.excerpt}</p>
+                         <span className="mt-7 inline-flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.25em] text-primary transition-transform group-hover:translate-x-1">
+                           Read Transmission <ArrowRight className="h-3.5 w-3.5" />
+                         </span>
+                       </div>
+                     </div>
+                   </TransmissionFrame>
                 </article>
               </Link>
             )}
@@ -543,7 +546,7 @@ function TransmissionCard({ post }: { post: Post }) {
   return (
     <Link href={`/post/${post.id}`} data-testid={`link-transmission-${post.id}`}>
       <article className="group h-full overflow-hidden border border-border bg-card/45 transition-colors hover:border-primary/50">
-        <div className={`relative overflow-hidden bg-muted ${layout.value === "original" ? "max-h-[70vh]" : layout.className}`}>
+        <SignalGlitch intensity="subtle" className={`relative overflow-hidden bg-muted ${layout.value === "original" ? "max-h-[70vh]" : layout.className}`}>
           <img
             src={post.coverImage}
             alt={post.title}
@@ -553,7 +556,7 @@ function TransmissionCard({ post }: { post: Post }) {
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
           <Badge variant="outline" className="absolute left-3 top-3 border-white/25 bg-black/35 text-[9px] uppercase tracking-widest text-white/80">{post.category}</Badge>
-        </div>
+        </SignalGlitch>
         <div className="p-4">
           <div className="flex items-center justify-between gap-3 text-[9px] font-mono uppercase tracking-widest text-muted-foreground/55">
             <span>{format(new Date(post.createdAt), "MMM d, yyyy")}</span>

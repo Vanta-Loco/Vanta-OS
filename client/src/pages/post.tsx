@@ -25,6 +25,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAdmin } from "@/hooks/use-admin";
 import { MusicPlayer } from "@/components/music-player";
+import { TransmissionFrame } from "@/components/vanta-signal";
 
 // ── Dynamic Open Graph meta helper ────────────────────────────────────────────
 function useOpenGraph(post: Post | undefined) {
@@ -208,47 +209,49 @@ export default function PostPage() {
       <Header />
 
       <article className="flex-1 bg-background pt-20">
-        <div className={`relative ${getImageLayout(post.imageLayout).value === "original" ? "max-h-[70vh]" : getImageLayout(post.imageLayout).className} overflow-hidden`}>
-          <img
-            src={post.coverImage}
-            alt={post.title}
-            className={`w-full ${getImageLayout(post.imageLayout).value === "original" ? "h-auto max-h-[70vh] object-contain" : "h-full object-cover"}`}
-            style={{ objectPosition: post.coverImagePosition || "50% 50%" }}
-            data-testid="img-post-cover"
-          />
-          <div className="absolute inset-0 hero-gradient-overlay" />
+        <TransmissionFrame label="VANTA TRANSMISSION // FEED" metadata="SIGNAL LOCKED" intensity="medium">
+          <div className={`relative ${getImageLayout(post.imageLayout).value === "original" ? "max-h-[70vh]" : getImageLayout(post.imageLayout).className} overflow-hidden`}>
+            <img
+              src={post.coverImage}
+              alt={post.title}
+              className={`w-full ${getImageLayout(post.imageLayout).value === "original" ? "h-auto max-h-[70vh] object-contain" : "h-full object-cover"}`}
+              style={{ objectPosition: post.coverImagePosition || "50% 50%" }}
+              data-testid="img-post-cover"
+            />
+            <div className="absolute inset-0 hero-gradient-overlay" />
 
-          <div className="absolute bottom-0 left-0 right-0">
-            <div className="max-w-4xl mx-auto px-6 lg:px-8 pb-12 md:pb-16">
-              <div className="flex items-center gap-4 mb-4 text-sm text-muted-foreground">
-                <Badge
-                  variant="outline"
-                  className="uppercase tracking-wide font-medium"
-                  data-testid="badge-category"
+            <div className="absolute bottom-0 left-0 right-0">
+              <div className="max-w-4xl mx-auto px-6 lg:px-8 pb-12 md:pb-16">
+                <div className="flex items-center gap-4 mb-4 text-sm text-muted-foreground">
+                  <Badge
+                    variant="outline"
+                    className="uppercase tracking-wide font-medium"
+                    data-testid="badge-category"
+                  >
+                    {post.category}
+                  </Badge>
+                  <div className="flex items-center gap-1">
+                    <Calendar className="w-4 h-4" />
+                    <span data-testid="text-date">
+                      {format(new Date(post.createdAt), "MMMM d, yyyy")}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Clock className="w-4 h-4" />
+                    <span data-testid="text-readtime">{post.readTime}</span>
+                  </div>
+                </div>
+
+                <h1
+                  className="text-4xl md:text-5xl lg:text-6xl font-display font-bold text-foreground leading-tight max-w-4xl"
+                  data-testid="text-title"
                 >
-                  {post.category}
-                </Badge>
-                <div className="flex items-center gap-1">
-                  <Calendar className="w-4 h-4" />
-                  <span data-testid="text-date">
-                    {format(new Date(post.createdAt), "MMMM d, yyyy")}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Clock className="w-4 h-4" />
-                  <span data-testid="text-readtime">{post.readTime}</span>
-                </div>
+                  {post.title}
+                </h1>
               </div>
-
-              <h1
-                className="text-4xl md:text-5xl lg:text-6xl font-display font-bold text-foreground leading-tight max-w-4xl"
-                data-testid="text-title"
-              >
-                {post.title}
-              </h1>
             </div>
           </div>
-        </div>
+        </TransmissionFrame>
 
         <div className="max-w-3xl mx-auto px-6 lg:px-8 mt-16">
           <div className="flex items-center justify-between mb-12 gap-4 flex-wrap">
