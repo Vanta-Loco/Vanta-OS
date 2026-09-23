@@ -347,6 +347,7 @@
   }
 
   .vanta-hero-image {
+    --vanta-hero-entry-scale: 1.045;
     animation: vanta-hero-settle 1600ms cubic-bezier(.2, .72, .2, 1) both;
     transform: scale(1.02);
     will-change: transform;
@@ -391,7 +392,7 @@
   @keyframes vanta-hero-settle {
     from {
       opacity: .9;
-      transform: scale(1.045) translate3d(0, -1.5%, 0);
+      transform: scale(var(--vanta-hero-entry-scale, 1.045)) translate3d(0, -1.5%, 0);
     }
     to {
       opacity: 1;
@@ -448,6 +449,7 @@
     }
 
   .vanta-hero-image {
+      --vanta-hero-entry-scale: 1.08;
       animation-duration: 1600ms;
   }
 }
