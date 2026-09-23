@@ -12,6 +12,7 @@ type VantaDepthProps = HTMLAttributes<HTMLElement> & {
 type ParallaxLayerProps = HTMLAttributes<HTMLDivElement> & {
   children: ReactNode;
   depth?: number;
+  mobileDepth?: number;
 };
 
 /**
@@ -36,6 +37,7 @@ export function VantaDepth({ children, className = "", ...props }: VantaDepthPro
 
         if (reducedMotion.matches) {
           section.style.setProperty("--vanta-scroll-progress", "0");
+          section.style.setProperty("--vanta-camera-scale", "1");
           return;
         }
 
@@ -46,6 +48,7 @@ export function VantaDepth({ children, className = "", ...props }: VantaDepthPro
         const progress = Math.max(-1, Math.min(1, (viewportHeight / 2 - sectionCenter) / travel));
 
         section.style.setProperty("--vanta-scroll-progress", progress.toFixed(4));
+        section.style.setProperty("--vanta-camera-scale", (1.02 + progress * 0.025).toFixed(4));
       });
     };
 
@@ -71,11 +74,11 @@ export function VantaDepth({ children, className = "", ...props }: VantaDepthPro
   );
 }
 
-export function ParallaxLayer({ children, className = "", depth = 0, style, ...props }: ParallaxLayerProps) {
+export function ParallaxLayer({ children, className = "", depth = 0, mobileDepth, style, ...props }: ParallaxLayerProps) {
   const layerStyle: VantaDepthProperties = {
     ...style,
     "--vanta-depth": `${depth}px`,
-    "--vanta-depth-mobile": `${Math.round(depth * 0.6)}px`,
+    "--vanta-depth-mobile": `${mobileDepth ?? Math.round(depth * 0.88)}px`,
   };
 
   return (

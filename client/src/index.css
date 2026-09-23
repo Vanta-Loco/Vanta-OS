@@ -336,6 +336,7 @@
 
   .vanta-depth-root {
     --vanta-scroll-progress: 0;
+    --vanta-camera-scale: 1.02;
     isolation: isolate;
   }
 
@@ -346,8 +347,14 @@
   }
 
   .vanta-hero-image {
-    animation: vanta-hero-settle 1500ms cubic-bezier(.2, .72, .2, 1) both;
+    animation: vanta-hero-settle 1600ms cubic-bezier(.2, .72, .2, 1) both;
     transform: scale(1.02);
+    will-change: transform;
+  }
+
+  .vanta-hero-camera {
+    transform: scale(var(--vanta-camera-scale, 1.02));
+    transform-origin: center center;
     will-change: transform;
   }
 
@@ -365,20 +372,20 @@
 
   .vanta-atmosphere::before {
     background:
-      radial-gradient(circle at 22% 34%, hsl(var(--primary) / .12), transparent 28%),
-      radial-gradient(circle at 78% 22%, rgba(74, 93, 126, .14), transparent 34%);
+      radial-gradient(circle at 22% 34%, hsl(var(--primary) / .18), transparent 28%),
+      radial-gradient(circle at 78% 22%, rgba(74, 93, 126, .2), transparent 34%);
     animation: vanta-atmosphere-drift 18s ease-in-out infinite alternate;
     mix-blend-mode: screen;
   }
 
   .vanta-atmosphere::after {
     background: repeating-linear-gradient(108deg, transparent 0 9px, rgba(255, 255, 255, .018) 10px 11px, transparent 12px 23px);
-    opacity: .3;
+    opacity: .42;
     animation: vanta-atmosphere-scan 14s linear infinite;
   }
 
   .vanta-section-transition {
-    box-shadow: 0 -3rem 4rem -3.5rem rgba(7, 8, 14, .95);
+    box-shadow: 0 -4rem 5rem -3rem rgba(7, 8, 14, .96);
   }
 
   @keyframes vanta-hero-settle {
@@ -436,13 +443,22 @@
     --vanta-depth-active: var(--vanta-depth-mobile, var(--vanta-depth));
   }
 
+    .vanta-hero-camera {
+      transform: scale(var(--vanta-camera-scale, 1.02));
+    }
+
   .vanta-hero-image {
-    animation-duration: 1100ms;
+      animation-duration: 1600ms;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .vanta-depth-layer {
+    transform: none !important;
+    will-change: auto;
+  }
+
+  .vanta-hero-camera {
     transform: none !important;
     will-change: auto;
   }
