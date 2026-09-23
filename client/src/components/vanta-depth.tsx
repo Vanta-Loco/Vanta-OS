@@ -47,8 +47,9 @@ export function VantaDepth({ children, className = "", ...props }: VantaDepthPro
         const travel = Math.max(viewportHeight / 2 + bounds.height / 2, 1);
         const progress = Math.max(-1, Math.min(1, (viewportHeight / 2 - sectionCenter) / travel));
 
+        const cameraScale = 1.02 + progress * 0.025;
         section.style.setProperty("--vanta-scroll-progress", progress.toFixed(4));
-        section.style.setProperty("--vanta-camera-scale", (1.02 + progress * 0.025).toFixed(4));
+        section.style.setProperty("--vanta-camera-scale", cameraScale.toFixed(4));
       });
     };
 
