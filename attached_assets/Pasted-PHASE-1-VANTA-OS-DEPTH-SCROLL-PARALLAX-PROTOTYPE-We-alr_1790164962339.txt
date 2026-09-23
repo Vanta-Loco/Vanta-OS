@@ -1,0 +1,239 @@
+PHASE 1 — VANTA OS DEPTH SCROLL / PARALLAX PROTOTYPE
+
+We already created a checkpoint called VANTA OS — pre-motion baseline. Work from the current Vanta Cold / Vanta OS website and do not redesign the site.
+
+The goal of this phase is to make the existing Vanta pages feel more alive through subtle cinematic depth, scroll-reactive movement, and layered parallax, while keeping the current layouts, navigation, typography, imagery, routes, and overall Vanta identity intact.
+
+Core rule
+
+Keep the website easy to navigate.
+
+Do not turn this into a game or replace the current interface with a full 3D experience.
+
+The top navigation, page titles, buttons, links, cards, and existing content must remain clear and usable.
+
+We are adding movement behind and around the current interface, not rebuilding the interface.
+
+⸻
+
+1. ADD A REUSABLE VANTA DEPTH SYSTEM
+
+Build a reusable React depth/parallax system that can be applied to existing hero images, 3D environment renders, background imagery, foreground elements, fog/overlays, and decorative elements.
+
+The system should support multiple depth layers such as:
+
+BACKGROUND
+slowest movement
+
+ENVIRONMENT
+slow movement
+
+SUBJECT / STRUCTURE
+medium movement
+
+FOREGROUND
+slightly faster movement
+
+ATMOSPHERE
+fog / grain / light / particles
+
+UI
+mostly stable
+
+Do not literally split every image into fake pieces if assets do not support that.
+If a render is currently one flat image, use subtle scale, translate, masking, gradients, pseudo-elements, lighting overlays, and perspective to create depth without damaging the artwork.
+ 
+⸻
+ 
+2. SCROLL-REACTIVE MOTION
+Movement should react smoothly to page scroll.
+Examples:
+* Background shifts vertically more slowly than page content.
+* Large hero renders subtly scale from around 1.03 toward 1.0.
+* Foreground imagery can move slightly faster than the background.
+* Some environmental elements can drift horizontally by a very small amount.
+* Titles can enter with slight depth rather than just simple fades.
+* Large imagery can feel like the camera is slowly passing through the environment.
+Keep movement subtle.
+We want:
+cinematic / atmospheric / premium
+NOT:
+bouncy / gimmicky / overanimated
+ 
+⸻
+ 
+3. PRESERVE THE CURRENT 3D RENDERS
+The existing Vanta renders are important.
+Do not replace them.
+Add subtle life to them.
+Examples:
+* slow background drift
+* very slight zoom
+* subtle perspective shift
+* moving fog
+* soft light movement
+* occasional environmental flicker
+* gentle depth between image and typography
+The rendered environment should still be recognizably the same artwork.
+ 
+⸻
+ 
+4. START WITH THE HOMEPAGE
+Use the current homepage as the main prototype.
+The hero should feel more dimensional when the visitor first enters Vanta.
+Suggested behaviour:
+
+
+page loads
+↓
+hero image starts slightly enlarged
+↓
+subtle atmospheric movement begins
+↓
+user scrolls
+↓
+hero background moves slower than foreground content
+↓
+VANTA COLD title remains readable
+↓
+next content begins overlapping the visual depth
+
+Do not obscure:
+* VANTA COLD
+* the current Vanta OS description
+* buttons
+* navigation
+ 
+⸻
+ 
+5. SECTION TRANSITIONS
+Avoid hard visual cuts between major homepage sections where possible.
+Let the outgoing environment remain partially visible while the next section enters.
+
+
+For example:
+
+HERO
+↓
+image slowly darkens
+↓
+next section begins rising over it
+↓
+previous environment continues drifting behind
+↓
+next section fully takes over
+
+This should create the feeling that the visitor is moving through Vanta, rather than loading unrelated blocks.
+ 
+⸻
+ 
+6. MOTION LANGUAGE
+Vanta motion should feel:
+* dark
+* cinematic
+* slightly eerie
+* futuristic
+* underground
+* PS2/Y2K inspired
+* premium rather than flashy
+Use easing that feels heavy and smooth.
+Avoid springy animations unless they are extremely subtle.
+Avoid random spinning objects.
+Avoid excessive floating cards.
+Avoid copying Active Theory’s spiral directly.
+This is Vanta’s own visual system.
+ 
+⸻
+ 
+7. PERFORMANCE
+This is especially important on mobile.
+Do not add heavy Three.js/WebGL dependencies yet unless the current project already uses them and they are genuinely necessary.
+Prefer:
+* CSS transforms
+* transform: translate3d
+* requestAnimationFrame where required
+* Framer Motion if already installed
+* IntersectionObserver
+* lightweight scroll-progress hooks
+Avoid excessive React rerenders during scroll.
+Use GPU-friendly transforms rather than layout-changing properties.
+Respect prefers-reduced-motion.
+Ensure touch scrolling on iPhone remains smooth.
+ 
+⸻
+ 
+8. MOBILE FIRST
+Test the depth system at phone widths.
+On mobile:
+* movement should be slightly reduced
+* text must remain readable
+* nav must remain usable
+* no horizontal overflow
+* no accidental scroll locking
+* no large layout shift
+* no content should move outside the viewport
+The experience should still feel premium on a phone rather than like a desktop effect squeezed onto mobile.
+ 
+⸻
+ 
+9. REUSABLE COMPONENTS
+Do not hardcode all animation into individual pages.
+Create reusable pieces where appropriate, for example:
+
+DepthSection
+ParallaxLayer
+VantaEnvironment
+ScrollReveal
+AtmosphericOverlay
+
+Naming can differ if the existing architecture suggests something better.
+
+Keep the implementation clean enough that later phases can add:
+
+* environmental states
+* Transmission / CRT screens
+* glitch transitions
+* scroll velocity effects
+
+without rewriting this system.
+
+⸻
+
+10. DO NOT DO YET
+
+Do not implement:
+
+* full Three.js environments
+* Active Theory-style spiral navigation
+* page-wide heavy glitches
+* TV Transmission system
+* environmental colour states
+* scroll velocity corruption
+* Vanta OS boot transitions
+* major route changes
+* layout redesign
+
+Those are later phases.
+
+This phase is specifically:
+
+DEPTH + PARALLAX + CINEMATIC SCROLL.
+
+⸻
+
+FINAL CHECK
+
+After implementation:
+
+1. Run the app.
+2. Test desktop and mobile viewport sizes.
+3. Confirm the top navigation still works.
+4. Confirm existing routes still work.
+5. Confirm there is no horizontal overflow.
+6. Confirm scroll performance remains smooth.
+7. Confirm current content and imagery were not removed.
+8. Report every file changed.
+9. Explain how the new depth system works.
+10. Do not create another checkpoint yet — let me review the motion first.
+
+The main thing I want from this first pass is “the same Vanta site, but suddenly it has depth.” Then once we like the movement foundation, Phase 2 can make each page/environment develop its own visual state.

@@ -14,6 +14,7 @@ import { Archive, ArrowRight, Globe, Lock, Music, Plus, Radio, Search } from "lu
 import { format } from "date-fns";
 import transmissionEnvironment from "@assets/generated_images/transmission_editorial_broadcast_environment.png";
 import { getImageLayout } from "@/components/image-layout-picker";
+import { AtmosphericOverlay, ParallaxLayer, VantaDepth } from "@/components/vanta-depth";
 
 const worlds = [
   {
@@ -91,44 +92,43 @@ export default function Home() {
     <div className="min-h-screen flex flex-col">
       <Header />
 
-      {/* ── HERO — unchanged ── */}
-      <section className="relative h-[85vh] min-h-[600px] flex items-end overflow-hidden">
-        <img
-          src={heroImage}
-          alt="Vanta Cold Studio"
-          className="absolute inset-0 w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 hero-gradient-overlay" />
-        <div className="relative max-w-7xl mx-auto px-6 lg:px-8 pb-16 md:pb-24 z-10">
-          <div className="max-w-4xl">
-            <h1
-              className="text-5xl md:text-6xl lg:text-7xl font-display font-bold text-foreground leading-tight"
-              data-testid="text-hero-title"
-            >
-              Vanta Cold
-            </h1>
-            <p
-              className="text-[11px] uppercase tracking-[0.28em] text-muted-foreground/50 font-mono mt-4 mb-6"
-              data-testid="text-hero-system-label"
-            >
-              Vanta&nbsp;OS&nbsp;—&nbsp;a digital interface for music, fashion, and worldbuilding.
-            </p>
-            <h2
-              className="text-2xl md:text-3xl font-display font-semibold text-foreground mb-4 leading-snug"
-              data-testid="text-hero-section-title"
-            >
-              The Music Journey
-            </h2>
-            <p
-              className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl leading-relaxed"
-              data-testid="text-hero-subtitle"
-            >
-              Documenting the creative process, lifestyle moments, and the path
-              of building Vanta Cold from the ground up.
-            </p>
+      <VantaDepth className="relative flex h-[85vh] min-h-[600px] items-end overflow-hidden vanta-hero-depth">
+        <ParallaxLayer depth={-34} className="pointer-events-none absolute inset-[-4%] z-0">
+          <img src={heroImage} alt="Vanta Cold Studio" className="vanta-hero-image h-full w-full object-cover" />
+        </ParallaxLayer>
+        <ParallaxLayer depth={-14} className="pointer-events-none absolute inset-[-5%] z-[1]">
+          <AtmosphericOverlay className="absolute inset-0" />
+        </ParallaxLayer>
+        <div className="hero-gradient-overlay absolute inset-0 z-[2]" />
+        <ParallaxLayer depth={8} className="relative z-10 w-full">
+          <div className="mx-auto max-w-7xl px-6 pb-16 lg:px-8 md:pb-24">
+            <div className="max-w-4xl">
+              <h1
+                className="text-5xl font-display font-bold leading-tight text-foreground md:text-6xl lg:text-7xl"
+                data-testid="text-hero-title"
+              >
+                Vanta Cold
+              </h1>
+              <p
+                className="mt-4 mb-6 font-mono text-[11px] uppercase tracking-[0.28em] text-muted-foreground/50"
+                data-testid="text-hero-system-label"
+              >
+                Vanta&nbsp;OS&nbsp;—&nbsp;a digital interface for music, fashion, and worldbuilding.
+              </p>
+              <h2
+                className="mb-4 text-2xl font-display font-semibold leading-snug text-foreground md:text-3xl"
+                data-testid="text-hero-section-title"
+              >
+                The Music Journey
+              </h2>
+              <p className="mb-8 max-w-2xl text-lg leading-relaxed text-muted-foreground md:text-xl" data-testid="text-hero-subtitle">
+                Documenting the creative process, lifestyle moments, and the path
+                of building Vanta Cold from the ground up.
+              </p>
+            </div>
           </div>
-        </div>
-      </section>
+        </ParallaxLayer>
+      </VantaDepth>
 
       <TransmissionFeed
         posts={posts ?? []}

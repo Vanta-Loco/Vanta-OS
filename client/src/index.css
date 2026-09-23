@@ -334,6 +334,82 @@
     background: var(--gradient-overlay-dark);
   }
 
+  .vanta-depth-root {
+    --vanta-scroll-progress: 0;
+    isolation: isolate;
+  }
+
+  .vanta-depth-layer {
+    --vanta-depth-active: var(--vanta-depth);
+    transform: translate3d(0, calc(var(--vanta-scroll-progress, 0) * var(--vanta-depth-active, 0px)), 0);
+    will-change: transform;
+  }
+
+  .vanta-hero-image {
+    animation: vanta-hero-settle 1500ms cubic-bezier(.2, .72, .2, 1) both;
+    transform: scale(1.02);
+    will-change: transform;
+  }
+
+  .vanta-atmosphere {
+    overflow: hidden;
+  }
+
+  .vanta-atmosphere::before,
+  .vanta-atmosphere::after {
+    content: "";
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+  }
+
+  .vanta-atmosphere::before {
+    background:
+      radial-gradient(circle at 22% 34%, hsl(var(--primary) / .12), transparent 28%),
+      radial-gradient(circle at 78% 22%, rgba(74, 93, 126, .14), transparent 34%);
+    animation: vanta-atmosphere-drift 18s ease-in-out infinite alternate;
+    mix-blend-mode: screen;
+  }
+
+  .vanta-atmosphere::after {
+    background: repeating-linear-gradient(108deg, transparent 0 9px, rgba(255, 255, 255, .018) 10px 11px, transparent 12px 23px);
+    opacity: .3;
+    animation: vanta-atmosphere-scan 14s linear infinite;
+  }
+
+  .vanta-section-transition {
+    box-shadow: 0 -3rem 4rem -3.5rem rgba(7, 8, 14, .95);
+  }
+
+  @keyframes vanta-hero-settle {
+    from {
+      opacity: .9;
+      transform: scale(1.045) translate3d(0, -1.5%, 0);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1.02) translate3d(0, 0, 0);
+    }
+  }
+
+  @keyframes vanta-atmosphere-drift {
+    from {
+      transform: translate3d(-1.5%, -1%, 0) scale(1.02);
+    }
+    to {
+      transform: translate3d(1.5%, 1%, 0) scale(1.06);
+    }
+  }
+
+  @keyframes vanta-atmosphere-scan {
+    from {
+      transform: translate3d(-2%, 0, 0);
+    }
+    to {
+      transform: translate3d(2%, 0, 0);
+    }
+  }
+
   .shimmer {
     background: linear-gradient(
       90deg,
@@ -352,5 +428,29 @@
     100% {
       background-position: 200% 0;
     }
+  }
+}
+
+@media (max-width: 767px) {
+  .vanta-depth-layer {
+    --vanta-depth-active: var(--vanta-depth-mobile, var(--vanta-depth));
+  }
+
+  .vanta-hero-image {
+    animation-duration: 1100ms;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vanta-depth-layer {
+    transform: none !important;
+    will-change: auto;
+  }
+
+  .vanta-hero-image,
+  .vanta-atmosphere::before,
+  .vanta-atmosphere::after {
+    animation: none !important;
+    transform: none !important;
   }
 }
