@@ -417,13 +417,22 @@
     --vanta-environment-texture: radial-gradient(circle at 72% 28%, rgba(180, 127, 255, .06), transparent 2%, transparent 100%);
   }
 
+  .vanta-environment-atmosphere-worlds::after {
+    animation:
+      vanta-environment-scan var(--vanta-environment-speed) linear infinite,
+      vanta-environment-light-flicker 5.5s ease-in-out infinite;
+  }
+
   .vanta-environment-atmosphere-play {
     --vanta-environment-glow: rgba(177, 69, 125, .15);
     --vanta-environment-tint: rgba(27, 23, 58, .14);
     --vanta-environment-scan: .06;
     --vanta-environment-speed: 11s;
     --vanta-environment-texture: linear-gradient(rgba(139, 103, 211, .035) 1px, transparent 1px), linear-gradient(90deg, rgba(139, 103, 211, .035) 1px, transparent 1px);
-    background-size: 34px 34px;
+  }
+
+  .vanta-environment-atmosphere-play::after {
+    background-size: 34px 34px, auto;
   }
 
   .vanta-environment-atmosphere-passport {
@@ -544,6 +553,21 @@
     }
     to {
       transform: translate3d(1.5%, 0, 0);
+    }
+  }
+
+  @keyframes vanta-environment-light-flicker {
+    0%, 100% {
+      opacity: .035;
+    }
+    48% {
+      opacity: .035;
+    }
+    52% {
+      opacity: .07;
+    }
+    58% {
+      opacity: .04;
     }
   }
 
