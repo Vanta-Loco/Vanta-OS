@@ -1,0 +1,50 @@
+Yeah, it only reviewed the brief instead of executing it.
+Send this follow-up:
+Proceed with implementation now. Do not just summarize or review the brief.
+Implement Phase 3 — Vanta Transmission + Controlled Glitch System directly in the current project.
+You already understand the requirements, so begin editing the code now.
+Start by inspecting the existing Phase 1 depth system and Phase 2 environmental-state architecture, then integrate Phase 3 into those systems rather than creating disconnected effects.
+Minimum implementation for this pass:
+1. Create the reusable signal/glitch components and intensity presets: subtle, medium, strong.
+2. Add a short route/page-entry signal glitch that actually appears visually.
+3. Give existing Transmission content a reusable Vanta broadcast/CRT frame.
+4. Add restrained scanlines, screen glow, signal noise, and brief image displacement.
+5. Add short glitch/corruption behavior to selected system headings only.
+6. Apply:
+   - Home → subtle
+   - Releases → subtle
+   - Worlds → medium
+   - Transmission → medium
+   - OS → strong
+7. Preserve prefers-reduced-motion.
+8. Test on desktop and mobile.
+Important: the effects need to be visibly noticeable. Do not make another technically functioning effect that is practically invisible.
+For the initial testing pass, make the route/page-entry glitch slightly stronger than the final intended level so it can be visually confirmed. Once confirmed, tune it back to a polished level.
+A successful route transition should visibly resemble:
+user selects a Vanta section
+↓
+brief RGB/channel separation
+↓
+horizontal signal tear/static band
+↓
+next page/environment appears
+↓
+signal stabilizes
+Aim for roughly 150–350ms for normal route signal events.
+Transmission pages can use a slightly longer 300–600ms signal-lock entrance.
+Do not introduce long loading screens.
+Do not stop after planning.
+Make the edits, run the project, interact with the live preview, and verify the effects actually occur.
+Do not claim success from screenshots alone because these are temporal effects.
+When finished, report:
+- files created/changed
+- reusable components created
+- which pages have each intensity
+- exact triggers implemented
+- what the Transmission frame does
+- what was visually verified in the running preview
+- mobile behavior
+- reduced-motion behavior
+- npm run check result
+- npm run build result
+Do not implement Phase 4.
