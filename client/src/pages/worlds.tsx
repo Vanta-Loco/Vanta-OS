@@ -8,6 +8,7 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { worlds, worldStatusStyle as statusStyle } from "@/data/worlds";
 import cityImage from "@assets/generated_images/Urban_night_cityscape_mood_2c3c2c61.png";
+import { ParallaxLayer, VantaDepth } from "@/components/vanta-depth";
 
 export default function Worlds() {
   return (
@@ -17,13 +18,15 @@ export default function Worlds() {
 
       <main className="flex-1 bg-background pt-20">
         {/* ── Header section ── */}
-        <section className="relative py-24 overflow-hidden border-b border-border">
-          <img
-            src={cityImage}
-            alt=""
-            aria-hidden="true"
-            className="absolute inset-0 w-full h-full object-cover opacity-10"
-          />
+        <VantaDepth className="relative py-24 overflow-hidden border-b border-border">
+          <ParallaxLayer depth={-130} mobileDepth={-76} className="pointer-events-none absolute inset-[-5%]">
+            <img
+              src={cityImage}
+              alt=""
+              aria-hidden="true"
+              className="w-full h-full object-cover opacity-10"
+            />
+          </ParallaxLayer>
           <div className="relative max-w-7xl mx-auto px-6 lg:px-8 z-10">
             <p className="text-xs uppercase tracking-widest text-muted-foreground mb-3 font-medium">
               Projects & Universes
@@ -47,7 +50,7 @@ export default function Worlds() {
               </Link>
             </div>
           </div>
-        </section>
+        </VantaDepth>
 
         {/* ── Worlds grid ── */}
         <section className="py-20">

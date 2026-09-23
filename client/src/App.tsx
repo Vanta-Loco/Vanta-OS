@@ -9,6 +9,7 @@ import { StartupScreen, STARTUP_SESSION_KEY } from "@/components/startup-screen"
 import { VantaOSIntro } from "@/components/vanta-os-intro";
 import { VantaOSBoot } from "@/components/vanta-os-boot";
 import { EnterVanta } from "@/components/enter-vanta";
+import { VantaEnvironmentProvider } from "@/components/vanta-environment";
 import Home from "@/pages/home";
 import PostPage from "@/pages/post";
 import CreatePost from "@/pages/create";
@@ -263,7 +264,11 @@ function App() {
           )}
 
           {/* Stage 5 — Normal app */}
-          {phase === "done" && <Router />}
+          {phase === "done" && (
+            <VantaEnvironmentProvider>
+              <Router />
+            </VantaEnvironmentProvider>
+          )}
         </TooltipProvider>
       </ThemeProvider>
     </QueryClientProvider>

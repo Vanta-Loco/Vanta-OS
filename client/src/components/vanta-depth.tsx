@@ -48,10 +48,15 @@ export function VantaDepth({ children, className = "", ...props }: VantaDepthPro
         const progress = Math.max(-1, Math.min(1, (viewportHeight / 2 - sectionCenter) / travel));
 
         const isMobile = window.matchMedia("(max-width: 767px)").matches;
+        const environmentMultiplier =
+          Number.parseFloat(
+            window.getComputedStyle(section).getPropertyValue("--vanta-parallax-multiplier"),
+          ) || 1;
+        const adjustedProgress = Math.max(-1, Math.min(1, progress * environmentMultiplier));
         const cameraStart = isMobile ? 1.1 : 1.12;
         const cameraEnd = isMobile ? 1.02 : 1.01;
-        const cameraScale = cameraStart + (cameraEnd - cameraStart) * progress;
-        section.style.setProperty("--vanta-scroll-progress", progress.toFixed(4));
+        const cameraScale = cameraStart + (cameraEnd - cameraStart) * adjustedProgress;
+        section.style.setProperty("--vanta-scroll-progress", adjustedProgress.toFixed(4));
         section.style.setProperty("--vanta-camera-scale", cameraScale.toFixed(4));
       });
     };

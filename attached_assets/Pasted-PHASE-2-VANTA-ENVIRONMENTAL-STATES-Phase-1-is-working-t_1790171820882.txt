@@ -1,0 +1,212 @@
+PHASE 2 — VANTA ENVIRONMENTAL STATES
+Phase 1 is working: the main Vanta hero now has visible depth/parallax movement.
+Do not redesign the site.
+Keep the current navigation, page headers, routes, typography, buttons, imagery, and page structure.
+The goal of Phase 2 is to make different areas of the Vanta site feel like different system environments while staying clearly part of the same Vanta visual language.
+Think:
+same website / same Vanta identity / different atmospheric states
+1. BUILD A REUSABLE ENVIRONMENT STATE SYSTEM
+Create a reusable system that can control page-level atmosphere without hardcoding random styles into every page.
+It should be able to control things like:
+- background tint
+- ambient glow
+- haze/fog intensity
+- subtle scan texture
+- vignette
+- overlay gradients
+- page accent lighting
+- parallax intensity multiplier
+- subtle environmental animation speed
+Suggested concept:
+VantaEnvironmentProvider
+VantaEnvironmentState
+AtmosphericOverlay
+EnvironmentGlow
+Naming can differ if the current architecture suggests something cleaner.
+2. CREATE DISTINCT VANTA STATES
+Start with these states:
+HOME
+warm-dark studio atmosphere
+subtle amber + muted purple
+slow dust / haze
+cinematic
+
+RELEASES
+dark archive atmosphere
+black + deep purple
+faint scan movement
+slightly colder
+
+WORLDS
+night-city atmosphere
+blue-black / purple fog
+deeper parallax
+distant light flicker
+
+PLAY
+dark street / tactical-map atmosphere
+subtle grid or positional glow
+slightly more kinetic
+
+PASSPORT
+cleaner black / silver / violet
+restrained glow
+more minimal and identity-focused
+
+OS
+deepest black
+toxic green + purple signal light
+strongest system feel
+subtle CRT/signal texture
+
+TRANSMISSION
+broadcast atmosphere
+dark screen glow
+purple/white scan behaviour
+slight analogue-TV feel
+These should be recognizably different, but they must still feel like one Vanta system.
+3. DO NOT CHANGE THE CONTENT LAYOUT
+Keep:
+- top navigation
+- page title/header structure
+- cards
+- buttons
+- existing images/renders
+- page copy
+- route structure
+The environmental state should happen around the content.
+Experimental visuals, conventional navigation.
+4. PAGE TRANSITIONS BETWEEN STATES
+When navigating between major Vanta sections, do not instantly snap from one atmosphere to another.
+Crossfade environmental properties smoothly.
+For example:
+HOME
+warm amber-purple
+
+click WORLDS
+
+ambient light slowly cools
+haze deepens
+city-state glow fades in
+purple-blue becomes dominant
+Keep transition time short enough that navigation still feels fast.
+Target roughly:
+400–900ms
+depending on the property.
+Do not delay route loading just for animation.
+5. USE THE EXISTING 3D RENDERS AS THE BASE
+Do not replace the current renders.
+Different environment states should subtly affect how the existing renders are presented.
+Examples:
+- different overlay lighting
+- changing fog tone
+- slight contrast shift
+- different atmospheric particles
+- page-specific glow
+Keep the original render clearly visible.
+Avoid heavy filters that destroy image quality.
+6. HOME STATE
+Keep the current Phase 1 moving hero.
+Add:
+- subtle warm studio glow
+- faint purple Vanta reflection
+- slow atmosphere drift
+- gentle light breathing
+This is the public-facing Vanta state.
+It should feel inviting but mysterious.
+7. RELEASES STATE
+Make Releases feel like a Vanta archive/catalog.
+Add:
+- darker background
+- faint horizontal scan movement
+- purple archive glow
+- low-intensity vignette
+- slight ambient shifts based on visible release artwork if easy to implement cleanly
+Do not yet build full artwork-reactive colour extraction if it introduces unnecessary complexity.
+8. WORLDS STATE
+This should feel the most spatial after Home.
+Use the existing city/world renders.
+Add:
+- deeper blue-purple fog
+- slightly increased parallax depth
+- very subtle distant light flicker
+- slow environmental drift
+It should feel like Vanta is opening into something larger.
+Do not turn it into a playable scene.
+9. TRANSMISSION STATE
+Start establishing the future TV/broadcast language, but do not build the full TV Transmission system yet.
+Add:
+- soft CRT-style glow
+- subtle scanline movement
+- brief low-intensity signal noise on page entrance
+- broadcast-style atmospheric framing
+Keep all article/content readability intact.
+No heavy glitching yet.
+10. OS STATE
+OS should be the most system-heavy visual state.
+Think:
+- black
+- toxic green
+- purple
+- faint signal noise
+- deeper vignette
+- subtle CRT texture
+But keep this controlled.
+We are teasing the deeper Vanta OS meta visually, not building the entire OS experience yet.
+11. MOTION
+Reuse the Phase 1 depth/parallax system.
+Each environment state can adjust its intensity slightly.
+Example:
+HOME = 1.0
+RELEASES = 0.7
+WORLDS = 1.2
+PLAY = 0.9
+PASSPORT = 0.6
+OS = 1.0
+TRANSMISSION = 0.8
+Keep movement readable and smooth.
+Do not make every page move identically.
+12. PERFORMANCE
+Keep Phase 2 lightweight.
+Prefer:
+- CSS variables
+- pseudo-elements
+- gradients
+- existing React motion system
+- GPU-friendly transforms
+- opacity transitions
+Do not add heavy WebGL dependencies just to change atmosphere.
+Keep mobile performance strong.
+13. MOBILE
+Test all states at phone widths.
+Ensure:
+- atmosphere is still visible
+- text remains readable
+- nav remains usable
+- no horizontal overflow
+- no scroll locking
+- no major FPS drop
+Mobile should still feel visually rich, not like a stripped version.
+14. DO NOT DO YET
+Do not implement:
+- heavy glitch system
+- TV/CRT content screens as interactive objects
+- scroll-velocity corruption
+- Vanta boot sequence
+- full 3D WebGL scenes
+- page restructuring
+- route changes
+- new app functionality
+Those are later phases.
+SUCCESS TEST
+A user should be able to navigate normally through Vanta and immediately feel:
+“This is the same platform, but each area has its own atmosphere.”
+They should never be confused about where they are or how to navigate.
+After implementation report:
+1. which environment states were added
+2. which pages use each state
+3. how transitions between states work
+4. what mobile adjustments were made
+5. every file changed
+6. whether build/check passed
+Do not proceed to Phase 3 yet.

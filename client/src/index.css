@@ -340,6 +340,115 @@
     isolation: isolate;
   }
 
+  .vanta-environment-root {
+    --vanta-parallax-multiplier: 1;
+    isolation: isolate;
+    min-height: 100%;
+    position: relative;
+  }
+
+  .vanta-environment-content {
+    position: relative;
+    z-index: 1;
+  }
+
+  .vanta-environment-atmosphere {
+    --vanta-environment-glow: rgba(185, 120, 220, .1);
+    --vanta-environment-tint: rgba(20, 12, 32, .08);
+    --vanta-environment-scan: .04;
+    --vanta-environment-speed: 18s;
+    position: fixed;
+    z-index: 20;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+    opacity: .82;
+    transition: opacity 760ms cubic-bezier(.2, .72, .2, 1);
+  }
+
+  .vanta-environment-atmosphere-exiting {
+    opacity: 0;
+  }
+
+  .vanta-environment-atmosphere::before,
+  .vanta-environment-atmosphere::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+  }
+
+  .vanta-environment-atmosphere::before {
+    background:
+      radial-gradient(ellipse at 18% 18%, var(--vanta-environment-glow), transparent 42%),
+      radial-gradient(ellipse at 82% 78%, var(--vanta-environment-tint), transparent 55%);
+    box-shadow: inset 0 0 16vw var(--vanta-environment-tint);
+    mix-blend-mode: screen;
+    animation: vanta-environment-breathe var(--vanta-environment-speed) ease-in-out infinite alternate;
+  }
+
+  .vanta-environment-atmosphere::after {
+    background:
+      var(--vanta-environment-texture, repeating-linear-gradient(108deg, transparent 0 12px, rgba(255, 255, 255, .018) 13px 14px, transparent 15px 28px)),
+      radial-gradient(ellipse at 50% 100%, transparent 35%, rgba(0, 0, 0, .32) 100%);
+    opacity: var(--vanta-environment-scan);
+    animation: vanta-environment-scan var(--vanta-environment-speed) linear infinite;
+    mix-blend-mode: screen;
+  }
+
+  .vanta-environment-atmosphere-home {
+    --vanta-environment-glow: rgba(221, 146, 91, .13);
+    --vanta-environment-tint: rgba(89, 45, 70, .1);
+    --vanta-environment-scan: .035;
+    --vanta-environment-speed: 18s;
+  }
+
+  .vanta-environment-atmosphere-releases {
+    --vanta-environment-glow: rgba(118, 62, 180, .14);
+    --vanta-environment-tint: rgba(13, 8, 28, .2);
+    --vanta-environment-scan: .075;
+    --vanta-environment-speed: 14s;
+  }
+
+  .vanta-environment-atmosphere-worlds {
+    --vanta-environment-glow: rgba(62, 100, 205, .14);
+    --vanta-environment-tint: rgba(58, 42, 124, .13);
+    --vanta-environment-scan: .045;
+    --vanta-environment-speed: 22s;
+    --vanta-environment-texture: radial-gradient(circle at 72% 28%, rgba(180, 127, 255, .06), transparent 2%, transparent 100%);
+  }
+
+  .vanta-environment-atmosphere-play {
+    --vanta-environment-glow: rgba(177, 69, 125, .15);
+    --vanta-environment-tint: rgba(27, 23, 58, .14);
+    --vanta-environment-scan: .06;
+    --vanta-environment-speed: 11s;
+    --vanta-environment-texture: linear-gradient(rgba(139, 103, 211, .035) 1px, transparent 1px), linear-gradient(90deg, rgba(139, 103, 211, .035) 1px, transparent 1px);
+    background-size: 34px 34px;
+  }
+
+  .vanta-environment-atmosphere-passport {
+    --vanta-environment-glow: rgba(192, 197, 222, .08);
+    --vanta-environment-tint: rgba(50, 41, 76, .08);
+    --vanta-environment-scan: .018;
+    --vanta-environment-speed: 26s;
+  }
+
+  .vanta-environment-atmosphere-os {
+    --vanta-environment-glow: rgba(121, 255, 93, .13);
+    --vanta-environment-tint: rgba(81, 12, 111, .16);
+    --vanta-environment-scan: .105;
+    --vanta-environment-speed: 10s;
+    --vanta-environment-texture: repeating-linear-gradient(0deg, transparent 0 3px, rgba(161, 255, 126, .025) 4px 5px, transparent 6px 9px);
+  }
+
+  .vanta-environment-atmosphere-transmission {
+    --vanta-environment-glow: rgba(189, 132, 224, .14);
+    --vanta-environment-tint: rgba(16, 12, 32, .16);
+    --vanta-environment-scan: .095;
+    --vanta-environment-speed: 13s;
+    --vanta-environment-texture: repeating-linear-gradient(0deg, transparent 0 5px, rgba(255, 255, 255, .026) 6px 7px, transparent 8px 12px);
+  }
+
   .vanta-depth-layer {
     --vanta-depth-active: var(--vanta-depth);
     transform: translate3d(0, calc(var(--vanta-scroll-progress, 0) * var(--vanta-depth-active, 0px)), 0);
@@ -418,6 +527,26 @@
     }
   }
 
+  @keyframes vanta-environment-breathe {
+    from {
+      opacity: .72;
+      transform: scale(1);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1.035);
+    }
+  }
+
+  @keyframes vanta-environment-scan {
+    from {
+      transform: translate3d(-1.5%, 0, 0);
+    }
+    to {
+      transform: translate3d(1.5%, 0, 0);
+    }
+  }
+
   .shimmer {
     background: linear-gradient(
       90deg,
@@ -455,6 +584,15 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .vanta-environment-atmosphere {
+    transition-duration: 1ms;
+  }
+
+  .vanta-environment-atmosphere::before,
+  .vanta-environment-atmosphere::after {
+    animation: none !important;
+  }
+
   .vanta-depth-layer {
     transform: none !important;
     will-change: auto;
