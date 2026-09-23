@@ -302,16 +302,14 @@ export default function Home() {
       </section>
 
       {/* ── ENTER THE SYSTEM — CTA banner ── */}
-      <section
-        className="relative bg-card border-t border-border py-20 overflow-hidden"
+      <VantaDepth
+        className="relative overflow-hidden border-t border-border bg-card py-20 vanta-section-transition"
         data-testid="section-enter-system"
       >
-        <img
-          src={cityImage}
-          alt=""
-          aria-hidden="true"
-          className="absolute inset-0 w-full h-full object-cover opacity-10"
-        />
+        <ParallaxLayer depth={-16} className="pointer-events-none absolute inset-[-5%]">
+          <img src={cityImage} alt="" aria-hidden="true" className="h-full w-full object-cover opacity-10" />
+        </ParallaxLayer>
+        <AtmosphericOverlay className="pointer-events-none absolute inset-0 vanta-cta-atmosphere" />
         <div className="relative max-w-7xl mx-auto px-6 lg:px-8 text-center z-10">
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-full border border-border mb-6">
             <Lock className="w-5 h-5 text-muted-foreground" />
@@ -331,7 +329,7 @@ export default function Home() {
             </Button>
           </Link>
         </div>
-      </section>
+      </VantaDepth>
 
       <Footer />
     </div>
