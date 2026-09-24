@@ -96,7 +96,9 @@ export default function Home() {
       <VantaDepth className="relative flex h-[85vh] min-h-[600px] items-end overflow-hidden vanta-hero-depth">
         <ParallaxLayer depth={-160} mobileDepth={-105} className="pointer-events-none absolute inset-[-4%] z-0">
           <div className="vanta-hero-camera h-full w-full">
-            <img src={heroImage} alt="Vanta Cold Studio" className="vanta-hero-image h-full w-full object-cover" />
+            <SignalGlitch intensity="medium" className="h-full w-full">
+              <img src={heroImage} alt="Vanta Cold Studio" className="vanta-hero-image h-full w-full object-cover" />
+            </SignalGlitch>
           </div>
         </ParallaxLayer>
         <ParallaxLayer depth={-34} mobileDepth={-30} className="pointer-events-none absolute inset-[-5%] z-[1]">

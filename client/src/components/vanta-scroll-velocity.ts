@@ -53,7 +53,6 @@ export function useVantaScrollVelocity(rootRef: ScrollRootRef, intensity: number
       root.style.setProperty("--vanta-scroll-sweep-opacity", (scaledEnergy * 0.1).toFixed(3));
       root.style.setProperty("--vanta-scroll-sweep-offset", `${(signedEnergy * 2).toFixed(2)}px`);
       root.style.setProperty("--vanta-scroll-brightness", (1 + scaledEnergy * 0.025).toFixed(3));
-      root.dataset.vantaScrollEnergy = scaledEnergy.toFixed(3);
     };
 
     const reset = () => {
@@ -79,7 +78,7 @@ export function useVantaScrollVelocity(rootRef: ScrollRootRef, intensity: number
 
     const updateState = (recentInput: boolean) => {
       if (!recentInput) {
-        return smoothedVelocity > 0.018 ? "settling" : "calm";
+        return smoothedVelocity > 0.025 ? "settling" : "calm";
       }
 
       if (state === "unstable") {
@@ -106,7 +105,7 @@ export function useVantaScrollVelocity(rootRef: ScrollRootRef, intensity: number
 
       const recentInput = now - lastInputAt < 95;
       const targetVelocity = recentInput ? rawVelocity : 0;
-      const timeConstant = targetVelocity > smoothedVelocity ? 58 : 170;
+      const timeConstant = targetVelocity > smoothedVelocity ? 58 : 125;
       const smoothing = 1 - Math.exp(-elapsed / timeConstant);
       smoothedVelocity += (targetVelocity - smoothedVelocity) * smoothing;
       rawVelocity *= Math.exp(-elapsed / 90);
@@ -117,8 +116,14 @@ export function useVantaScrollVelocity(rootRef: ScrollRootRef, intensity: number
         state = nextState;
         root.dataset.vantaScrollState = state;
       }
-      root.dataset.vantaScrollActive = active ? "true" : "false";
-      root.dataset.vantaScrollDirection = direction > 0 ? "down" : direction < 0 ? "up" : "idle";
+      const activeValue = active ? "true" : "false";
+      if (root.dataset.vantaScrollActive !== activeValue) {
+        root.dataset.vantaScrollActive = activeValue;
+      }
+      const directionValue = direction > 0 ? "down" : direction < 0 ? "up" : "idle";
+      if (root.dataset.vantaScrollDirection !== directionValue) {
+        root.dataset.vantaScrollDirection = directionValue;
+      }
       writeValues(smoothedVelocity);
 
       if (active || smoothedVelocity > 0.006 || rawVelocity > 0.006) {
