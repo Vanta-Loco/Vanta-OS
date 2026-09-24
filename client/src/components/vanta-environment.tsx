@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useLocation } from "wouter";
+import { useVantaScrollVelocity } from "@/components/vanta-scroll-velocity";
 
 export type VantaEnvironmentName =
   | "home"
@@ -13,22 +14,24 @@ export type VantaEnvironmentName =
 
 type EnvironmentLayerProperties = CSSProperties & {
   "--vanta-parallax-multiplier"?: number;
+  "--vanta-scroll-intensity"?: number;
 };
 
 type EnvironmentDefinition = {
   name: VantaEnvironmentName;
   parallaxMultiplier: number;
+  scrollIntensity: number;
 };
 
 const environmentDefinitions: Record<VantaEnvironmentName, EnvironmentDefinition> = {
-  home: { name: "home", parallaxMultiplier: 1 },
-  releases: { name: "releases", parallaxMultiplier: 0.7 },
-  worlds: { name: "worlds", parallaxMultiplier: 1.2 },
-  play: { name: "play", parallaxMultiplier: 0.9 },
-  passport: { name: "passport", parallaxMultiplier: 0.6 },
-  os: { name: "os", parallaxMultiplier: 1 },
-  transmission: { name: "transmission", parallaxMultiplier: 0.8 },
-  none: { name: "none", parallaxMultiplier: 1 },
+  home: { name: "home", parallaxMultiplier: 1, scrollIntensity: 0.72 },
+  releases: { name: "releases", parallaxMultiplier: 0.7, scrollIntensity: 0.72 },
+  worlds: { name: "worlds", parallaxMultiplier: 1.2, scrollIntensity: 1.25 },
+  play: { name: "play", parallaxMultiplier: 0.9, scrollIntensity: 0.88 },
+  passport: { name: "passport", parallaxMultiplier: 0.6, scrollIntensity: 0.62 },
+  os: { name: "os", parallaxMultiplier: 1, scrollIntensity: 1.5 },
+  transmission: { name: "transmission", parallaxMultiplier: 0.8, scrollIntensity: 0.9 },
+  none: { name: "none", parallaxMultiplier: 1, scrollIntensity: 0.8 },
 };
 
 const crossfadeDuration = 760;
@@ -104,6 +107,7 @@ function EnvironmentLayer({
 export function VantaEnvironmentProvider({ children }: { children: ReactNode }) {
   const [location] = useLocation();
   const environment = environmentForPath(location);
+  const rootRef = useRef<HTMLDivElement | null>(null);
   const previousEnvironment = useRef(environment);
   const [transition, setTransition] = useState<{
     from: VantaEnvironmentName;
@@ -122,12 +126,15 @@ export function VantaEnvironmentProvider({ children }: { children: ReactNode }) 
   }, [environment]);
 
   const definition = environmentDefinitions[environment];
+  useVantaScrollVelocity(rootRef, definition.scrollIntensity);
   const style: EnvironmentLayerProperties = {
     "--vanta-parallax-multiplier": definition.parallaxMultiplier,
+    "--vanta-scroll-intensity": definition.scrollIntensity,
   };
 
   return (
     <div
+      ref={rootRef}
       className="vanta-environment-root"
       data-vanta-environment={environment}
       style={style}

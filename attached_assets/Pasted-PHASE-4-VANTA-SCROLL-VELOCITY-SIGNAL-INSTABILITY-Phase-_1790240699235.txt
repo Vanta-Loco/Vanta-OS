@@ -1,0 +1,217 @@
+PHASE 4 — VANTA SCROLL VELOCITY / SIGNAL INSTABILITY
+Phase 1: depth/parallax is working.
+Phase 2: environmental states are working.
+Phase 3: event-based signal glitches are working.
+Now implement Phase 4: scroll-velocity reactions.
+The goal is to make Vanta feel like a live system that reacts to how fast the user moves through it.
+Core behavior:
+slow scroll
+= calm / cinematic / stable
+
+fast scroll
+= slightly unstable / more reactive / more digital distortion
+
+stop scrolling
+= environment settles back into lock
+Do not redesign the site.
+Keep:
+- top navigation
+- page headers
+- routes
+- current Phase 1 parallax
+- Phase 2 environment states
+- Phase 3 hover/route signal system
+- existing renders, images, cards, text, and buttons
+1. BUILD A REUSABLE SCROLL VELOCITY SYSTEM
+Create a lightweight reusable hook/system that tracks:
+- current scroll position
+- scroll delta
+- scroll velocity
+- smoothed velocity
+- direction
+- whether the user is actively scrolling
+- settle state after scrolling stops
+Avoid React rerenders every frame.
+Prefer:
+- requestAnimationFrame
+- refs
+- CSS custom properties
+Suggested CSS variables:
+--vanta-scroll-velocity
+--vanta-scroll-direction
+--vanta-scroll-energy
+--vanta-scroll-active
+Normalize velocity to a useful range such as:
+0.0 = stopped
+1.0 = very fast
+Smooth the value so effects do not jitter.
+2. CREATE THREE MOTION STATES
+Use clear thresholds:
+CALM
+slow movement
+
+ACTIVE
+normal scrolling
+
+UNSTABLE
+fast swipe / fast wheel movement
+Do not trigger hard state changes every frame.
+Use interpolation/hysteresis so the system feels smooth.
+3. CALM STATE
+When velocity is low:
+- Phase 1 parallax remains smooth
+- environment drift stays slow
+- no extra glitch
+- text remains perfectly stable
+- signal system looks clean
+This should be the default Vanta experience.
+4. ACTIVE STATE
+During normal scrolling:
+Add subtle extra energy:
+- slightly increased parallax separation
+- tiny atmospheric acceleration
+- light haze drift
+- very small UI depth response
+Do not glitch constantly.
+The user should mainly feel that the page is more alive while moving.
+5. UNSTABLE STATE
+When the user scrolls/swipes quickly, Vanta should briefly lose perfect synchronization.
+Possible effects:
+- slightly stronger parallax multiplier
+- 1–3px chromatic separation on environmental imagery
+- faint frame echo
+- one subtle horizontal displacement band
+- atmospheric particles/haze move faster
+- tiny scan disturbance
+- very small brightness/contrast pulse
+Keep these tied to velocity.
+The faster the movement, the stronger the effect, within strict limits.
+Do not make fast scrolling unreadable.
+Navigation and body text must remain stable.
+6. SETTLE / SIGNAL LOCK
+When scrolling stops, do not instantly snap everything back.
+Create a short settling response:
+fast scroll ends
+↓
+velocity decays
+↓
+tiny residual drift
+↓
+signal stabilizes
+Target around:
+250–600ms
+depending on the effect.
+This should feel like the Vanta system re-locking onto the signal.
+7. DO NOT TRIGGER PHASE 3 ROUTE GLITCHES FROM SCROLL
+Keep the systems separate:
+Phase 3
+= event-based glitches for routes, hover/select actions, Transmission, etc.
+Phase 4
+= continuous low-level visual response to scroll velocity.
+Fast scrolling should not repeatedly fire full route glitches.
+Reuse shared visual primitives where useful, but keep triggers distinct.
+8. PAGE-SPECIFIC INTENSITY
+Scroll response should inherit environmental state.
+Suggested multipliers:
+HOME       1.0
+RELEASES   0.75
+WORLDS     1.15
+PLAY       0.9
+PASSPORT   0.6
+OS         1.25
+TRANSMISSION 0.85
+Worlds and OS can feel more unstable.
+Passport should remain restrained.
+9. HOME
+On the homepage hero:
+- slow scrolling keeps the cinematic parallax
+- faster scrolling should visibly increase depth separation
+- atmosphere can move slightly faster
+- very fast scrolling may introduce a tiny RGB/image echo
+- stopping should smoothly stabilize
+Do not overpower the hero.
+10. RELEASES
+Releases already has stronger hover signal behavior.
+Keep scroll instability more restrained here so hover and scroll effects do not stack excessively.
+During fast scroll:
+- slight archive scan movement
+- tiny artwork depth shift
+- minimal chromatic response
+Existing release hover glitches remain unchanged.
+11. WORLDS
+Worlds should benefit strongly from this system.
+Fast scroll can:
+- deepen city parallax
+- accelerate fog
+- slightly separate distant lights
+- introduce a subtle signal smear
+It should feel like the user is moving rapidly through the Vanta network.
+12. OS
+OS can use the strongest Phase 4 response.
+Fast scroll can briefly produce:
+- green/purple channel separation
+- signal drag
+- tiny screen echo
+- stronger depth response
+Still keep UI readable.
+Do not build the boot sequence yet.
+13. MOBILE
+This phase must work on touch.
+Fast finger swipes should generate a stronger response than slow finger drags.
+Make sure:
+- iPhone scrolling remains native
+- no scroll hijacking
+- no momentum-scroll interference
+- no horizontal overflow
+- no touch lag
+Do not use custom inertial scrolling.
+React to native scrolling rather than replacing it.
+14. ACCESSIBILITY
+Respect prefers-reduced-motion.
+In reduced-motion mode:
+- keep environmental colors
+- suppress velocity-based displacement
+- suppress chromatic split
+- suppress frame echo
+- avoid accelerated motion
+Navigation/content should behave normally.
+15. PERFORMANCE
+Keep this lightweight.
+Do not introduce WebGL just for Phase 4.
+Avoid:
+- React state updates on every scroll event
+- expensive blur changes every frame
+- layout-triggering CSS
+- full-page canvas filters
+Prefer transforms, opacity, CSS variables, and pseudo-elements.
+16. DEBUG / VERIFY PROPERLY
+During development, add a temporary debug indicator showing:
+velocity
+smoothed velocity
+energy
+state: CALM / ACTIVE / UNSTABLE
+Verify:
+- slow scroll produces low values
+- fast wheel produces high values
+- fast mobile swipe produces high values
+- values decay smoothly after stopping
+Remove the debug UI after verification.
+SUCCESS TEST
+A user should be able to:
+1. scroll slowly and experience smooth cinematic Vanta depth
+2. scroll quickly and visibly feel the environment become slightly unstable
+3. stop and watch the system smoothly settle
+This should feel responsive, not chaotic.
+The site must remain easy to navigate at all times.
+After implementation report:
+- scroll velocity architecture
+- thresholds used
+- page intensity multipliers
+- exact effects tied to velocity
+- mobile behavior
+- reduced-motion behavior
+- performance approach
+- files changed
+- npm run check
+- npm run build
+Do not proceed to Phase 5.

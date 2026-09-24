@@ -342,9 +342,42 @@
 
   .vanta-environment-root {
     --vanta-parallax-multiplier: 1;
+    --vanta-scroll-parallax-boost: 1;
+    --vanta-scroll-echo-opacity: 0;
+    --vanta-scroll-band-opacity: 0;
+    --vanta-scroll-band-offset: 0px;
+    --vanta-scroll-haze-offset: 0px;
     isolation: isolate;
     min-height: 100%;
     position: relative;
+  }
+
+  .vanta-environment-root::after {
+    content: "";
+    position: fixed;
+    z-index: 70;
+    top: 42%;
+    left: -6%;
+    width: 112%;
+    height: 1px;
+    pointer-events: none;
+    opacity: 0;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 42, 124, .42) 32%,
+      rgba(255, 255, 255, .56) 50%,
+      rgba(38, 221, 255, .4) 68%,
+      transparent
+    );
+    transform: translate3d(var(--vanta-scroll-band-offset, 0px), 0, 0);
+    mix-blend-mode: screen;
+  }
+
+  .vanta-environment-root[data-vanta-scroll-state="unstable"]:not([data-vanta-signal-active="true"])::after,
+  .vanta-environment-root[data-vanta-scroll-state="settling"]:not([data-vanta-signal-active="true"])::after {
+    opacity: var(--vanta-scroll-band-opacity, 0);
+    will-change: opacity, transform;
   }
 
   .vanta-environment-content {
@@ -383,6 +416,7 @@
       radial-gradient(ellipse at 82% 78%, var(--vanta-environment-tint), transparent 55%);
     box-shadow: inset 0 0 16vw var(--vanta-environment-tint);
     mix-blend-mode: screen;
+    translate: var(--vanta-scroll-haze-offset, 0px) 0;
     animation: vanta-environment-breathe var(--vanta-environment-speed) ease-in-out infinite alternate;
   }
 
@@ -710,9 +744,47 @@
   }
 
   .vanta-depth-layer {
-    --vanta-depth-active: var(--vanta-depth);
+    --vanta-depth-active: calc(var(--vanta-depth) * var(--vanta-scroll-parallax-boost, 1));
     transform: translate3d(0, calc(var(--vanta-scroll-progress, 0) * var(--vanta-depth-active, 0px)), 0);
     will-change: transform;
+  }
+
+  .vanta-environment-root[data-vanta-scroll-state="unstable"]:not([data-vanta-signal-active="true"]) .vanta-signal-glitch:not(:hover):not(:focus-within) .vanta-signal-echo,
+  .vanta-environment-root[data-vanta-scroll-state="settling"]:not([data-vanta-signal-active="true"]) .vanta-signal-glitch:not(:hover):not(:focus-within) .vanta-signal-echo,
+  .vanta-environment-root[data-vanta-scroll-state="unstable"]:not([data-vanta-signal-active="true"]) .vanta-transmission-frame:not(:hover):not(:focus-within) .vanta-signal-echo,
+  .vanta-environment-root[data-vanta-scroll-state="settling"]:not([data-vanta-signal-active="true"]) .vanta-transmission-frame:not(:hover):not(:focus-within) .vanta-signal-echo {
+    display: block;
+    opacity: var(--vanta-scroll-echo-opacity, 0);
+    animation: none;
+    will-change: opacity, transform;
+  }
+
+  .vanta-environment-root[data-vanta-scroll-state="unstable"]:not([data-vanta-signal-active="true"]) .vanta-signal-glitch:not(:hover):not(:focus-within) .vanta-signal-echo-one,
+  .vanta-environment-root[data-vanta-scroll-state="settling"]:not([data-vanta-signal-active="true"]) .vanta-signal-glitch:not(:hover):not(:focus-within) .vanta-signal-echo-one,
+  .vanta-environment-root[data-vanta-scroll-state="unstable"]:not([data-vanta-signal-active="true"]) .vanta-transmission-frame:not(:hover):not(:focus-within) .vanta-signal-echo-one,
+  .vanta-environment-root[data-vanta-scroll-state="settling"]:not([data-vanta-signal-active="true"]) .vanta-transmission-frame:not(:hover):not(:focus-within) .vanta-signal-echo-one {
+    transform: translate3d(var(--vanta-scroll-split-one, 0px), 0, 0);
+  }
+
+  .vanta-environment-root[data-vanta-scroll-state="unstable"]:not([data-vanta-signal-active="true"]) .vanta-signal-glitch:not(:hover):not(:focus-within) .vanta-signal-echo-two,
+  .vanta-environment-root[data-vanta-scroll-state="settling"]:not([data-vanta-signal-active="true"]) .vanta-signal-glitch:not(:hover):not(:focus-within) .vanta-signal-echo-two,
+  .vanta-environment-root[data-vanta-scroll-state="unstable"]:not([data-vanta-signal-active="true"]) .vanta-transmission-frame:not(:hover):not(:focus-within) .vanta-signal-echo-two,
+  .vanta-environment-root[data-vanta-scroll-state="settling"]:not([data-vanta-signal-active="true"]) .vanta-transmission-frame:not(:hover):not(:focus-within) .vanta-signal-echo-two {
+    transform: translate3d(var(--vanta-scroll-split-two, 0px), 0, 0);
+  }
+
+  .vanta-environment-root[data-vanta-scroll-state="unstable"]:not([data-vanta-signal-active="true"]) .vanta-signal-glitch:not(:hover):not(:focus-within) .vanta-signal-content,
+  .vanta-environment-root[data-vanta-scroll-state="settling"]:not([data-vanta-signal-active="true"]) .vanta-signal-glitch:not(:hover):not(:focus-within) .vanta-signal-content,
+  .vanta-environment-root[data-vanta-scroll-state="unstable"]:not([data-vanta-signal-active="true"]) .vanta-transmission-frame:not(:hover):not(:focus-within) .vanta-transmission-content,
+  .vanta-environment-root[data-vanta-scroll-state="settling"]:not([data-vanta-signal-active="true"]) .vanta-transmission-frame:not(:hover):not(:focus-within) .vanta-transmission-content {
+    filter: brightness(var(--vanta-scroll-brightness, 1));
+  }
+
+  .vanta-environment-root[data-vanta-scroll-state="unstable"]:not([data-vanta-signal-active="true"]) .vanta-transmission-frame:not(:hover):not(:focus-within) .vanta-transmission-scan-sweep,
+  .vanta-environment-root[data-vanta-scroll-state="settling"]:not([data-vanta-signal-active="true"]) .vanta-transmission-frame:not(:hover):not(:focus-within) .vanta-transmission-scan-sweep {
+    opacity: var(--vanta-scroll-sweep-opacity, 0);
+    transform: translateY(var(--vanta-scroll-sweep-offset, 0px));
+    animation: none;
   }
 
   .vanta-hero-image {
@@ -976,7 +1048,7 @@
 
 @media (max-width: 767px) {
   .vanta-depth-layer {
-    --vanta-depth-active: var(--vanta-depth-mobile, var(--vanta-depth));
+    --vanta-depth-active: calc(var(--vanta-depth-mobile, var(--vanta-depth)) * var(--vanta-scroll-parallax-boost, 1));
   }
 
     .vanta-hero-camera {
@@ -1032,5 +1104,13 @@
     filter: none !important;
     transform: none !important;
     transition: none !important;
+  }
+
+  .vanta-environment-root::after {
+    display: none !important;
+  }
+
+  .vanta-environment-atmosphere::before {
+    translate: none !important;
   }
 }
