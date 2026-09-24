@@ -16,24 +16,20 @@ export type VantaSignalIntensity = "subtle" | "medium" | "strong";
 type SignalStyle = CSSProperties & {
   "--vanta-signal-duration"?: string;
   "--vanta-signal-split"?: string;
-  "--vanta-signal-noise"?: number;
   "--vanta-signal-tear"?: number;
-  "--vanta-signal-flash"?: number;
 };
 
 type SignalDefinition = {
   intensity: VantaSignalIntensity;
   duration: number;
   split: number;
-  noise: number;
   tear: number;
-  flash: number;
 };
 
 const signalDefinitions: Record<VantaSignalIntensity, SignalDefinition> = {
-  subtle: { intensity: "subtle", duration: 190, split: 2, noise: 0.16, tear: 0.22, flash: 0.035 },
-  medium: { intensity: "medium", duration: 280, split: 5, noise: 0.25, tear: 0.34, flash: 0.055 },
-  strong: { intensity: "strong", duration: 330, split: 8, noise: 0.34, tear: 0.48, flash: 0.08 },
+  subtle: { intensity: "subtle", duration: 155, split: 8, tear: 0.22 },
+  medium: { intensity: "medium", duration: 205, split: 12, tear: 0.34 },
+  strong: { intensity: "strong", duration: 235, split: 16, tear: 0.46 },
 };
 
 const signalIntensityForEnvironment: Record<VantaEnvironmentName, VantaSignalIntensity | null> = {
@@ -49,27 +45,18 @@ const signalIntensityForEnvironment: Record<VantaEnvironmentName, VantaSignalInt
 
 const signalContext = createContext<((intensity?: VantaSignalIntensity) => void) | null>(null);
 
-function signalLabel(environment: VantaEnvironmentName) {
-  if (environment === "transmission") return "VANTA TRANSMISSION // FEED";
-  if (environment === "os") return "VANTA OS // SIGNAL";
-  if (environment === "worlds") return "WORLD CHANNEL IDENTIFIED";
-  return "VANTA SIGNAL // CHANNEL SHIFT";
-}
-
 function signalEventForPath(pathname: string, id: number) {
   const environment = environmentForPath(pathname);
   const intensity = signalIntensityForEnvironment[environment];
   if (!intensity) return null;
 
-  const definition = signalDefinitions[intensity];
-  const duration = environment === "transmission" ? 480 : definition.duration;
+  const duration = environment === "transmission" ? 245 : signalDefinitions[intensity].duration;
 
   return {
     id,
     environment,
     intensity,
     duration,
-    label: signalLabel(environment),
   };
 }
 
@@ -82,27 +69,20 @@ function SignalOverlay({
   const style: SignalStyle = {
     "--vanta-signal-duration": `${event.duration}ms`,
     "--vanta-signal-split": `${definition.split}px`,
-    "--vanta-signal-noise": definition.noise,
     "--vanta-signal-tear": definition.tear,
-    "--vanta-signal-flash": definition.flash,
   };
 
   return (
     <div
       key={event.id}
       aria-hidden="true"
-      className={`vanta-signal-overlay vanta-signal-overlay-${event.intensity}`}
+      className={`vanta-signal-event vanta-signal-event-${event.intensity}`}
       style={style}
       data-vanta-signal-active="true"
       data-vanta-signal-environment={event.environment}
     >
-      <div className="vanta-signal-noise" />
-      <div className="vanta-signal-tear vanta-signal-tear-one" />
-      <div className="vanta-signal-tear vanta-signal-tear-two" />
-      <div className="vanta-signal-readout">
-        <span>{event.label}</span>
-        <span className="vanta-signal-readout-status">SIGNAL LOCKED</span>
-      </div>
+      <div className="vanta-signal-band vanta-signal-band-one" />
+      <div className="vanta-signal-band vanta-signal-band-two" />
     </div>
   );
 }
@@ -114,16 +94,50 @@ function SignalOverlay({
 export function VantaSignalProvider({ children }: { children: ReactNode }) {
   const [location] = useLocation();
   const eventId = useRef(0);
+  const homeEntryCount = useRef(0);
   const [event, setEvent] = useState<NonNullable<ReturnType<typeof signalEventForPath>> | null>(null);
 
   useEffect(() => {
-    const nextEvent = signalEventForPath(location, ++eventId.current);
+    const environment = environmentForPath(location);
+    let shouldSignal = true;
+
+    if (environment === "home") {
+      homeEntryCount.current += 1;
+      shouldSignal = homeEntryCount.current === 1 || homeEntryCount.current % 4 === 0;
+    }
+
+    const nextEvent = shouldSignal
+      ? signalEventForPath(location, ++eventId.current)
+      : null;
     setEvent(nextEvent);
     if (!nextEvent) return;
 
-    const timeout = window.setTimeout(() => setEvent(null), nextEvent.duration + 80);
+    const timeout = window.setTimeout(() => {
+      setEvent((current) => current?.id === nextEvent.id ? null : current);
+    }, nextEvent.duration);
     return () => window.clearTimeout(timeout);
   }, [location]);
+
+  useEffect(() => {
+    const root = document.querySelector<HTMLElement>(".vanta-environment-root");
+    if (!root) return;
+
+    if (event) {
+      root.dataset.vantaSignalActive = "true";
+      root.dataset.vantaSignalIntensity = event.intensity;
+      root.dataset.vantaSignalEnvironment = event.environment;
+    } else {
+      delete root.dataset.vantaSignalActive;
+      delete root.dataset.vantaSignalIntensity;
+      delete root.dataset.vantaSignalEnvironment;
+    }
+
+    return () => {
+      delete root.dataset.vantaSignalActive;
+      delete root.dataset.vantaSignalIntensity;
+      delete root.dataset.vantaSignalEnvironment;
+    };
+  }, [event]);
 
   const triggerSignal = (requestedIntensity?: VantaSignalIntensity) => {
     const environment = environmentForPath(location);
@@ -131,14 +145,18 @@ export function VantaSignalProvider({ children }: { children: ReactNode }) {
     if (!intensity) return;
 
     const definition = signalDefinitions[intensity];
-    const duration = environment === "transmission" ? 480 : definition.duration;
+    const duration = environment === "transmission" ? 245 : definition.duration;
+    const id = ++eventId.current;
     setEvent({
-      id: ++eventId.current,
+      id,
       environment,
       intensity,
       duration,
-      label: signalLabel(environment),
     });
+
+    window.setTimeout(() => setEvent((current) => (
+      current?.id === id ? null : current
+    )), duration);
   };
 
   return (
@@ -174,8 +192,22 @@ export function SignalGlitch({
       data-vanta-signal-glitch="interactive"
       {...props}
     >
-      {children}
+      <div className="vanta-signal-content">{children}</div>
+      <SignalEchoLayers>{children}</SignalEchoLayers>
     </div>
+  );
+}
+
+function SignalEchoLayers({ children }: { children: ReactNode }) {
+  return (
+    <>
+      <div className="vanta-signal-echo vanta-signal-echo-one" aria-hidden="true">
+        <div className="vanta-signal-echo-content">{children}</div>
+      </div>
+      <div className="vanta-signal-echo vanta-signal-echo-two" aria-hidden="true">
+        <div className="vanta-signal-echo-content">{children}</div>
+      </div>
+    </>
   );
 }
 
@@ -203,10 +235,10 @@ export function TransmissionFrame({
       data-vanta-transmission-frame="true"
     >
       <div className="vanta-transmission-screen">
-        {children}
+        <div className="vanta-transmission-content">{children}</div>
+        <SignalEchoLayers>{children}</SignalEchoLayers>
         <div className="vanta-transmission-screen-glow" />
-        <div className="vanta-transmission-scanlines" />
-        <div className="vanta-transmission-vignette" />
+        <div className="vanta-transmission-scan-sweep" />
         <div className="vanta-transmission-label">{label}</div>
         <div className="vanta-transmission-metadata">{metadata}</div>
       </div>
@@ -232,11 +264,10 @@ export function GlitchText({
     <span
       className={`vanta-glitch-text vanta-glitch-text-${intensity} ${className}`}
       data-text={children}
+      data-glitch-text={children.replace(/I/g, "1").replace(/O/g, "0").replace(/S/g, "5")}
     >
       <span aria-hidden="true">{children}</span>
       <span className="sr-only">{children}</span>
     </span>
   );
 }
-
-export { signalDefinitions, signalIntensityForEnvironment };

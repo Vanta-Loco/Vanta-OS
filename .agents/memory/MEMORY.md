@@ -4,3 +4,4 @@
 - [World minimap player position](world-minimap-pattern.md) — player position shared from CityScene (Three.js Canvas) to WorldMinimap via a playerPosRef created in the World shell and passed to both; ctx narrowing inside RAF closures requires rebinding to a typed const.
 - [Stonerism schema migration pattern](stonerism-migration-pattern.md) — Stonerism tables created via raw SQL in seedStonerism(); drizzle-kit push fails on Neon sleeping endpoints; column names must match drizzle schema exactly.
 - [Member session table separation](member-session-tables.md) — durable Member bearer sessions use member_sessions; preserve legacy user_sessions used by Express sessions.
+- [Signal event timer ownership](vanta-signal-timers.md) — each timeout must compare against its captured event ID so an older interaction cannot clear a newer route signal.

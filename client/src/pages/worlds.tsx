@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { worlds, worldStatusStyle as statusStyle } from "@/data/worlds";
 import cityImage from "@assets/generated_images/Urban_night_cityscape_mood_2c3c2c61.png";
 import { ParallaxLayer, VantaDepth } from "@/components/vanta-depth";
-import { GlitchText } from "@/components/vanta-signal";
+import { GlitchText, SignalGlitch } from "@/components/vanta-signal";
 
 export default function Worlds() {
   return (
@@ -21,12 +21,14 @@ export default function Worlds() {
         {/* ── Header section ── */}
         <VantaDepth className="relative py-24 overflow-hidden border-b border-border">
           <ParallaxLayer depth={-130} mobileDepth={-76} className="pointer-events-none absolute inset-[-5%]">
-            <img
-              src={cityImage}
-              alt=""
-              aria-hidden="true"
-              className="w-full h-full object-cover opacity-10"
-            />
+            <SignalGlitch intensity="medium" className="h-full w-full">
+              <img
+                src={cityImage}
+                alt=""
+                aria-hidden="true"
+                className="w-full h-full object-cover opacity-10"
+              />
+            </SignalGlitch>
           </ParallaxLayer>
           <div className="relative max-w-7xl mx-auto px-6 lg:px-8 z-10">
             <p className="text-xs uppercase tracking-widest text-muted-foreground mb-3 font-medium">

@@ -388,8 +388,8 @@
 
   .vanta-environment-atmosphere::after {
     background:
-      var(--vanta-environment-texture, repeating-linear-gradient(108deg, transparent 0 12px, rgba(255, 255, 255, .018) 13px 14px, transparent 15px 28px)),
-      radial-gradient(ellipse at 50% 100%, transparent 35%, rgba(0, 0, 0, .32) 100%);
+      var(--vanta-environment-texture, radial-gradient(circle at 50% 100%, rgba(255, 255, 255, .012), transparent 46%)),
+      radial-gradient(ellipse at 50% 100%, transparent 35%, rgba(0, 0, 0, .14) 100%);
     opacity: var(--vanta-environment-scan);
     animation: vanta-environment-scan var(--vanta-environment-speed) linear infinite;
     mix-blend-mode: screen;
@@ -444,237 +444,213 @@
 
   .vanta-environment-atmosphere-os {
     --vanta-environment-glow: rgba(121, 255, 93, .13);
-    --vanta-environment-tint: rgba(81, 12, 111, .16);
-    --vanta-environment-scan: .105;
+    --vanta-environment-tint: rgba(81, 12, 111, .075);
+    --vanta-environment-scan: .018;
     --vanta-environment-speed: 10s;
-    --vanta-environment-texture: repeating-linear-gradient(0deg, transparent 0 3px, rgba(161, 255, 126, .025) 4px 5px, transparent 6px 9px);
+    --vanta-environment-texture: radial-gradient(circle at 78% 22%, rgba(161, 255, 126, .025), transparent 34%);
   }
 
   .vanta-environment-atmosphere-transmission {
     --vanta-environment-glow: rgba(189, 132, 224, .14);
-    --vanta-environment-tint: rgba(16, 12, 32, .16);
-    --vanta-environment-scan: .095;
+    --vanta-environment-tint: rgba(16, 12, 32, .075);
+    --vanta-environment-scan: .018;
     --vanta-environment-speed: 13s;
-    --vanta-environment-texture: repeating-linear-gradient(0deg, transparent 0 5px, rgba(255, 255, 255, .026) 6px 7px, transparent 8px 12px);
+    --vanta-environment-texture: radial-gradient(circle at 22% 78%, rgba(255, 255, 255, .025), transparent 38%);
   }
 
-  .vanta-signal-overlay {
-    --vanta-signal-duration: 280ms;
-    --vanta-signal-split: 5px;
-    --vanta-signal-noise: .25;
+  .vanta-environment-root[data-vanta-signal-intensity="subtle"] {
+    --vanta-signal-duration: 155ms;
+    --vanta-signal-split: 8px;
+    --vanta-signal-tear: .22;
+  }
+
+  .vanta-environment-root[data-vanta-signal-intensity="medium"] {
+    --vanta-signal-duration: 205ms;
+    --vanta-signal-split: 12px;
     --vanta-signal-tear: .34;
-    --vanta-signal-flash: .055;
+  }
+
+  .vanta-environment-root[data-vanta-signal-intensity="strong"] {
+    --vanta-signal-duration: 235ms;
+    --vanta-signal-split: 16px;
+    --vanta-signal-tear: .46;
+  }
+
+  .vanta-environment-root[data-vanta-signal-environment="transmission"][data-vanta-signal-active="true"] {
+    --vanta-signal-duration: 245ms;
+  }
+
+  .vanta-signal-event {
     position: fixed;
     z-index: 80;
     inset: 0;
     pointer-events: none;
     overflow: hidden;
-    isolation: isolate;
-    opacity: 0;
-    animation: vanta-signal-overlay var(--vanta-signal-duration) steps(6, end) both;
   }
 
-  .vanta-signal-overlay::before,
-  .vanta-signal-overlay::after,
-  .vanta-signal-noise,
-  .vanta-signal-tear {
-    content: "";
+  .vanta-signal-band {
     position: absolute;
+    left: -8%;
+    width: 116%;
+    height: 1px;
     pointer-events: none;
-  }
-
-  .vanta-signal-overlay::before {
-    inset: -2%;
-    background:
-      linear-gradient(90deg, rgba(255, 24, 92, .2), transparent 22%, transparent 76%, rgba(21, 224, 255, .18)),
-      repeating-linear-gradient(0deg, transparent 0 3px, rgba(255, 255, 255, .09) 4px 5px, transparent 6px 11px);
-    mix-blend-mode: screen;
     opacity: 0;
-    animation: vanta-signal-rgb var(--vanta-signal-duration) steps(5, end) both;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 40, 122, .48) 22%,
+      rgba(255, 255, 255, .62) 50%,
+      rgba(38, 221, 255, .46) 78%,
+      transparent 100%
+    );
+    box-shadow: 0 0 5px rgba(170, 123, 255, .22);
   }
 
-  .vanta-signal-overlay::after {
-    inset: 0;
-    background: rgba(5, 7, 16, var(--vanta-signal-flash));
-    mix-blend-mode: screen;
-    opacity: 0;
-    animation: vanta-signal-flash var(--vanta-signal-duration) steps(4, end) both;
+  .vanta-signal-band-one {
+    top: 34%;
+    animation: vanta-signal-band-one var(--vanta-signal-duration, 180ms) steps(4, end) both;
   }
 
-  .vanta-signal-noise {
-    inset: -10%;
-    z-index: 2;
-    background:
-      repeating-radial-gradient(circle at 20% 30%, rgba(255, 255, 255, .16) 0 1px, transparent 1px 4px),
-      repeating-linear-gradient(90deg, rgba(235, 47, 124, .1) 0 1px, transparent 1px 9px, rgba(32, 218, 255, .1) 10px 11px, transparent 12px 20px);
-    opacity: 0;
-    mix-blend-mode: screen;
-    animation: vanta-signal-noise var(--vanta-signal-duration) steps(7, end) both;
+  .vanta-signal-band-two {
+    top: 71%;
+    animation: vanta-signal-band-two var(--vanta-signal-duration, 180ms) steps(4, end) both;
   }
 
-  .vanta-signal-tear {
-    z-index: 3;
-    left: -4%;
-    width: 108%;
-    height: clamp(8px, 2.4vh, 22px);
-    background:
-      linear-gradient(90deg, transparent, rgba(255, 34, 118, .42) 18%, rgba(255, 255, 255, .74) 50%, rgba(27, 222, 255, .42) 82%, transparent),
-      repeating-linear-gradient(90deg, transparent 0 16px, rgba(255, 255, 255, .28) 17px 20px, transparent 21px 42px);
-    opacity: 0;
-    filter: drop-shadow(0 0 9px rgba(192, 90, 255, .5));
-    mix-blend-mode: screen;
-  }
-
-  .vanta-signal-tear-one {
-    top: 36%;
-    animation: vanta-signal-tear-one var(--vanta-signal-duration) steps(6, end) both;
-  }
-
-  .vanta-signal-tear-two {
-    top: 68%;
-    height: clamp(3px, .8vh, 8px);
-    animation: vanta-signal-tear-two var(--vanta-signal-duration) steps(5, end) both;
-  }
-
-  .vanta-signal-readout {
-    position: absolute;
-    z-index: 4;
-    top: 1.5rem;
-    left: 1.5rem;
-    display: flex;
-    align-items: center;
-    gap: .75rem;
-    color: rgba(237, 222, 255, .9);
-    font-family: var(--font-mono);
-    font-size: 9px;
-    font-weight: 600;
-    letter-spacing: .24em;
-    line-height: 1.4;
-    text-transform: uppercase;
-    text-shadow: 0 0 12px rgba(190, 120, 255, .9);
-    opacity: 0;
-    animation: vanta-signal-readout var(--vanta-signal-duration) steps(4, end) both;
-  }
-
-  .vanta-signal-readout-status {
-    color: rgba(164, 255, 191, .85);
-  }
-
-  .vanta-signal-glitch {
+  .vanta-signal-glitch,
+  .vanta-transmission-screen {
     position: relative;
     overflow: hidden;
     isolation: isolate;
   }
 
-  .vanta-signal-glitch::before,
-  .vanta-signal-glitch::after {
-    content: "";
-    position: absolute;
-    z-index: 3;
-    inset: 0;
-    pointer-events: none;
-    opacity: 0;
+  .vanta-signal-content {
+    position: relative;
+    z-index: 0;
+    width: 100%;
+    height: 100%;
   }
 
-  .vanta-signal-glitch::before {
-    background:
-      linear-gradient(90deg, rgba(255, 27, 108, .22), transparent 24%, transparent 72%, rgba(22, 226, 255, .2)),
-      repeating-linear-gradient(0deg, transparent 0 7px, rgba(255, 255, 255, .08) 8px 9px, transparent 10px 17px);
+  .vanta-transmission-content {
+    position: relative;
+    z-index: 0;
+  }
+
+  .vanta-signal-echo {
+    position: absolute;
+    z-index: 2;
+    inset: 0;
+    display: none;
+    overflow: hidden;
+    pointer-events: none;
+    opacity: 0;
     mix-blend-mode: screen;
   }
 
-  .vanta-signal-glitch::after {
-    border-block: 1px solid rgba(230, 207, 255, .45);
-    background: linear-gradient(90deg, transparent, rgba(174, 102, 255, .22), transparent);
-    transform: translateX(-110%);
+  .vanta-signal-echo-content {
+    position: relative;
+    width: 100%;
+    height: 100%;
   }
 
-  .vanta-signal-glitch:hover::before,
-  .vanta-signal-glitch:focus-within::before,
-  .vanta-signal-glitch:hover::after,
-  .vanta-signal-glitch:focus-within::after {
-    animation: vanta-contained-glitch 240ms steps(5, end) both;
+  .vanta-signal-echo-content > :first-child {
+    width: 100%;
+    height: 100%;
   }
 
-  .vanta-signal-glitch:hover > *,
-  .vanta-signal-glitch:focus-within > * {
-    animation: vanta-contained-shift 240ms steps(4, end) both;
+  .vanta-signal-echo-one {
+    clip-path: inset(24% 0 69% 0);
+    filter: drop-shadow(-2px 0 rgba(255, 35, 120, .8)) drop-shadow(2px 0 rgba(33, 220, 255, .76));
   }
 
-  .vanta-signal-glitch-medium:hover::before,
-  .vanta-signal-glitch-medium:focus-within::before,
-  .vanta-signal-glitch-medium:hover::after,
-  .vanta-signal-glitch-medium:focus-within::after {
-    animation-duration: 300ms;
+  .vanta-signal-echo-two {
+    clip-path: inset(65% 0 26% 0);
+    filter: drop-shadow(2px 0 rgba(255, 35, 120, .72)) drop-shadow(-2px 0 rgba(33, 220, 255, .72));
   }
 
-  .vanta-signal-glitch-strong:hover::before,
-  .vanta-signal-glitch-strong:focus-within::before,
-  .vanta-signal-glitch-strong:hover::after,
-  .vanta-signal-glitch-strong:focus-within::after {
-    animation-duration: 340ms;
+  .vanta-environment-root[data-vanta-signal-active="true"] .vanta-signal-echo-one,
+  .vanta-environment-root[data-vanta-signal-active="true"] .vanta-transmission-frame .vanta-signal-echo-one {
+    display: block;
+    animation: vanta-signal-echo-one var(--vanta-signal-duration, 180ms) steps(4, end) both;
+  }
+
+  .vanta-environment-root[data-vanta-signal-active="true"] .vanta-signal-echo-two,
+  .vanta-environment-root[data-vanta-signal-active="true"] .vanta-transmission-frame .vanta-signal-echo-two {
+    display: block;
+    animation: vanta-signal-echo-two var(--vanta-signal-duration, 180ms) steps(4, end) both;
+  }
+
+  .vanta-environment-root[data-vanta-signal-active="true"] .vanta-signal-content,
+  .vanta-environment-root[data-vanta-signal-active="true"] .vanta-transmission-content {
+    animation: vanta-signal-brightness var(--vanta-signal-duration, 180ms) steps(4, end) both;
+  }
+
+  .vanta-signal-glitch:hover .vanta-signal-echo-one,
+  .vanta-signal-glitch:focus-within .vanta-signal-echo-one {
+    display: block;
+    animation: vanta-signal-echo-one 190ms steps(4, end) both;
+  }
+
+  .vanta-signal-glitch:hover .vanta-signal-echo-two,
+  .vanta-signal-glitch:focus-within .vanta-signal-echo-two {
+    display: block;
+    animation: vanta-signal-echo-two 190ms steps(4, end) both;
+  }
+
+  .vanta-signal-glitch:hover .vanta-signal-content,
+  .vanta-signal-glitch:focus-within .vanta-signal-content {
+    animation: vanta-signal-brightness 190ms steps(4, end) both;
+  }
+
+  .vanta-signal-glitch-medium:hover .vanta-signal-echo-one,
+  .vanta-signal-glitch-medium:focus-within .vanta-signal-echo-one,
+  .vanta-signal-glitch-medium:hover .vanta-signal-echo-two,
+  .vanta-signal-glitch-medium:focus-within .vanta-signal-echo-two {
+    animation-duration: 220ms;
   }
 
   .vanta-transmission-frame {
     position: relative;
     padding: 1px;
-    background: linear-gradient(120deg, rgba(224, 194, 255, .42), rgba(117, 76, 163, .14) 44%, rgba(255, 255, 255, .24));
+    background: linear-gradient(120deg, rgba(224, 194, 255, .2), rgba(117, 76, 163, .08) 44%, rgba(255, 255, 255, .12));
     isolation: isolate;
   }
 
   .vanta-transmission-screen {
-    position: relative;
-    overflow: hidden;
-    isolation: isolate;
     background: #070811;
   }
 
-  .vanta-transmission-screen > :first-child {
-    position: relative;
-    z-index: 0;
-    display: block;
-    transition: filter 180ms ease, transform 180ms ease;
-  }
-
   .vanta-transmission-screen-glow,
-  .vanta-transmission-scanlines,
-  .vanta-transmission-vignette {
+  .vanta-transmission-scan-sweep {
     position: absolute;
-    z-index: 1;
+    z-index: 3;
     inset: 0;
     pointer-events: none;
   }
 
   .vanta-transmission-screen-glow {
-    background:
-      radial-gradient(ellipse at 50% 45%, transparent 35%, rgba(177, 102, 255, .12) 100%),
-      linear-gradient(90deg, rgba(244, 51, 143, .08), transparent 20%, transparent 80%, rgba(31, 220, 255, .08));
+    background: radial-gradient(ellipse at 50% 50%, transparent 58%, rgba(177, 102, 255, .08) 100%);
     mix-blend-mode: screen;
-    opacity: .7;
+    opacity: .2;
   }
 
-  .vanta-transmission-scanlines {
-    background: repeating-linear-gradient(0deg, transparent 0 5px, rgba(255, 255, 255, .045) 6px 7px, transparent 8px 12px);
-    opacity: .48;
+  .vanta-transmission-scan-sweep {
+    background: linear-gradient(180deg, transparent 0%, rgba(255, 255, 255, .045) 49%, rgba(76, 219, 255, .035) 51%, transparent 100%);
+    opacity: 0;
     mix-blend-mode: screen;
-    animation: vanta-transmission-scan 8s linear infinite;
-  }
-
-  .vanta-transmission-vignette {
-    box-shadow: inset 0 0 6rem rgba(0, 0, 0, .56);
+    transform: translateY(-100%);
   }
 
   .vanta-transmission-label,
   .vanta-transmission-metadata {
     position: absolute;
-    z-index: 2;
-    color: rgba(255, 255, 255, .72);
+    z-index: 4;
+    color: rgba(255, 255, 255, .58);
     font-family: var(--font-mono);
-    font-size: 8px;
-    letter-spacing: .22em;
+    font-size: 7px;
+    letter-spacing: .18em;
     line-height: 1.4;
     text-transform: uppercase;
-    text-shadow: 0 0 9px rgba(182, 108, 255, .8);
+    text-shadow: 0 0 5px rgba(182, 108, 255, .32);
   }
 
   .vanta-transmission-label {
@@ -688,16 +664,13 @@
     color: rgba(183, 255, 210, .68);
   }
 
-  .vanta-transmission-frame:hover .vanta-transmission-screen > :first-child,
-  .vanta-transmission-frame:focus-within .vanta-transmission-screen > :first-child {
-    filter: saturate(1.16) contrast(1.08);
-    transform: translateX(1px);
+  .vanta-transmission-frame:hover .vanta-transmission-scan-sweep,
+  .vanta-transmission-frame:focus-within .vanta-transmission-scan-sweep {
+    animation: vanta-transmission-scan-sweep 220ms ease-out both;
   }
 
-  .vanta-transmission-frame:hover .vanta-transmission-scanlines,
-  .vanta-transmission-frame:focus-within .vanta-transmission-scanlines {
-    animation-duration: 2.2s;
-    opacity: .72;
+  .vanta-environment-root[data-vanta-signal-active="true"] .vanta-transmission-frame .vanta-transmission-scan-sweep {
+    animation: vanta-transmission-scan-sweep var(--vanta-signal-duration, 180ms) ease-out both;
   }
 
   .vanta-glitch-text {
@@ -708,7 +681,7 @@
 
   .vanta-glitch-text::before,
   .vanta-glitch-text::after {
-    content: attr(data-text);
+    content: attr(data-glitch-text);
     position: absolute;
     inset: 0;
     pointer-events: none;
@@ -718,27 +691,22 @@
   }
 
   .vanta-glitch-text::before {
-    color: rgba(255, 33, 120, .78);
-    transform: translateX(-1px);
-    clip-path: inset(0 0 52% 0);
-    animation: vanta-text-glitch 2.6s steps(7, end) 220ms 1;
+    content: attr(data-text);
+    color: rgba(255, 55, 130, .72);
+    clip-path: inset(0 0 55% 0);
   }
 
   .vanta-glitch-text::after {
-    color: rgba(27, 224, 255, .76);
-    transform: translateX(1px);
-    clip-path: inset(48% 0 0 0);
-    animation: vanta-text-glitch 2.6s steps(7, end) 220ms 1 reverse;
+    color: rgba(27, 224, 255, .72);
+    clip-path: inset(45% 0 0 0);
   }
 
-  .vanta-glitch-text-medium::before,
-  .vanta-glitch-text-medium::after {
-    animation-duration: 2.9s;
+  .vanta-environment-root[data-vanta-signal-active="true"] .vanta-glitch-text::before {
+    animation: vanta-text-glitch var(--vanta-signal-duration, 180ms) steps(4, end) both;
   }
 
-  .vanta-glitch-text-strong::before,
-  .vanta-glitch-text-strong::after {
-    animation-duration: 3.2s;
+  .vanta-environment-root[data-vanta-signal-active="true"] .vanta-glitch-text::after {
+    animation: vanta-text-glitch var(--vanta-signal-duration, 180ms) steps(4, end) reverse both;
   }
 
   .vanta-depth-layer {
@@ -854,185 +822,134 @@
     }
   }
 
-  @keyframes vanta-signal-overlay {
-    0%, 100% {
-      opacity: 0;
-    }
-    12% {
-      opacity: 1;
-    }
-    42% {
-      opacity: .72;
-    }
-    68% {
-      opacity: .32;
-    }
-  }
-
-  @keyframes vanta-signal-rgb {
-    0%, 100% {
-      opacity: 0;
-      transform: translate3d(0, 0, 0);
-    }
-    12% {
-      opacity: .88;
-      transform: translate3d(calc(var(--vanta-signal-split) * -1), 0, 0);
-    }
-    32% {
-      opacity: .56;
-      transform: translate3d(var(--vanta-signal-split), 0, 0);
-    }
-    58% {
-      opacity: .28;
-      transform: translate3d(calc(var(--vanta-signal-split) * -.4), 0, 0);
-    }
-  }
-
-  @keyframes vanta-signal-flash {
-    0%, 100% {
-      opacity: 0;
-    }
-    14% {
-      opacity: 1;
-    }
-    22% {
-      opacity: 0;
-    }
-    46% {
-      opacity: .5;
-    }
-    54% {
-      opacity: 0;
-    }
-  }
-
-  @keyframes vanta-signal-noise {
-    0%, 100% {
-      opacity: 0;
-      transform: translate3d(0, 0, 0);
-    }
-    10% {
-      opacity: var(--vanta-signal-noise);
-      transform: translate3d(-1%, -1%, 0);
-    }
-    28% {
-      opacity: calc(var(--vanta-signal-noise) * .72);
-      transform: translate3d(1.5%, .5%, 0);
-    }
-    56% {
-      opacity: calc(var(--vanta-signal-noise) * .34);
-    }
-  }
-
-  @keyframes vanta-signal-tear-one {
-    0%, 100% {
-      opacity: 0;
-      transform: translate3d(-4%, 0, 0);
-    }
-    18% {
-      opacity: var(--vanta-signal-tear);
-      transform: translate3d(5%, -1px, 0) skewX(-7deg);
-    }
-    36% {
-      opacity: calc(var(--vanta-signal-tear) * .82);
-      transform: translate3d(-2%, 2px, 0) skewX(5deg);
-    }
-    64% {
-      opacity: calc(var(--vanta-signal-tear) * .28);
-      transform: translate3d(1%, 0, 0);
-    }
-  }
-
-  @keyframes vanta-signal-tear-two {
-    0%, 100% {
-      opacity: 0;
-      transform: translate3d(3%, 0, 0);
-    }
-    28% {
-      opacity: calc(var(--vanta-signal-tear) * .64);
-      transform: translate3d(-4%, 1px, 0);
-    }
-    52% {
-      opacity: calc(var(--vanta-signal-tear) * .34);
-      transform: translate3d(2%, -1px, 0);
-    }
-  }
-
-  @keyframes vanta-signal-readout {
-    0%, 100% {
-      opacity: 0;
-      transform: translateX(-8px);
-    }
-    24% {
-      opacity: .92;
-      transform: translateX(0);
-    }
-    62% {
-      opacity: .46;
-    }
-  }
-
-  @keyframes vanta-contained-glitch {
+  @keyframes vanta-signal-band-one {
     0%, 100% {
       opacity: 0;
       transform: translateX(0);
     }
-    20% {
-      opacity: .75;
-      transform: translateX(-2px);
+    16% {
+      opacity: var(--vanta-signal-tear, .24);
+      transform: translateX(calc(var(--vanta-signal-split, 8px) * -1));
     }
-    45% {
-      opacity: .42;
-      transform: translateX(3px);
+    43% {
+      opacity: calc(var(--vanta-signal-tear, .24) * .72);
+      transform: translateX(var(--vanta-signal-split, 8px));
     }
     70% {
-      opacity: .2;
-      transform: translateX(-1px);
-    }
-  }
-
-  @keyframes vanta-contained-shift {
-    0%, 100% {
+      opacity: 0;
       transform: translateX(0);
-      filter: none;
-    }
-    25% {
-      transform: translateX(-1px);
-      filter: contrast(1.12) saturate(1.12);
-    }
-    50% {
-      transform: translateX(2px);
-      filter: contrast(.94) saturate(1.2);
-    }
-    75% {
-      transform: translateX(-.5px);
     }
   }
 
-  @keyframes vanta-transmission-scan {
-    from {
-      transform: translateY(-5%);
+  @keyframes vanta-signal-band-two {
+    0%, 100% {
+      opacity: 0;
+      transform: translateX(0);
     }
-    to {
-      transform: translateY(5%);
+    28% {
+      opacity: calc(var(--vanta-signal-tear, .24) * .64);
+      transform: translateX(var(--vanta-signal-split, 8px));
+    }
+    52% {
+      opacity: calc(var(--vanta-signal-tear, .24) * .42);
+      transform: translateX(calc(var(--vanta-signal-split, 8px) * -1));
+    }
+    72% {
+      opacity: 0;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes vanta-signal-echo-one {
+    0%, 100% {
+      opacity: 0;
+      transform: translateX(0);
+      filter: brightness(1);
+    }
+    18% {
+      opacity: .74;
+      transform: translateX(calc(var(--vanta-signal-split, 8px) * -1));
+      filter: brightness(1.18);
+    }
+    42% {
+      opacity: .5;
+      transform: translateX(var(--vanta-signal-split, 8px));
+      filter: brightness(1.08);
+    }
+    70% {
+      opacity: .12;
+      transform: translateX(-2px);
+    }
+  }
+
+  @keyframes vanta-signal-echo-two {
+    0%, 100% {
+      opacity: 0;
+      transform: translateX(0);
+    }
+    30% {
+      opacity: .58;
+      transform: translateX(var(--vanta-signal-split, 8px));
+    }
+    52% {
+      opacity: .32;
+      transform: translateX(calc(var(--vanta-signal-split, 8px) * -1));
+    }
+    74% {
+      opacity: .08;
+      transform: translateX(1px);
+    }
+  }
+
+  @keyframes vanta-signal-brightness {
+    0%, 100% {
+      filter: brightness(1);
+    }
+    24% {
+      filter: brightness(1.1);
+    }
+    38% {
+      filter: brightness(.99);
+    }
+    62% {
+      filter: brightness(1.045);
+    }
+  }
+
+  @keyframes vanta-transmission-scan-sweep {
+    0% {
+      opacity: 0;
+      transform: translateY(-105%);
+    }
+    24% {
+      opacity: .34;
+    }
+    100% {
+      opacity: 0;
+      transform: translateY(105%);
     }
   }
 
   @keyframes vanta-text-glitch {
     0%, 100% {
       opacity: 0;
+      transform: translateX(0);
     }
-    9% {
-      opacity: .8;
-    }
-    13% {
-      opacity: 0;
+    22% {
+      opacity: .76;
+      transform: translateX(-1px);
     }
     42% {
-      opacity: .52;
+      opacity: .28;
+      transform: translateX(1px);
     }
-    47% {
+    62% {
+      opacity: .54;
+      transform: translateX(-.5px);
+    }
+    78% {
       opacity: 0;
+      transform: translateX(0);
     }
   }
 
@@ -1099,14 +1016,9 @@
     transform: none !important;
   }
 
-  .vanta-signal-overlay,
-  .vanta-signal-overlay::before,
-  .vanta-signal-overlay::after,
-  .vanta-signal-noise,
-  .vanta-signal-tear,
-  .vanta-signal-readout,
-  .vanta-signal-glitch::before,
-  .vanta-signal-glitch::after,
+  .vanta-signal-event .vanta-signal-band,
+  .vanta-signal-echo,
+  .vanta-transmission-scan-sweep,
   .vanta-glitch-text::before,
   .vanta-glitch-text::after {
     animation: none !important;
@@ -1114,16 +1026,11 @@
     transform: none !important;
   }
 
-  .vanta-signal-glitch:hover > *,
-  .vanta-signal-glitch:focus-within > *,
-  .vanta-transmission-screen > :first-child {
+  .vanta-signal-content,
+  .vanta-transmission-content {
     animation: none !important;
     filter: none !important;
     transform: none !important;
     transition: none !important;
-  }
-
-  .vanta-transmission-scanlines {
-    animation: none !important;
   }
 }

@@ -12,7 +12,7 @@ import { Link } from "wouter";
 import type { Release } from "@shared/schema";
 import { format } from "date-fns";
 import releasesEnvironment from "@assets/generated_images/releases_listening_archive_environment.png";
-import { GlitchText } from "@/components/vanta-signal";
+import { GlitchText, SignalGlitch, useVantaSignal } from "@/components/vanta-signal";
 
 const typeLabel: Record<string, string> = {
   album: "Album",
@@ -37,6 +37,7 @@ function ReleaseCard({ release, featured = false }: { release: Release; featured
   const [tracklistOpen, setTracklistOpen] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const triggerSignal = useVantaSignal();
 
   const streamingLinks = [
     { url: release.spotifyUrl, icon: SiSpotify, label: "Spotify", testId: "button-spotify" },
@@ -58,6 +59,7 @@ function ReleaseCard({ release, featured = false }: { release: Release; featured
       return;
     }
     if (!audioSrc) return;
+    triggerSignal("subtle");
     const audio = new Audio(audioSrc);
     audioRef.current = audio;
     const durationSec = release.previewDurationSeconds ?? 30;
@@ -83,7 +85,10 @@ function ReleaseCard({ release, featured = false }: { release: Release; featured
   return (
     <Card className={`overflow-hidden border-border/80 bg-card/75 backdrop-blur-sm ${featured ? "border-primary/45 shadow-[0_0_40px_rgba(150,100,220,.1)]" : ""}`} data-testid={`card-release-${release.id}`}>
       <div className={`grid grid-cols-1 gap-0 ${featured ? "md:grid-cols-[390px_1fr]" : "md:grid-cols-[250px_1fr]"}`}>
-        <div className="relative aspect-square md:aspect-auto overflow-hidden">
+        <SignalGlitch
+          intensity="subtle"
+          className={`relative aspect-square md:aspect-auto overflow-hidden ${featured ? "min-h-[390px]" : ""}`}
+        >
           <img
             src={release.coverImage}
             alt={release.title}
@@ -95,7 +100,7 @@ function ReleaseCard({ release, featured = false }: { release: Release; featured
               Latest signal
             </div>
           )}
-        </div>
+        </SignalGlitch>
 
         <CardContent className={`flex flex-col gap-5 ${featured ? "p-6 md:p-10" : "p-5 md:p-7"}`}>
           <div>
@@ -209,7 +214,11 @@ function ReleaseCard({ release, featured = false }: { release: Release; featured
             <div>
               <button
                 className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-                onClick={() => setTracklistOpen(!tracklistOpen)}
+                onClick={() => {
+                  const opening = !tracklistOpen;
+                  setTracklistOpen(opening);
+                  if (opening) triggerSignal("subtle");
+                }}
                 data-testid={`button-tracklist-${release.id}`}
               >
                 <Music className="w-4 h-4" />
