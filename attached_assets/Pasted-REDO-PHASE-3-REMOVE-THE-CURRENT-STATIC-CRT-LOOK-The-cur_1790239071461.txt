@@ -1,0 +1,128 @@
+REDO PHASE 3 — REMOVE THE CURRENT STATIC CRT LOOK
+The current Phase 3 implementation is visually wrong for Vanta.
+It currently looks like a static purple CRT/scanline filter placed over the page. I do not want the image permanently darkened or covered in obvious horizontal lines.
+First remove/revert the current always-on Phase 3 treatment from this page while preserving Phase 1 and Phase 2.
+Keep:
+- existing page layout
+- existing imagery
+- Phase 1 parallax/depth
+- Phase 2 environmental states
+- navigation
+- typography
+- routes
+Remove or heavily reduce:
+- persistent full-page scanlines
+- permanent purple tint
+- heavy image darkening
+- always-on CRT texture
+- static “TV filter” styling
+THE NEW DIRECTION
+Phase 3 should feel like brief signal events, not a filter.
+The page should normally look clean.
+Most of the time:
+clean Vanta page
+normal image
+normal environmental state
+Then occasionally:
+signal disruption
+↓
+image shifts
+↓
+RGB channels separate briefly
+↓
+one or two horizontal tear bands appear
+↓
+signal stabilizes
+↓
+clean Vanta page again
+That is the core behavior.
+1. ROUTE GLITCH SHOULD BE TEMPORARY
+On major navigation changes:
+- 120–250ms RGB split
+- one or two thin horizontal displacement bands
+- tiny frame echo/duplicate
+- subtle brightness jump
+- then immediately stabilize
+The effect should be noticeable but brief.
+Do not leave any glitch texture visible after it finishes.
+2. TRANSMISSION FRAME SHOULD BE LOCAL, NOT FULL PAGE
+If a Transmission image or media item uses a broadcast treatment, apply it only to that media container.
+Example:
+[ image / video ]
+subtle inner glow
+tiny metadata label
+optional scan sweep
+occasional signal ripple
+Do not cover the entire page in CRT lines.
+The surrounding layout should remain clean.
+3. USE SCANLINES SPARINGLY
+Scanlines should appear as:
+- a brief moving sweep
+- a localized media-frame texture
+- a short signal-lock effect
+Not:
+- permanent horizontal lines across the entire page
+Keep opacity extremely low when used.
+4. IMAGE DISPLACEMENT
+Create actual animated displacement during signal events.
+For example:
+- shift a narrow horizontal slice 8–18px left/right
+- duplicate a slice with slightly different RGB channels
+- stagger 2–3 bands for 100–200ms
+The rest of the image should remain stable.
+This should look like a digital signal breaking, not a filter overlay.
+5. TEXT GLITCH
+Selected system labels can briefly corrupt:
+TRANSMISSION
+TRANSM1SSION
+TRANSMISSION
+or
+SIGNAL LOCK
+S1GNAL_L0CK
+SIGNAL LOCK
+Keep navigation labels stable.
+Do not glitch body text.
+6. CLEAN DEFAULT STATE
+This is critical:
+When no signal event is happening, the page should look almost exactly like the Phase 2 version.
+Phase 3 should not permanently change the image treatment.
+7. VISUAL REFERENCE
+The intended feel is closer to:
+- a live digital broadcast briefly losing sync
+- a corrupted video frame
+- a transmission snapping into lock
+NOT:
+- VHS filter
+- Instagram CRT effect
+- purple scanline overlay
+- permanently degraded image
+8. HOME / RELEASES / WORLDS / OS
+Use signal events differently by intensity:
+HOME
+very rare, subtle
+
+RELEASES
+subtle on open/select
+
+WORLDS
+medium when entering or selecting a world
+
+TRANSMISSION
+medium signal-lock entrance
+
+OS
+strongest version, still temporary
+9. SUCCESS TEST
+After implementation:
+if I take a normal screenshot while no glitch event is happening, the page should still look clean and premium.
+If I screen-record a route change or Transmission entrance, I should clearly see the Vanta signal effect happen briefly.
+That distinction is essential.
+Report:
+1. what static effects were removed
+2. what new event-based effects were added
+3. how long each effect lasts
+4. where each effect triggers
+5. whether the clean idle state matches Phase 2 visually
+6. files changed
+7. build/check results
+Do not proceed to Phase 4 yet.
