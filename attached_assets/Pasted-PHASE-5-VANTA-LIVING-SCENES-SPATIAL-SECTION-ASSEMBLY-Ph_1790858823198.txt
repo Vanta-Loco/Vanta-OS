@@ -1,0 +1,257 @@
+PHASE 5 — VANTA LIVING SCENES / SPATIAL SECTION ASSEMBLY
+Phases 1–4 are complete and checkpointed at:
+895f249 — VANTA OS — motion system v1
+Current systems already working:
+- Phase 1: depth / parallax
+- Phase 2: environmental states
+- Phase 3: controlled signal / glitch language
+- Phase 4: scroll-velocity instability
+Do not replace or rewrite those systems.
+Phase 5 should build on them.
+The goal is to make the existing Vanta renders, hero areas, Transmission media, Releases, and Worlds feel like living visual environments instead of static webpage sections.
+This phase should bring us closer to the animated-webpage quality of the Active Theory / premium interactive references while remaining distinctly Vanta.
+The site must still be easy to navigate.
+Keep:
+- existing top navigation
+- existing routes
+- page headings
+- buttons
+- cards
+- current renders/images
+- current layout hierarchy
+- all Phase 1–4 behavior
+Do not turn the website into a full game or free-camera 3D environment.
+1. BUILD A REUSABLE LIVING SCENE SYSTEM
+Create reusable primitives for subtle environmental life.
+Suggested concepts:
+LivingScene
+SceneLayer
+SceneLight
+SceneFog
+SceneReveal
+SpatialSection
+SceneAccent
+Naming can differ if the current architecture suggests something cleaner.
+These components should integrate with the current:
+- VantaDepth
+- ParallaxLayer
+- AtmosphericOverlay
+- environmental-state system
+- scroll-velocity system
+Avoid creating a completely separate animation architecture.
+2. MAKE EXISTING RENDERS FEEL ALIVE
+Do not replace the existing Vanta renders.
+Add controlled micro-motion around and within them.
+Possible techniques:
+- slow fog drift
+- light gradients moving across surfaces
+- subtle bloom breathing
+- distant screen flicker
+- tiny reflections
+- gentle background scale shifts
+- foreground masking
+- slight perspective movement
+- environmental glow responding to scroll
+The scene should still look like the same render.
+Avoid:
+- obvious looping animations
+- constant flashing
+- floating everything
+- fake 3D rotations on every image
+We want environmental life, not animation for its own sake.
+3. HOMEPAGE HERO — MAKE THIS THE MAIN SHOWCASE
+Upgrade the current Vanta homepage hero into the strongest living scene.
+Preserve the current imagery and typography.
+Add subtle layers such as:
+BACK ENVIRONMENT
+slowest motion
+
+LIGHT / WINDOW GLOW
+slow drift or breathing
+
+HAZE
+independent movement
+
+FOREGROUND EQUIPMENT / IMAGE LAYER
+stronger depth response
+
+VANTA UI / TEXT
+stable and readable
+When scrolling slowly, it should feel like the camera is passing through a real Vanta environment.
+When scrolling quickly, Phase 4 can add instability on top.
+The two systems should complement each other.
+4. SPATIAL SECTION ASSEMBLY
+Major sections should not simply appear as stacked content blocks.
+Introduce a reusable section-reveal pattern where sections assemble into place as the user approaches them.
+Example:
+environment visible
+↓
+media begins moving into position
+↓
+foreground layer settles
+↓
+title resolves
+↓
+metadata / controls appear
+↓
+section reaches final layout
+On exit, some parts can drift or dissolve slightly.
+Important:
+The final settled layout should remain the same as the current Vanta design.
+We are animating how the layout arrives, not redesigning it.
+5. DO NOT MAKE EVERY SECTION IDENTICAL
+Different areas should assemble differently.
+For example:
+Home
+cinematic depth / environmental arrival
+Releases
+archive elements slide/resolve into an organized catalog
+Worlds
+city/environment appears first, content follows
+Transmission
+media locks into signal, then title and metadata stabilize
+OS
+UI pieces can appear more mechanically / digitally
+Keep a common Vanta language while allowing different personalities.
+6. TRANSMISSION MEDIA SHOULD FEEL EMBEDDED
+Transmission media currently has Phase 3 signal behavior.
+Now make it feel like the media is physically embedded inside the Vanta page environment.
+Add subtle spatial behavior:
+- slight inset depth
+- media frame shadow/glow
+- small perspective response
+- local haze/light
+- signal event only when relevant
+Do not bring back permanent CRT filters.
+Idle state should remain clean.
+When entering the Transmission section:
+media frame appears
+↓
+brief signal lock
+↓
+title / metadata resolve
+↓
+scene stabilizes
+7. RELEASES — LIVING ARCHIVE
+Keep Releases easy to scan.
+Add subtle visual life:
+- artwork can sit at slightly different depth from card text
+- archive lighting can shift faintly
+- selected/hovered release can affect local glow
+- background environment can subtly react to visible artwork
+Do not create excessive animation on every card.
+The page should still feel like a clean catalog.
+8. WORLDS — PUSH THE ENVIRONMENT FURTHER
+Worlds should receive the strongest spatial treatment in this phase.
+Use the existing city/world imagery.
+Add:
+- deeper layered parallax
+- fog at a separate depth
+- distant lights with restrained irregular flicker
+- slow city drift
+- project/world content assembling over the environment
+Each world should feel like a window into something larger.
+Do not make Worlds playable yet.
+9. OS — SYSTEM ASSEMBLY
+OS should feel more mechanical than organic.
+Sections can assemble with:
+- panels snapping softly into alignment
+- terminal-style labels resolving
+- green/purple accent lights coming online
+- subtle grid or wireframe elements
+Keep it tasteful.
+Do not build the full Vanta OS boot sequence yet.
+10. ENVIRONMENTAL MICRO-ANIMATION
+Add only a few micro-animation types and reuse them consistently.
+Examples:
+fog drift
+light breathe
+screen flicker
+distant light pulse
+scan sweep
+reflection shift
+slow particle drift
+Each page should use only the effects that fit that environment.
+Do not put every effect everywhere.
+11. SCROLL-BASED ASSEMBLY
+Use scroll progress and IntersectionObserver where appropriate.
+Avoid replaying huge entrance animations every time a section moves one pixel into view.
+Use sensible thresholds.
+Sections should:
+- begin assembling before fully centered
+- settle near the main reading position
+- remain stable while being read
+This is especially important for mobile.
+12. MOBILE
+Phase 5 must still feel rich on phone.
+On mobile:
+- reduce travel distances slightly
+- keep section assembly obvious
+- avoid clipping
+- maintain text readability
+- avoid horizontal overflow
+- do not interfere with native scrolling
+The user should still notice that scenes are assembling and environments are alive.
+Do not reduce mobile motion until it becomes invisible.
+13. PERFORMANCE
+Keep this phase lightweight.
+Prefer:
+- transforms
+- opacity
+- masks
+- gradients
+- CSS variables
+- pseudo-elements
+- existing React motion architecture
+Avoid:
+- large canvases
+- expensive per-frame blur
+- dozens of independent animation loops
+- adding WebGL unless already necessary
+One requestAnimationFrame system should drive shared motion wherever possible.
+14. ACCESSIBILITY
+Respect prefers-reduced-motion.
+Reduced motion should:
+- keep environmental states
+- keep the final compositions
+- replace large spatial motion with fades / simple reveals
+- suppress drifting and continuous motion
+Content and navigation must remain fully accessible.
+15. DO NOT TOUCH UNRELATED PRODUCT ISSUES
+Do not work on:
+- Marketplace discovery
+- Passport Coming Soon items
+- Stonerism placeholders
+- unrelated product functionality
+Also do not fix the unrelated broken Home Transmission thumbnail in this phase unless it blocks Phase 5 testing.
+Keep that issue noted separately.
+16. DO NOT DO YET
+Do not implement:
+- full WebGL world
+- free camera navigation
+- Active Theory spiral clone
+- OS boot sequence
+- audio-reactive environment
+- route redesign
+- major new app functionality
+- Phase 6 work
+SUCCESS TEST
+When scrolling through Vanta, the user should feel:
+the page is composed of living environments, not static sections.
+The environments should have subtle motion even when calm.
+Major sections should visibly assemble into their final layouts.
+The website must remain easy to understand and navigate.
+The visual identity should remain unmistakably Vanta.
+After implementation report:
+1. reusable living-scene components created
+2. which pages received scene upgrades
+3. how each major section assembles
+4. environmental micro-animations added
+5. how Phase 5 integrates with Phases 1–4
+6. mobile behavior
+7. reduced-motion behavior
+8. performance approach
+9. every file changed
+10. npm run check
+11. npm run build
+Do not proceed to Phase 6.
