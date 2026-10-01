@@ -6,13 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { SiSpotify, SiApplemusic, SiSoundcloud, SiYoutube } from "react-icons/si";
-import { Archive, ArrowRight, Play, Square, ChevronDown, ChevronUp, Music, Plus, Radio, Search } from "lucide-react";
-import { useMemo, useState, useRef } from "react";
+import { Archive, ArrowRight, Play, Square, ChevronDown, ChevronUp, Music, Radio, Search } from "lucide-react";
+import { useMemo, useState, useRef, type CSSProperties } from "react";
 import { Link } from "wouter";
 import type { Release } from "@shared/schema";
 import { format } from "date-fns";
 import releasesEnvironment from "@assets/generated_images/releases_listening_archive_environment.png";
 import { GlitchText, SignalGlitch, useVantaSignal } from "@/components/vanta-signal";
+import { SceneLight, SceneReveal } from "@/components/vanta-living-scene";
 
 const typeLabel: Record<string, string> = {
   album: "Album",
@@ -85,26 +86,31 @@ function ReleaseCard({ release, featured = false }: { release: Release; featured
   return (
     <Card className={`overflow-hidden border-border/80 bg-card/75 backdrop-blur-sm ${featured ? "border-primary/45 shadow-[0_0_40px_rgba(150,100,220,.1)]" : ""}`} data-testid={`card-release-${release.id}`}>
       <div className={`grid grid-cols-1 gap-0 ${featured ? "md:grid-cols-[390px_1fr]" : "md:grid-cols-[250px_1fr]"}`}>
-        <SignalGlitch
-          intensity="subtle"
-          className={`relative aspect-square md:aspect-auto overflow-hidden ${featured ? "min-h-[390px]" : ""}`}
+        <div
+          className={`vanta-release-artwork-entry vanta-scene-stage ${featured ? "min-h-[390px]" : "md:min-h-[260px]"}`}
+          data-scene-stage="media"
         >
-          <img
-            src={release.coverImage}
-            alt={release.title}
-            className={`w-full h-full object-cover ${featured ? "min-h-[390px]" : ""}`}
-            data-testid={`img-release-${release.id}`}
-          />
-          {featured && (
-            <div className="absolute left-4 top-4 border border-primary/50 bg-black/60 px-2.5 py-1 text-[9px] font-mono uppercase tracking-[0.22em] text-primary">
-              Latest signal
-            </div>
-          )}
-        </SignalGlitch>
+          <SignalGlitch
+            intensity="subtle"
+            className={`vanta-release-artwork relative aspect-square md:aspect-auto overflow-hidden ${featured ? "min-h-[390px]" : "md:min-h-[260px]"}`}
+          >
+            <img
+              src={release.coverImage}
+              alt={release.title}
+              className={`w-full h-full object-cover ${featured ? "min-h-[390px]" : ""}`}
+              data-testid={`img-release-${release.id}`}
+            />
+            {featured && (
+              <div className="absolute left-4 top-4 border border-primary/50 bg-black/60 px-2.5 py-1 text-[9px] font-mono uppercase tracking-[0.22em] text-primary">
+                Latest signal
+              </div>
+            )}
+          </SignalGlitch>
+        </div>
 
         <CardContent className={`flex flex-col gap-5 ${featured ? "p-6 md:p-10" : "p-5 md:p-7"}`}>
           <div>
-            <div className="flex items-center gap-3 mb-3 flex-wrap">
+            <div className="flex items-center gap-3 mb-3 flex-wrap vanta-scene-stage" data-scene-stage="metadata">
               <Badge variant="outline" className="uppercase tracking-wide text-xs font-medium">
                 {typeLabel[release.type] ?? release.type}
               </Badge>
@@ -119,8 +125,9 @@ function ReleaseCard({ release, featured = false }: { release: Release; featured
             </div>
 
             <h2
-              className="text-2xl md:text-3xl font-display font-bold mb-1"
+              className="vanta-scene-stage text-2xl md:text-3xl font-display font-bold mb-1"
               data-testid={`text-release-title-${release.id}`}
+              data-scene-stage="title"
             >
               {release.title}
             </h2>
@@ -151,8 +158,9 @@ function ReleaseCard({ release, featured = false }: { release: Release; featured
             )}
 
             <p
-              className="text-muted-foreground leading-relaxed"
+              className="text-muted-foreground leading-relaxed vanta-scene-stage"
               data-testid={`text-release-description-${release.id}`}
+              data-scene-stage="description"
             >
               {release.description}
             </p>
@@ -174,7 +182,7 @@ function ReleaseCard({ release, featured = false }: { release: Release; featured
           </div>
 
           {streamingLinks.length > 0 && (
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 vanta-scene-stage" data-scene-stage="controls">
               {streamingLinks.map((link) => (
                 <a
                   key={link.label}
@@ -193,7 +201,7 @@ function ReleaseCard({ release, featured = false }: { release: Release; featured
           )}
 
           {audioSrc && (
-            <div>
+            <div className="vanta-scene-stage" data-scene-stage="controls">
               <Button
                 variant={isPlaying ? "default" : "outline"}
                 size="default"
@@ -211,7 +219,7 @@ function ReleaseCard({ release, featured = false }: { release: Release; featured
           )}
 
           {release.tracklist.length > 0 && (
-            <div>
+            <div className="vanta-scene-stage" data-scene-stage="controls">
               <button
                 className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
                 onClick={() => {
@@ -303,6 +311,7 @@ export default function Releases() {
         <img src={releasesEnvironment} alt="" className="absolute inset-0 h-full w-full object-cover object-center opacity-45" />
         <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(7,8,14,.92)_0%,rgba(7,8,14,.55)_28%,rgba(7,8,14,.78)_72%,rgba(7,8,14,.97)_100%)]" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_58%_28%,rgba(190,120,72,.18),transparent_45%)]" />
+        <SceneLight className="pointer-events-none" style={{ "--scene-light-strength": 0.45 } as CSSProperties} />
       </div>
 
       <div className="relative z-10 flex min-h-screen flex-col">
@@ -313,7 +322,7 @@ export default function Releases() {
           <section className="relative isolate overflow-hidden border-b border-border">
             <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(6,7,12,.72)_0%,rgba(6,7,12,.5)_42%,rgba(6,7,12,.18)_100%)]" />
             <div className="relative mx-auto max-w-7xl px-6 py-16 lg:px-8 md:py-20">
-              <div className="max-w-2xl">
+              <SceneReveal variant="simple" className="max-w-2xl">
                 <div className="mb-6 flex flex-wrap items-center gap-3 text-[10px] font-mono uppercase tracking-[0.28em] text-primary/80">
                   <span className="flex items-center gap-2"><Radio className="h-3.5 w-3.5" /> <GlitchText intensity="subtle">VANTA MUSIC ARCHIVE</GlitchText></span>
                   <span className="text-white/25">/</span>
@@ -325,8 +334,8 @@ export default function Releases() {
                 <p className="mt-5 max-w-lg text-base leading-relaxed text-white/65 md:text-lg">
                   The physical catalog room where Vanta stores and plays its music.
                 </p>
-              </div>
-              <div className="mt-12 flex flex-col gap-4 border-t border-white/15 pt-5 md:flex-row md:items-center md:justify-between">
+              </SceneReveal>
+              <SceneReveal variant="simple" className="mt-12 flex flex-col gap-4 border-t border-white/15 pt-5 md:flex-row md:items-center md:justify-between" delay={90}>
                 <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.24em] text-white/50">
                   <span className="h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_10px_rgba(185,120,220,.85)]" />
                   {orderedReleases.length} catalog {orderedReleases.length === 1 ? "entry" : "entries"}
@@ -338,7 +347,7 @@ export default function Releases() {
                 ) : (
                   <span className="text-[10px] font-mono uppercase tracking-[0.22em] text-white/35">Music Room offline</span>
                 )}
-              </div>
+              </SceneReveal>
             </div>
           </section>
 
@@ -410,7 +419,7 @@ export default function Releases() {
                     </div>
                     {hasFilters && <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/45">{filtered.length} results</span>}
                   </div>
-                  <ReleaseCard release={featuredRelease} featured />
+                  <SceneReveal><ReleaseCard release={featuredRelease} featured /></SceneReveal>
                 </section>
               )}
 
@@ -424,7 +433,7 @@ export default function Releases() {
                     </div>
                   </div>
                   <div className="space-y-6">
-                    {catalogReleases.map((release) => <ReleaseCard key={release.id} release={release} />)}
+                    {catalogReleases.map((release, index) => <SceneReveal key={release.id} delay={Math.min(index * 65, 260)}><ReleaseCard release={release} /></SceneReveal>)}
                   </div>
                 </section>
               )}

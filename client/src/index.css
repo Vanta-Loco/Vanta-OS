@@ -1135,3 +1135,444 @@
     translate: none !important;
   }
 }
+
+/* Phase 5 — living scenes: additive layers preserve the existing page geometry. */
+.vanta-living-scene {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+
+.vanta-scene-layer {
+  position: absolute;
+  inset: -3%;
+  pointer-events: none;
+  translate: 0 calc(var(--vanta-scroll-haze-offset, 0px) * .45);
+}
+
+.vanta-scene-light {
+  position: absolute;
+  inset: -15%;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 72% 24%, rgba(213, 151, 105, .15), transparent 29%),
+    radial-gradient(ellipse at 18% 58%, rgba(124, 79, 117, .09), transparent 37%);
+  opacity: calc(.72 * var(--scene-light-strength, 1));
+  mix-blend-mode: screen;
+  animation: vanta-scene-light-breathe 15s ease-in-out infinite alternate;
+  translate: var(--vanta-scroll-haze-offset, 0px) 0;
+}
+
+.vanta-scene-fog {
+  position: absolute;
+  inset: -12%;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 82%, rgba(173, 132, 125, .12), transparent 54%);
+  opacity: .48;
+  mix-blend-mode: screen;
+  animation: vanta-scene-fog-drift 27s ease-in-out infinite alternate;
+  translate: var(--vanta-scroll-haze-offset, 0px) 0;
+}
+
+.vanta-scene-fog-two {
+  background: radial-gradient(ellipse at 86% 56%, rgba(126, 151, 177, .09), transparent 42%);
+  animation-duration: 34s;
+  animation-direction: alternate-reverse;
+}
+
+.vanta-scene-accent {
+  display: inline-block;
+  width: .34rem;
+  height: .34rem;
+  border-radius: 50%;
+  background: hsl(var(--primary));
+  box-shadow: 0 0 14px hsl(var(--primary) / .45);
+  animation: vanta-scene-accent-breathe 4.8s ease-in-out infinite;
+}
+
+.vanta-spatial-section {
+  position: relative;
+}
+
+.vanta-scene-reveal {
+  --scene-opacity-duration: 360ms;
+  --scene-transform-duration: 520ms;
+  --scene-travel: 12px;
+}
+
+/* A composition is either leaf-staged OR a single panel arrival, never both. */
+.vanta-scene-reveal:not([data-scene-variant="staged"]) {
+  transition:
+    opacity var(--scene-opacity-duration) cubic-bezier(.2, .72, .2, 1) var(--scene-reveal-delay, 0ms),
+    transform var(--scene-transform-duration) cubic-bezier(.2, .72, .2, 1) var(--scene-reveal-delay, 0ms);
+}
+
+.vanta-scene-reveal:not([data-scene-variant="staged"])[data-scene-pending="true"] {
+  opacity: 0;
+  transform: translate3d(0, var(--scene-travel), 0);
+}
+
+.vanta-scene-reveal[data-scene-variant="mechanical"] {
+  --scene-travel: 8px;
+  --scene-transform-duration: 380ms;
+}
+
+.vanta-scene-stage:not(.vanta-signal-echo *),
+.vanta-transmission-content [data-scene-stage] {
+  --scene-stage-delay: 0ms;
+  transition:
+    opacity var(--scene-opacity-duration, 360ms) cubic-bezier(.2, .72, .2, 1) calc(var(--scene-reveal-delay, 0ms) + var(--scene-stage-delay)),
+    transform var(--scene-transform-duration, 520ms) cubic-bezier(.2, .72, .2, 1) calc(var(--scene-reveal-delay, 0ms) + var(--scene-stage-delay));
+}
+
+.vanta-scene-reveal[data-scene-variant="staged"][data-scene-pending="true"] .vanta-scene-stage:not(.vanta-signal-echo *),
+.vanta-scene-reveal[data-scene-variant="staged"][data-scene-pending="true"] .vanta-transmission-content [data-scene-stage] {
+  opacity: 0;
+  transform: translate3d(0, var(--scene-travel), 0);
+  transition: none;
+}
+
+.vanta-scene-stage[data-scene-stage="foreground"] { --scene-stage-delay: 65ms; }
+.vanta-scene-stage[data-scene-stage="title"] { --scene-stage-delay: 100ms; }
+.vanta-scene-stage[data-scene-stage="metadata"] { --scene-stage-delay: 165ms; }
+.vanta-scene-stage[data-scene-stage="description"] { --scene-stage-delay: 220ms; }
+.vanta-scene-stage[data-scene-stage="controls"] { --scene-stage-delay: 280ms; }
+
+/* Media first, local 140–295ms lock, then original text. Echo text stays clean. */
+.vanta-scene-reveal[data-scene-media-lock="true"] [data-scene-stage="title"] { --scene-stage-delay: 320ms; }
+.vanta-scene-reveal[data-scene-media-lock="true"] [data-scene-stage="metadata"] { --scene-stage-delay: 390ms; }
+.vanta-scene-reveal[data-scene-media-lock="true"] [data-scene-stage="description"] { --scene-stage-delay: 455ms; }
+.vanta-scene-reveal[data-scene-media-lock="true"] [data-scene-stage="controls"] { --scene-stage-delay: 520ms; }
+
+.vanta-environment-root:not([data-vanta-signal-active="true"]) .vanta-transmission-frame[data-scene-entry-lock="true"]:not(:hover):not(:focus-within) > .vanta-transmission-screen > .vanta-signal-echo {
+  display: block;
+  --vanta-signal-duration: 155ms;
+  --vanta-signal-split: 8px;
+}
+.vanta-environment-root:not([data-vanta-signal-active="true"]) .vanta-transmission-frame[data-scene-entry-lock="true"]:not(:hover):not(:focus-within) > .vanta-transmission-screen > .vanta-signal-echo-one {
+  animation: vanta-signal-echo-one 155ms steps(4, end) both;
+}
+.vanta-environment-root:not([data-vanta-signal-active="true"]) .vanta-transmission-frame[data-scene-entry-lock="true"]:not(:hover):not(:focus-within) > .vanta-transmission-screen > .vanta-signal-echo-two {
+  animation: vanta-signal-echo-two 155ms steps(4, end) both;
+}
+.vanta-environment-root:not([data-vanta-signal-active="true"]) .vanta-transmission-frame[data-scene-entry-lock="true"]:not(:hover):not(:focus-within) .vanta-signal-echo [data-scene-stage]:not([data-scene-stage="media"]) {
+  visibility: hidden;
+}
+
+/* Keyboard focus must not wait for the cinematic entrance to finish. */
+.vanta-scene-reveal:focus-within,
+.vanta-scene-reveal[data-scene-immediate="true"] {
+  opacity: 1;
+  transform: none;
+  transition: none;
+  animation: none !important;
+}
+
+.vanta-scene-reveal:focus-within .vanta-scene-stage,
+.vanta-scene-reveal:focus-within .vanta-transmission-content [data-scene-stage],
+.vanta-scene-reveal[data-scene-immediate="true"] .vanta-scene-stage,
+.vanta-scene-reveal[data-scene-immediate="true"] .vanta-transmission-content [data-scene-stage] {
+  opacity: 1;
+  transform: none;
+  transition: none;
+}
+
+.vanta-post-scene {
+  position: relative;
+  isolation: isolate;
+}
+
+.vanta-transmission-atmosphere {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 74% 22%, rgba(151, 128, 181, .15), transparent 38%),
+    radial-gradient(ellipse at 91% 56%, rgba(103, 141, 158, .10), transparent 44%);
+  animation: vanta-scene-fog-drift 27s ease-in-out infinite alternate;
+}
+
+.vanta-transmission-copy {
+  position: absolute;
+  z-index: 2;
+}
+
+.vanta-post-scene > .vanta-transmission-frame {
+  position: relative;
+  z-index: 1;
+}
+
+.vanta-hero-depth .vanta-scene-light {
+  background:
+    radial-gradient(ellipse at 76% 27%, rgba(239, 170, 119, .30), transparent 24%),
+    radial-gradient(ellipse at 92% 48%, rgba(182, 136, 155, .12), transparent 30%);
+}
+
+.vanta-hero-depth .vanta-scene-fog {
+  background: radial-gradient(ellipse at 80% 58%, rgba(194, 153, 143, .18), transparent 36%);
+}
+
+.vanta-hero-depth .vanta-scene-fog-two {
+  opacity: .28;
+  background: radial-gradient(ellipse at 94% 40%, rgba(126, 151, 177, .13), transparent 30%);
+}
+
+.vanta-release-artwork {
+  transition: transform 500ms cubic-bezier(.2, .72, .2, 1);
+}
+
+.vanta-release-artwork::after {
+  content: "";
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(ellipse at 50% 50%, rgba(194, 149, 111, .17), transparent 66%);
+  transition: opacity 500ms ease;
+}
+
+.vanta-release-artwork:hover::after,
+.vanta-release-artwork:focus-within::after {
+  opacity: 1;
+}
+
+.vanta-release-artwork:hover,
+.vanta-release-artwork:focus-within {
+  transform: translate3d(0, -2px, 0);
+}
+
+.vanta-worlds-scene {
+  min-height: 100%;
+  background:
+    radial-gradient(ellipse at 74% 16%, rgba(150, 174, 219, .08), transparent 34%),
+    linear-gradient(180deg, rgba(8, 10, 17, .08), rgba(8, 10, 17, .3));
+}
+
+.vanta-worlds-scene .vanta-scene-light {
+  background:
+    radial-gradient(circle at 77% 34%, rgba(222, 186, 132, .13) 0 1px, transparent 2px),
+    radial-gradient(circle at 85% 22%, rgba(178, 198, 229, .12) 0 1px, transparent 2px),
+    radial-gradient(ellipse at 75% 30%, rgba(135, 161, 201, .13), transparent 36%);
+  background-size: auto, auto, 100% 100%;
+}
+
+.vanta-worlds-scene .vanta-scene-fog {
+  background: radial-gradient(ellipse at 55% 94%, rgba(119, 142, 168, .15), transparent 54%);
+}
+
+.vanta-scene-fog.vanta-worlds-fog-depth {
+  inset: -8%;
+  opacity: .34;
+  background: radial-gradient(ellipse at 50% 72%, rgba(168, 185, 205, .14), transparent 58%);
+}
+
+.vanta-scene-layer.vanta-city-drift {
+  inset: -4%;
+  opacity: .62;
+  background:
+    radial-gradient(ellipse at 34% 48%, rgba(180, 143, 112, .06), transparent 24%),
+    radial-gradient(ellipse at 78% 38%, rgba(113, 142, 184, .08), transparent 31%);
+  animation: vanta-city-drift 32s ease-in-out infinite alternate;
+}
+
+.vanta-city-image-drift {
+  width: 100%;
+  height: 100%;
+  transform-origin: 54% 48%;
+}
+
+.vanta-signal-content .vanta-city-image-drift {
+  animation: vanta-city-image-drift 34s ease-in-out infinite alternate;
+}
+
+.vanta-city-image-drift img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.vanta-scene-fog.vanta-city-ground-fog {
+  inset: 25% -10% -15%;
+  opacity: .36;
+  background: radial-gradient(ellipse at 50% 84%, rgba(163, 178, 192, .13), transparent 60%);
+  animation-duration: 38s;
+}
+
+.vanta-transmission-frame {
+  box-shadow: 0 18px 54px rgba(0, 0, 0, .24), 0 0 34px rgba(147, 111, 168, .055);
+  transition: transform 650ms cubic-bezier(.2, .72, .2, 1);
+}
+
+.vanta-transmission-frame:hover,
+.vanta-transmission-frame:focus-within {
+  transform: translate3d(0, -2px, 0);
+}
+
+.vanta-os-panel {
+  position: relative;
+  isolation: isolate;
+}
+
+.vanta-os-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  border: 1px solid rgba(152, 174, 137, .12);
+  background:
+    linear-gradient(90deg, rgba(129, 255, 121, .06) 1px, transparent 1px),
+    linear-gradient(rgba(129, 255, 121, .045) 1px, transparent 1px),
+    radial-gradient(ellipse at 80% 8%, rgba(139, 236, 110, .07), transparent 42%);
+  background-size: 30px 30px, 30px 30px, auto;
+  opacity: .75;
+  animation: vanta-os-frame-assemble 420ms cubic-bezier(.2, .72, .2, 1) both;
+}
+
+.vanta-os-grid > * {
+  transform-origin: 50% 0;
+}
+
+@keyframes vanta-scene-light-breathe {
+  from { opacity: calc(.55 * var(--scene-light-strength, 1)); transform: translate3d(-.5%, 0, 0) scale(1); }
+  to { opacity: calc(.82 * var(--scene-light-strength, 1)); transform: translate3d(.8%, .4%, 0) scale(1.025); }
+}
+
+@keyframes vanta-scene-fog-drift {
+  from { transform: translate3d(-1.4%, .5%, 0) scale(1.02); }
+  to { transform: translate3d(1.4%, -.5%, 0) scale(1.055); }
+}
+
+@keyframes vanta-scene-accent-breathe {
+  0%, 100% { opacity: .52; }
+  46% { opacity: .9; }
+  52% { opacity: .68; }
+}
+
+@keyframes vanta-os-light-online {
+  from { opacity: .45; }
+  to { opacity: .9; }
+}
+
+@keyframes vanta-city-drift {
+  from { transform: translate3d(-.75%, .2%, 0) scale(1.01); }
+  to { transform: translate3d(.75%, -.2%, 0) scale(1.035); }
+}
+
+@keyframes vanta-city-image-drift {
+  from { transform: translate3d(-.3%, .2%, 0) scale(1.015); }
+  to { transform: translate3d(.3%, -.2%, 0) scale(1.045); }
+}
+
+@keyframes vanta-distant-light-pulse {
+  0%, 31%, 54%, 100% { opacity: .46; }
+  33%, 37% { opacity: .32; }
+  35%, 40%, 73% { opacity: .5; }
+  76%, 78% { opacity: .38; }
+  79%, 87% { opacity: .48; }
+}
+
+@keyframes vanta-os-frame-assemble {
+  from { opacity: 0; clip-path: inset(0 0 100% 0); }
+  to { opacity: .75; clip-path: inset(0); }
+}
+
+@media (max-width: 767px) {
+  .vanta-scene-reveal,
+  .vanta-scene-reveal[data-scene-variant="mechanical"] {
+    --scene-opacity-duration: 220ms;
+    --scene-transform-duration: 320ms;
+    --scene-travel: 6px;
+    --scene-reveal-delay: var(--scene-phone-delay, 0ms) !important;
+  }
+  .vanta-scene-stage[data-scene-stage="foreground"] { --scene-stage-delay: 35ms; }
+  .vanta-scene-stage[data-scene-stage="title"] { --scene-stage-delay: 60ms; }
+  .vanta-scene-stage[data-scene-stage="metadata"] { --scene-stage-delay: 100ms; }
+  .vanta-scene-stage[data-scene-stage="description"] { --scene-stage-delay: 140ms; }
+  .vanta-scene-stage[data-scene-stage="controls"] { --scene-stage-delay: 180ms; }
+  .vanta-scene-reveal[data-scene-media-lock="true"] [data-scene-stage="title"] { --scene-stage-delay: 260ms; }
+  .vanta-scene-reveal[data-scene-media-lock="true"] [data-scene-stage="metadata"] { --scene-stage-delay: 300ms; }
+  .vanta-scene-reveal[data-scene-media-lock="true"] [data-scene-stage="description"] { --scene-stage-delay: 340ms; }
+  .vanta-scene-reveal[data-scene-media-lock="true"] [data-scene-stage="controls"] { --scene-stage-delay: 380ms; }
+
+  .vanta-living-scene {
+    overflow: clip;
+  }
+
+  .vanta-os-panel::before {
+    inset: 0;
+  }
+
+  .vanta-os-panel::before {
+    animation-duration: 280ms;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vanta-scene-light,
+  .vanta-scene-fog,
+  .vanta-scene-accent,
+  .vanta-os-panel::before,
+  .vanta-worlds-scene::after,
+  .vanta-os-panel > .vanta-scene-reveal[data-scene-revealed="true"],
+  .vanta-os-grid > .vanta-scene-reveal[data-scene-revealed="true"],
+  .vanta-city-drift,
+  .vanta-transmission-atmosphere,
+  .vanta-signal-content .vanta-city-image-drift,
+  .vanta-scene-reveal[data-scene-revealed="true"] .vanta-transmission-content [data-scene-stage] {
+    animation: none !important;
+  }
+
+  .vanta-scene-layer,
+  .vanta-scene-light,
+  .vanta-scene-fog {
+    translate: none !important;
+  }
+
+  .vanta-scene-reveal[data-scene-pending="true"] {
+    opacity: 1;
+    transform: none;
+  }
+
+  .vanta-scene-reveal[data-scene-revealed="true"] {
+    transition: none !important;
+  }
+
+  .vanta-scene-reveal[data-scene-pending="true"] .vanta-scene-stage,
+  .vanta-scene-reveal[data-scene-pending="true"] .vanta-transmission-content [data-scene-stage] {
+    opacity: 1;
+    transform: none;
+  }
+
+  .vanta-city-drift,
+  .vanta-signal-content .vanta-city-image-drift {
+    transform: none !important;
+  }
+
+  .vanta-scene-reveal[data-scene-revealed="true"] .vanta-scene-stage,
+  .vanta-scene-reveal[data-scene-revealed="true"] .vanta-transmission-content [data-scene-stage] {
+    transition: none !important;
+  }
+
+  .vanta-release-artwork:hover,
+  .vanta-release-artwork:focus-within,
+  .vanta-transmission-frame:hover,
+  .vanta-transmission-frame:focus-within {
+    transform: none !important;
+  }
+
+  .enter-scan-line,
+  .enter-authorized-pulse,
+  .enter-nodes-appear {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}

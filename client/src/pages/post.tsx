@@ -26,6 +26,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAdmin } from "@/hooks/use-admin";
 import { MusicPlayer } from "@/components/music-player";
 import { TransmissionFrame } from "@/components/vanta-signal";
+import { SceneReveal } from "@/components/vanta-living-scene";
 
 // ── Dynamic Open Graph meta helper ────────────────────────────────────────────
 function useOpenGraph(post: Post | undefined) {
@@ -209,6 +210,7 @@ export default function PostPage() {
       <Header />
 
       <article className="flex-1 bg-background pt-20">
+        <SceneReveal key={post.id} mediaLock className="vanta-post-scene">
         <TransmissionFrame label="VANTA TRANSMISSION // FEED" metadata="SIGNAL LOCKED" intensity="medium">
           <div className={`relative ${getImageLayout(post.imageLayout).value === "original" ? "max-h-[70vh]" : getImageLayout(post.imageLayout).className} overflow-hidden`}>
             <img
@@ -217,12 +219,14 @@ export default function PostPage() {
               className={`w-full ${getImageLayout(post.imageLayout).value === "original" ? "h-auto max-h-[70vh] object-contain" : "h-full object-cover"}`}
               style={{ objectPosition: post.coverImagePosition || "50% 50%" }}
               data-testid="img-post-cover"
+              data-scene-stage="media"
             />
             <div className="absolute inset-0 hero-gradient-overlay" />
+            <div className="vanta-transmission-atmosphere" aria-hidden="true" />
 
-            <div className="absolute bottom-0 left-0 right-0">
+            <div className="vanta-transmission-copy bottom-0 left-0 right-0">
               <div className="max-w-4xl mx-auto px-6 lg:px-8 pb-12 md:pb-16">
-                <div className="flex items-center gap-4 mb-4 text-sm text-muted-foreground">
+                <div className="flex items-center gap-4 mb-4 text-sm text-muted-foreground" data-scene-stage="metadata">
                   <Badge
                     variant="outline"
                     className="uppercase tracking-wide font-medium"
@@ -245,6 +249,7 @@ export default function PostPage() {
                 <h1
                   className="text-4xl md:text-5xl lg:text-6xl font-display font-bold text-foreground leading-tight max-w-4xl"
                   data-testid="text-title"
+                  data-scene-stage="title"
                 >
                   {post.title}
                 </h1>
@@ -252,9 +257,10 @@ export default function PostPage() {
             </div>
           </div>
         </TransmissionFrame>
+        </SceneReveal>
 
-        <div className="max-w-3xl mx-auto px-6 lg:px-8 mt-16">
-          <div className="flex items-center justify-between mb-12 gap-4 flex-wrap">
+        <SceneReveal className="max-w-3xl mx-auto px-6 lg:px-8 mt-16" delay={90}>
+          <div className="flex items-center justify-between mb-12 gap-4 flex-wrap vanta-scene-stage" data-scene-stage="controls">
             <Link href="/" data-testid="link-back">
               <Button variant="ghost" className="gap-2" data-testid="button-back">
                 <ArrowLeft className="w-4 h-4" />
@@ -308,19 +314,20 @@ export default function PostPage() {
           </div>
 
           <div
-            className="prose prose-lg max-w-none mb-12"
+            className="prose prose-lg max-w-none mb-12 vanta-scene-stage"
             data-testid="text-content"
+            data-scene-stage="foreground"
             dangerouslySetInnerHTML={{ __html: post.content.replace(/\n/g, '<br />') }}
           />
 
           {post.musicUrl && (
-            <div className="mb-12">
+            <div className="mb-12 vanta-scene-stage" data-scene-stage="controls">
               <MusicPlayer url={post.musicUrl} />
             </div>
           )}
 
           {post.images && post.images.length > 0 && (
-            <div className="mb-16">
+            <div className="mb-16 vanta-scene-stage" data-scene-stage="foreground">
               <div
                 className={`grid gap-4 ${
                   post.images.length === 1
@@ -349,7 +356,7 @@ export default function PostPage() {
               </div>
             </div>
           )}
-        </div>
+        </SceneReveal>
       </article>
 
       <Footer />

@@ -16,6 +16,7 @@ import transmissionEnvironment from "@assets/generated_images/transmission_edito
 import { getImageLayout } from "@/components/image-layout-picker";
 import { AtmosphericOverlay, ParallaxLayer, VantaDepth } from "@/components/vanta-depth";
 import { GlitchText, SignalGlitch, TransmissionFrame } from "@/components/vanta-signal";
+import { LivingScene, SceneReveal } from "@/components/vanta-living-scene";
 
 const worlds = [
   {
@@ -104,33 +105,37 @@ export default function Home() {
         <ParallaxLayer depth={-34} mobileDepth={-30} className="pointer-events-none absolute inset-[-5%] z-[1]">
           <AtmosphericOverlay className="absolute inset-0" />
         </ParallaxLayer>
+        <LivingScene className="pointer-events-none z-[3]" />
         <div className="hero-gradient-overlay absolute inset-0 z-[2]" />
         <ParallaxLayer depth={58} mobileDepth={36} className="relative z-10 w-full">
           <div className="mx-auto max-w-7xl px-6 pb-16 lg:px-8 md:pb-24">
-            <div className="max-w-4xl">
+            <SceneReveal className="max-w-4xl">
               <h1
-                className="text-5xl font-display font-bold leading-tight text-foreground md:text-6xl lg:text-7xl"
+                className="vanta-scene-stage text-5xl font-display font-bold leading-tight text-foreground md:text-6xl lg:text-7xl"
                 data-testid="text-hero-title"
+                data-scene-stage="title"
               >
                 Vanta Cold
               </h1>
               <p
-                className="mt-4 mb-6 font-mono text-[11px] uppercase tracking-[0.28em] text-muted-foreground/50"
+                className="vanta-scene-stage mt-4 mb-6 font-mono text-[11px] uppercase tracking-[0.28em] text-muted-foreground/50"
                 data-testid="text-hero-system-label"
+                data-scene-stage="metadata"
               >
                  <GlitchText intensity="subtle">VANTA OS — A DIGITAL INTERFACE FOR MUSIC, FASHION, AND WORLDBUILDING.</GlitchText>
               </p>
               <h2
-                className="mb-4 text-2xl font-display font-semibold leading-snug text-foreground md:text-3xl"
+                className="vanta-scene-stage mb-4 text-2xl font-display font-semibold leading-snug text-foreground md:text-3xl"
                 data-testid="text-hero-section-title"
+                data-scene-stage="title"
               >
                 The Music Journey
               </h2>
-              <p className="mb-8 max-w-2xl text-lg leading-relaxed text-muted-foreground md:text-xl" data-testid="text-hero-subtitle">
+              <p className="vanta-scene-stage mb-8 max-w-2xl text-lg leading-relaxed text-muted-foreground md:text-xl" data-testid="text-hero-subtitle" data-scene-stage="description">
                 Documenting the creative process, lifestyle moments, and the path
                 of building Vanta Cold from the ground up.
               </p>
-            </div>
+            </SceneReveal>
           </div>
         </ParallaxLayer>
       </VantaDepth>
@@ -143,7 +148,7 @@ export default function Home() {
 
       {/* ── FEATURED RELEASE — dynamic ── */}
       <section className="bg-card border-t border-border py-20" data-testid="section-featured-release">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
+        <SceneReveal className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="flex items-center justify-between mb-10 flex-wrap gap-4">
             <div>
               <p className="text-xs uppercase tracking-widest text-muted-foreground mb-1 font-medium">Latest Release</p>
@@ -174,7 +179,7 @@ export default function Home() {
             </div>
           ) : featuredRelease ? (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-              <div className="relative aspect-square max-w-md w-full overflow-hidden rounded-md">
+              <div className="relative aspect-square max-w-md w-full overflow-hidden rounded-md vanta-scene-stage" data-scene-stage="media">
                 <img
                   src={featuredRelease.coverImage}
                   alt={featuredRelease.title}
@@ -190,17 +195,18 @@ export default function Home() {
                     {featuredRelease.type}
                   </Badge>
                   <h3
-                    className="text-2xl md:text-3xl font-display font-bold mb-3"
+                    className="vanta-scene-stage text-2xl md:text-3xl font-display font-bold mb-3"
                     data-testid="text-release-title"
+                    data-scene-stage="title"
                   >
                     {featuredRelease.title}
                   </h3>
-                  <p className="text-muted-foreground leading-relaxed" data-testid="text-release-description">
+                  <p className="vanta-scene-stage text-muted-foreground leading-relaxed" data-testid="text-release-description" data-scene-stage="description">
                     {featuredRelease.description}
                   </p>
                 </div>
 
-                <div className="flex flex-wrap gap-3">
+                <div className="flex flex-wrap gap-3 vanta-scene-stage" data-scene-stage="controls">
                   {featuredRelease.spotifyUrl && (
                     <a href={featuredRelease.spotifyUrl} target="_blank" rel="noopener noreferrer" data-testid="button-release-spotify">
                       <Button variant="default" size="default" className="gap-2">
@@ -250,12 +256,12 @@ export default function Home() {
               </Link>
             </div>
           )}
-        </div>
+        </SceneReveal>
       </section>
 
       {/* ── WORLDS PREVIEW — new portal section ── */}
       <section className="bg-background border-t border-border py-20" data-testid="section-worlds">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
+        <SceneReveal className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="flex items-center justify-between mb-10 flex-wrap gap-4">
             <div>
               <p className="text-xs uppercase tracking-widest text-muted-foreground mb-1 font-medium">Projects & Universes</p>
@@ -274,13 +280,13 @@ export default function Home() {
             {worlds.map((world) => (
               <Link key={world.id} href={world.href} data-testid={`link-world-${world.id}`}>
                 <Card className="hover-elevate active-elevate-2 cursor-pointer h-full transition-all duration-300">
-                  <CardContent className="p-6 flex flex-col gap-3 h-full">
+                    <CardContent className="p-6 flex flex-col gap-3 h-full">
                     <div className="flex items-start justify-between gap-3 flex-wrap">
                       <div>
                         <p className="text-xs text-muted-foreground uppercase tracking-widest font-medium mb-1">
                           {world.tagline}
                         </p>
-                        <h3 className="text-xl font-display font-bold" data-testid={`text-world-name-${world.id}`}>
+                        <h3 className="vanta-scene-stage text-xl font-display font-bold" data-testid={`text-world-name-${world.id}`} data-scene-stage="title">
                           {world.name}
                         </h3>
                       </div>
@@ -291,7 +297,7 @@ export default function Home() {
                         {world.status}
                       </span>
                     </div>
-                    <p className="text-sm text-muted-foreground leading-relaxed flex-1" data-testid={`text-world-description-${world.id}`}>
+                    <p className="vanta-scene-stage text-sm text-muted-foreground leading-relaxed flex-1" data-testid={`text-world-description-${world.id}`} data-scene-stage="description">
                       {world.description}
                     </p>
                     <div className="flex items-center gap-1 text-xs text-muted-foreground mt-auto">
@@ -303,7 +309,7 @@ export default function Home() {
               </Link>
             ))}
           </div>
-        </div>
+        </SceneReveal>
       </section>
 
       {/* ── ENTER THE SYSTEM — CTA banner ── */}
@@ -315,25 +321,26 @@ export default function Home() {
           <img src={cityImage} alt="" aria-hidden="true" className="h-full w-full object-cover opacity-10" />
         </ParallaxLayer>
         <AtmosphericOverlay className="pointer-events-none absolute inset-0 vanta-cta-atmosphere" />
-        <div className="relative max-w-7xl mx-auto px-6 lg:px-8 text-center z-10">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full border border-border mb-6">
+        <SceneReveal className="relative max-w-7xl mx-auto px-6 lg:px-8 text-center z-10">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full border border-border mb-6 vanta-scene-stage" data-scene-stage="foreground">
             <Lock className="w-5 h-5 text-muted-foreground" />
           </div>
           <h2
-            className="text-3xl md:text-4xl lg:text-5xl font-display font-bold mb-4"
+            className="vanta-scene-stage text-3xl md:text-4xl lg:text-5xl font-display font-bold mb-4"
             data-testid="text-enter-heading"
+            data-scene-stage="title"
           >
             Vanta OS
           </h2>
-          <p className="text-muted-foreground text-lg max-w-xl mx-auto mb-8" data-testid="text-enter-description">
+          <p className="vanta-scene-stage text-muted-foreground text-lg max-w-xl mx-auto mb-8" data-testid="text-enter-description" data-scene-stage="description">
             A private system is being built. Access is restricted. Request entry or enter your invite code.
           </p>
-          <Link href="/enter" data-testid="link-enter-system">
+          <div className="vanta-scene-stage" data-scene-stage="controls"><Link href="/enter" data-testid="link-enter-system">
             <Button size="default" variant="outline" className="gap-2 backdrop-blur-sm">
               Enter the System <ArrowRight className="w-4 h-4" />
             </Button>
-          </Link>
-        </div>
+          </Link></div>
+        </SceneReveal>
       </VantaDepth>
 
       <Footer />
@@ -387,25 +394,26 @@ function TransmissionFeed({
           aria-hidden="true"
           className="absolute inset-0 h-full w-full object-cover object-center opacity-70"
         />
-        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(6,7,12,.97)_0%,rgba(6,7,12,.82)_38%,rgba(6,7,12,.5)_100%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_78%_28%,rgba(150,78,84,.18),transparent_32%),linear-gradient(180deg,rgba(7,8,14,.15),rgba(7,8,14,.8))]" />
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(6,7,12,.97)_0%,rgba(6,7,12,.82)_38%,rgba(6,7,12,.28)_100%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_78%_28%,rgba(150,78,84,.18),transparent_32%),linear-gradient(180deg,rgba(7,8,14,.12),rgba(7,8,14,.62))]" />
+        <LivingScene className="pointer-events-none opacity-60" />
 
-        <div className="relative mx-auto max-w-7xl px-6 py-16 lg:px-8 md:py-24">
+        <SceneReveal className="relative z-10 mx-auto max-w-7xl px-6 py-16 lg:px-8 md:py-24">
           <div className="max-w-2xl">
-            <div className="mb-6 flex flex-wrap items-center gap-3 text-[10px] font-mono uppercase tracking-[0.28em] text-primary/80">
+            <div className="vanta-scene-stage mb-6 flex flex-wrap items-center gap-3 text-[10px] font-mono uppercase tracking-[0.28em] text-primary/80" data-scene-stage="foreground">
               <span className="flex items-center gap-2"><Radio className="h-3.5 w-3.5" /> Vanta Editorial Network</span>
               <span className="text-white/25">/</span>
               <span className="text-white/50">Signal / Archive</span>
             </div>
-            <h2 className="font-display text-5xl font-bold tracking-tight text-white md:text-7xl">
+            <h2 className="vanta-scene-stage font-display text-5xl font-bold tracking-tight text-white md:text-7xl" data-scene-stage="title">
               Transmission<span className="text-primary">.</span>
             </h2>
-            <p className="mt-5 max-w-lg text-base leading-relaxed text-white/65 md:text-lg">
+            <p className="vanta-scene-stage mt-5 max-w-lg text-base leading-relaxed text-white/65 md:text-lg" data-scene-stage="description">
               Culture received. Signal transmitted.
             </p>
           </div>
 
-          <div className="mt-12 flex flex-col gap-4 border-t border-white/15 pt-5 md:flex-row md:items-center md:justify-between">
+          <div className="vanta-scene-stage mt-12 flex flex-col gap-4 border-t border-white/15 pt-5 md:flex-row md:items-center md:justify-between" data-scene-stage="controls">
             <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.24em] text-white/50">
               <span className="h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_10px_rgba(185,120,220,.85)]" />
               {posts.length} published {posts.length === 1 ? "signal" : "signals"}
@@ -422,11 +430,11 @@ function TransmissionFeed({
               <span className="text-[10px] font-mono uppercase tracking-[0.22em] text-white/35">Media Room offline</span>
             )}
           </div>
-        </div>
+        </SceneReveal>
       </section>
 
-      <div className="mx-auto max-w-7xl px-6 py-12 lg:px-8 md:py-20">
-        <div className="mb-10 flex flex-col gap-6 border-b border-border pb-6">
+        <div className="mx-auto max-w-7xl px-6 py-12 lg:px-8 md:py-20">
+        <SceneReveal variant="simple" className="mb-10 flex flex-col gap-6 border-b border-border pb-6">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <p className="mb-2 text-[10px] font-mono uppercase tracking-[0.28em] text-primary/75">Editorial desk</p>
@@ -460,7 +468,7 @@ function TransmissionFeed({
               </Button>
             ))}
           </div>
-        </div>
+        </SceneReveal>
 
         {isLoading ? (
           <TransmissionSkeleton />
@@ -475,28 +483,31 @@ function TransmissionFeed({
         ) : (
           <>
             {featuredPost && (
+              <SceneReveal key={featuredPost.id} mediaLock>
               <Link href={`/post/${featuredPost.id}`} data-testid={`link-featured-transmission-${featuredPost.id}`}>
                 <article className="group relative isolate overflow-hidden border border-border bg-card/40 transition-colors hover:border-primary/50">
                    <TransmissionFrame label="VANTA TRANSMISSION // FEED" metadata="NOW RECEIVING" intensity="subtle">
-                     <div className={`relative overflow-hidden ${featuredLayout.value === "original" ? "max-h-[70vh]" : featuredLayout.className}`}>
+                       <div className={`relative overflow-hidden ${featuredLayout.value === "original" ? "max-h-[70vh]" : featuredLayout.className}`}>
                        <img
                          src={featuredPost.coverImage}
                          alt={featuredPost.title}
                          className={`w-full ${featuredLayout.value === "original" ? "h-auto max-h-[70vh] object-contain" : "h-full object-cover"} transition-transform duration-700 group-hover:scale-[1.02]`}
                          style={{ objectPosition: featuredPost.coverImagePosition || "50% 50%" }}
                          data-testid={`img-featured-transmission-${featuredPost.id}`}
+                          data-scene-stage="media"
                        />
                        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(5,6,12,.96)_0%,rgba(5,6,12,.75)_45%,rgba(5,6,12,.15)_100%)]" />
                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/10" />
-                       <div className="absolute inset-0 flex flex-col justify-end p-6 md:max-w-2xl md:p-10">
-                         <div className="mb-4 flex flex-wrap items-center gap-3 text-[10px] font-mono uppercase tracking-[0.2em] text-white/60">
+                        <div className="vanta-transmission-atmosphere" aria-hidden="true" />
+                         <div className="vanta-transmission-copy inset-0 flex flex-col justify-end p-6 md:max-w-2xl md:p-10">
+                          <div className="mb-4 flex flex-wrap items-center gap-3 text-[10px] font-mono uppercase tracking-[0.2em] text-white/60" data-scene-stage="metadata">
                            <Badge variant="outline" className="border-primary/50 bg-primary/10 text-primary">{featuredPost.category}</Badge>
                            <span>{format(new Date(featuredPost.createdAt), "MMM d, yyyy")}</span>
                            <span>{featuredPost.readTime}</span>
                          </div>
-                         <h4 className="font-display text-3xl font-bold leading-tight text-white md:text-5xl">{featuredPost.title}</h4>
-                         <p className="mt-4 line-clamp-3 max-w-xl text-sm leading-relaxed text-white/65 md:text-base">{featuredPost.excerpt}</p>
-                         <span className="mt-7 inline-flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.25em] text-primary transition-transform group-hover:translate-x-1">
+                          <h4 className="font-display text-3xl font-bold leading-tight text-white md:text-5xl" data-scene-stage="title">{featuredPost.title}</h4>
+                           <p className="mt-4 line-clamp-3 max-w-xl text-sm leading-relaxed text-white/65 md:text-base" data-scene-stage="description">{featuredPost.excerpt}</p>
+                          <span className="mt-7 inline-flex items-center gap-2 text-[10px] font-mono uppercase tracking-[0.25em] text-primary transition-transform group-hover:translate-x-1" data-scene-stage="controls">
                            Read Transmission <ArrowRight className="h-3.5 w-3.5" />
                          </span>
                        </div>
@@ -504,6 +515,7 @@ function TransmissionFeed({
                    </TransmissionFrame>
                 </article>
               </Link>
+              </SceneReveal>
             )}
 
             {latestPosts.length > 0 && (
@@ -516,7 +528,7 @@ function TransmissionFeed({
                   {hasFilters && <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/45">{filteredPosts.length} results</span>}
                 </div>
                 <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-                  {latestPosts.map((post) => <TransmissionCard key={post.id} post={post} />)}
+                  {latestPosts.map((post, index) => <SceneReveal key={post.id} delay={Math.min(index * 55, 220)}><TransmissionCard post={post} /></SceneReveal>)}
                 </div>
               </section>
             )}
@@ -531,7 +543,7 @@ function TransmissionFeed({
                   </div>
                 </div>
                 <div className="grid gap-4 md:grid-cols-2">
-                  {archivePosts.map((post) => <ArchiveTransmission key={post.id} post={post} />)}
+                  {archivePosts.map((post, index) => <SceneReveal key={post.id} delay={Math.min(index * 55, 220)}><ArchiveTransmission post={post} /></SceneReveal>)}
                 </div>
               </section>
             )}
@@ -548,7 +560,7 @@ function TransmissionCard({ post }: { post: Post }) {
   return (
     <Link href={`/post/${post.id}`} data-testid={`link-transmission-${post.id}`}>
       <article className="group h-full overflow-hidden border border-border bg-card/45 transition-colors hover:border-primary/50">
-        <SignalGlitch intensity="subtle" className={`relative overflow-hidden bg-muted ${layout.value === "original" ? "max-h-[70vh]" : layout.className}`}>
+        <SignalGlitch intensity="subtle" className={`vanta-scene-stage relative overflow-hidden bg-muted ${layout.value === "original" ? "max-h-[70vh]" : layout.className}`} data-scene-stage="media">
           <img
             src={post.coverImage}
             alt={post.title}
@@ -560,13 +572,13 @@ function TransmissionCard({ post }: { post: Post }) {
           <Badge variant="outline" className="absolute left-3 top-3 border-white/25 bg-black/35 text-[9px] uppercase tracking-widest text-white/80">{post.category}</Badge>
         </SignalGlitch>
         <div className="p-4">
-          <div className="flex items-center justify-between gap-3 text-[9px] font-mono uppercase tracking-widest text-muted-foreground/55">
+          <div className="vanta-scene-stage flex items-center justify-between gap-3 text-[9px] font-mono uppercase tracking-widest text-muted-foreground/55" data-scene-stage="metadata">
             <span>{format(new Date(post.createdAt), "MMM d, yyyy")}</span>
             <span>{post.readTime}</span>
           </div>
-          <h4 className="mt-3 line-clamp-2 font-display text-xl font-semibold leading-tight">{post.title}</h4>
-          <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-muted-foreground">{post.excerpt}</p>
-          <span className="mt-4 inline-flex items-center gap-2 text-[9px] font-mono uppercase tracking-widest text-primary/75 group-hover:text-primary">Read <ArrowRight className="h-3 w-3" /></span>
+          <h4 className="vanta-scene-stage mt-3 line-clamp-2 font-display text-xl font-semibold leading-tight" data-scene-stage="title">{post.title}</h4>
+          <p className="vanta-scene-stage mt-2 line-clamp-2 text-sm leading-relaxed text-muted-foreground" data-scene-stage="description">{post.excerpt}</p>
+          <span className="vanta-scene-stage mt-4 inline-flex items-center gap-2 text-[9px] font-mono uppercase tracking-widest text-primary/75 group-hover:text-primary" data-scene-stage="controls">Read <ArrowRight className="h-3 w-3" /></span>
         </div>
       </article>
     </Link>
@@ -579,7 +591,7 @@ function ArchiveTransmission({ post }: { post: Post }) {
   return (
     <Link href={`/post/${post.id}`} data-testid={`link-archive-transmission-${post.id}`}>
       <article className="group flex min-h-32 gap-4 border border-border bg-card/30 p-3 transition-colors hover:border-primary/50 sm:p-4">
-        <div className={`relative w-32 shrink-0 overflow-hidden bg-muted sm:w-44 ${layout.value === "original" ? "" : layout.className}`}>
+        <div className={`vanta-scene-stage relative w-32 shrink-0 overflow-hidden bg-muted sm:w-44 ${layout.value === "original" ? "" : layout.className}`} data-scene-stage="media">
           <img
             src={post.coverImage}
             alt={post.title}
@@ -589,12 +601,12 @@ function ArchiveTransmission({ post }: { post: Post }) {
           <span className="absolute bottom-2 left-2 bg-black/70 px-1.5 py-1 text-[8px] font-mono uppercase tracking-widest text-white/70">Archive</span>
         </div>
         <div className="min-w-0 py-1">
-          <div className="flex flex-wrap items-center gap-3 text-[9px] font-mono uppercase tracking-widest text-muted-foreground/55">
+          <div className="vanta-scene-stage flex flex-wrap items-center gap-3 text-[9px] font-mono uppercase tracking-widest text-muted-foreground/55" data-scene-stage="metadata">
             <span>{post.category}</span>
             <span>{format(new Date(post.createdAt), "MMM d, yyyy")}</span>
           </div>
-          <h4 className="mt-2 line-clamp-2 font-display text-lg font-semibold leading-tight">{post.title}</h4>
-          <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-muted-foreground">{post.excerpt}</p>
+          <h4 className="vanta-scene-stage mt-2 line-clamp-2 font-display text-lg font-semibold leading-tight" data-scene-stage="title">{post.title}</h4>
+          <p className="vanta-scene-stage mt-2 line-clamp-2 text-sm leading-relaxed text-muted-foreground" data-scene-stage="description">{post.excerpt}</p>
         </div>
       </article>
     </Link>

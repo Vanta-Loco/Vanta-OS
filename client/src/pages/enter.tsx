@@ -9,6 +9,7 @@ import {
   ShieldAlert, ArrowRight, ArrowLeft,
 } from "lucide-react";
 import { ReturnToCity } from "@/components/return-to-city";
+import { SceneAccent, SceneReveal } from "@/components/vanta-living-scene";
 
 export default function Enter() {
   const { isAuthorized, isLoading, verify, logout } = useVault();
@@ -40,20 +41,6 @@ export default function Enter() {
           92%  { opacity: 1; }
           100% { transform: translateY(100vh); opacity: 0; }
         }
-        @keyframes enter-fade-up {
-          from { opacity: 0; transform: translateY(8px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes enter-granted-pulse {
-          0%, 100% { opacity: 0.5; }
-          50%       { opacity: 0.95; }
-        }
-        .enter-nodes-appear {
-          animation: enter-fade-up 0.55s ease both;
-        }
-        .enter-nodes-appear-delay-1 { animation-delay: 0.05s; }
-        .enter-nodes-appear-delay-2 { animation-delay: 0.12s; }
-        .enter-nodes-appear-delay-3 { animation-delay: 0.19s; }
       `}</style>
 
       {/* Ambient glow — brighter once authorized */}
@@ -68,7 +55,7 @@ export default function Enter() {
 
       {/* Slow scan line */}
       <div
-        className="absolute left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/8 to-transparent pointer-events-none"
+        className="enter-scan-line absolute left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/8 to-transparent pointer-events-none"
         style={{ animation: "enter-scan 20s linear infinite" }}
       />
 
@@ -78,10 +65,10 @@ export default function Enter() {
       <div className="absolute bottom-8 left-8 w-5 h-5 border-b border-l border-border/20 pointer-events-none" />
       <div className="absolute bottom-8 right-8 w-5 h-5 border-b border-r border-border/20 pointer-events-none" />
 
-      <div className="relative z-10 w-full max-w-sm">
+      <div className="vanta-os-panel relative z-10 w-full max-w-sm">
 
         {/* ── Header (always shown) ── */}
-        <div className="text-center mb-10">
+        <SceneReveal variant="mechanical" className="text-center mb-10">
           <div
             className={`inline-flex items-center justify-center w-12 h-12 rounded-full border bg-background/60 mb-7 transition-all duration-700 ${
               isAuthorized ? "border-primary/40" : "border-border/40"
@@ -107,7 +94,8 @@ export default function Enter() {
           >
             {isLoading ? "Initializing…" : isAuthorized ? "System Online" : "System Interface"}
           </p>
-        </div>
+          <SceneAccent className="mt-4" />
+        </SceneReveal>
 
         {/* Separator */}
         <div className="w-full h-px bg-gradient-to-r from-transparent via-border/60 to-transparent mb-8" />
@@ -161,10 +149,10 @@ export default function Enter() {
 
         {/* ── Phase B: Gateway open (authorized) ── */}
         {isAuthorized && (
-          <div className="space-y-px">
+          <SceneReveal variant="mechanical" className="space-y-px">
 
             {/* Vault — primary restricted node */}
-            <div className="enter-nodes-appear enter-nodes-appear-delay-1">
+            <div>
               <Link href="/vault" data-testid="link-enter-vault">
                 <div className="group border border-primary/30 rounded-md p-4 mb-2 hover-elevate transition-all cursor-pointer">
                   <div className="flex items-center justify-between gap-3">
@@ -177,8 +165,7 @@ export default function Enter() {
                         Vault
                       </span>
                       <span
-                        className="text-[9px] uppercase tracking-[0.25em] text-primary/65 font-mono"
-                        style={{ animation: "enter-granted-pulse 3s ease-in-out infinite" }}
+                        className="enter-authorized-pulse text-[9px] uppercase tracking-[0.25em] text-primary/65 font-mono"
                         data-testid="text-enter-vault-status"
                       >
                         Access Granted
@@ -194,7 +181,7 @@ export default function Enter() {
             </div>
 
             {/* Releases */}
-            <div className="enter-nodes-appear enter-nodes-appear-delay-2">
+            <div>
               <Link href="/releases" data-testid="link-enter-releases">
                 <div className="group flex items-center justify-between gap-3 py-3.5 px-4 rounded-md hover-elevate transition-all cursor-pointer">
                   <div className="flex items-center gap-3 min-w-0">
@@ -217,7 +204,7 @@ export default function Enter() {
             </div>
 
             {/* Worlds */}
-            <div className="enter-nodes-appear enter-nodes-appear-delay-3">
+            <div>
               <Link href="/worlds" data-testid="link-enter-worlds">
                 <div className="group flex items-center justify-between gap-3 py-3.5 px-4 rounded-md hover-elevate transition-all cursor-pointer">
                   <div className="flex items-center gap-3 min-w-0">
@@ -239,7 +226,7 @@ export default function Enter() {
               </Link>
             </div>
 
-          </div>
+          </SceneReveal>
         )}
 
         {/* Separator */}

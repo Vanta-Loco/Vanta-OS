@@ -1,9 +1,9 @@
 // ─── Early Access — Landing ────────────────────────────────────────────────────
 import { Link } from "wouter";
 import { Header } from "@/components/header";
-import { useQuery } from "@tanstack/react-query";
 import { Lock, Clock, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { SceneAccent, SceneReveal } from "@/components/vanta-living-scene";
 
 const APPS = [
   {
@@ -55,22 +55,24 @@ export default function EarlyAccess() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-20">
+      <div className="vanta-os-panel max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-20">
         {/* Header */}
-        <div className="mb-12 text-center">
+        <SceneReveal className="mb-12 text-center">
           <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/40 mb-3">
+            <SceneAccent className="mr-2 align-middle" />
             VANTA OS · EARLY ACCESS
           </p>
-          <h1 className="text-3xl font-display font-bold tracking-wide mb-3">Upcoming Apps</h1>
+          <h1 className="vanta-scene-stage text-3xl font-display font-bold tracking-wide mb-3" data-scene-stage="title">Upcoming Apps</h1>
           <p className="text-sm text-muted-foreground max-w-md mx-auto">
             Join waitlists for upcoming Vanta applications. You'll be contacted when access opens.
           </p>
-        </div>
+        </SceneReveal>
 
         {/* App cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {APPS.map(app => (
-            <div key={app.slug} className="border border-border rounded-xl p-5 flex flex-col gap-4">
+        <div className="vanta-os-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {APPS.map((app, index) => (
+            <SceneReveal key={app.slug} variant="mechanical" className="h-full" delay={Math.min(index * 55, 240)}>
+            <div className="h-full border border-border rounded-xl p-5 flex flex-col gap-4">
               <div className="flex items-start justify-between gap-2">
                 <div className="w-10 h-10 rounded-xl bg-muted/60 border border-border flex items-center justify-center relative flex-shrink-0">
                   <Lock className="w-4 h-4 text-muted-foreground/40" />
@@ -97,24 +99,25 @@ export default function EarlyAccess() {
                 </ul>
               )}
 
-              <Link href={`/early-access/${app.slug}`}>
+              <div><Link href={`/early-access/${app.slug}`}>
                 <Button variant="outline" size="sm" className="w-full text-xs gap-2">
                   <Clock className="w-3 h-3" />
                   Join Early Access
                 </Button>
-              </Link>
+              </Link></div>
             </div>
+            </SceneReveal>
           ))}
         </div>
 
-        <div className="mt-10 text-center">
+        <SceneReveal variant="simple" className="mt-10 text-center" delay={180}>
           <Link href="/dashboard">
             <Button variant="ghost" size="sm" className="text-xs text-muted-foreground gap-2">
               <ArrowRight className="w-3 h-3 rotate-180" />
               Back to Dashboard
             </Button>
           </Link>
-        </div>
+        </SceneReveal>
       </div>
     </div>
   );
