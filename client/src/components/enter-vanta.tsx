@@ -93,7 +93,7 @@ export function EnterVanta({ onEnter }: EnterVantaProps) {
     const startedAt = performance.now();
 
     const step = (now: number) => {
-      const progress = Math.min(1, (now - startedAt) / 450);
+      const progress = Math.max(0, Math.min(1, (now - startedAt) / 450));
       rainAudio.volume = startVolume + (targetVolume - startVolume) * progress;
       if (progress < 1) {
         rainFadeRef.current = requestAnimationFrame(step);

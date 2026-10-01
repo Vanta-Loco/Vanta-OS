@@ -27,8 +27,11 @@ export function SceneReveal({ children, className = "", delay = 0, onReveal, var
     if (element.dataset.sceneRevealed === "true") return;
 
     let observer: IntersectionObserver | undefined;
+    let signalObserver: MutationObserver | undefined;
     const timers: number[] = [];
     const clearLock = () => {
+      signalObserver?.disconnect();
+      signalObserver = undefined;
       timers.forEach(window.clearTimeout);
       timers.length = 0;
       element.querySelectorAll("[data-scene-entry-lock]").forEach((frame) => {
@@ -46,17 +49,32 @@ export function SceneReveal({ children, className = "", delay = 0, onReveal, var
       delete element.dataset.scenePending;
       onRevealRef.current?.();
       observer?.unobserve(element);
-      // Reuse Phase 3's short echo event on this original frame only.
+      // The local echo follows a route signal rather than disappearing beneath it.
       // No provider event is dispatched, so other signal surfaces stay clean.
       if (mediaLock && !reducedMotion.matches && !element.matches(":focus-within")) {
         const frames = Array.from(element.querySelectorAll<HTMLElement>("[data-vanta-transmission-frame]"));
         const mobile = window.matchMedia("(max-width: 767px)").matches;
         const start = mobile ? 90 : 140;
         const stagger = mobile ? Math.round(delay * .5) : delay;
-        timers.push(window.setTimeout(() => {
+        const environment = element.closest<HTMLElement>(".vanta-environment-root");
+        const beginLock = () => {
           if (reducedMotion.matches || element.matches(":focus-within")) return;
           frames.forEach((frame) => frame.dataset.sceneEntryLock = "true");
           timers.push(window.setTimeout(clearLock, 155));
+        };
+        timers.push(window.setTimeout(() => {
+          if (reducedMotion.matches || element.matches(":focus-within")) return;
+          if (environment?.dataset.vantaSignalActive === "true") {
+            signalObserver = new MutationObserver(() => {
+              if (environment.dataset.vantaSignalActive === "true") return;
+              signalObserver?.disconnect();
+              signalObserver = undefined;
+              beginLock();
+            });
+            signalObserver.observe(environment, { attributes: true, attributeFilter: ["data-vanta-signal-active"] });
+          } else {
+            beginLock();
+          }
         }, stagger + start));
       }
     };

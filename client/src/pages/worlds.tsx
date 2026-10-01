@@ -71,6 +71,7 @@ export default function Worlds() {
           <ParallaxLayer depth={-82} mobileDepth={-46} className="pointer-events-none absolute inset-[-5%] z-0">
             <div className="vanta-worlds-depth-image h-full w-full">
               <img src={cityImage} alt="" aria-hidden="true" className="h-full w-full object-cover" />
+              <span className="vanta-city-lights" aria-hidden="true" />
             </div>
           </ParallaxLayer>
           <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8">

@@ -1569,7 +1569,6 @@
   }
 
   .enter-scan-line,
-  .enter-authorized-pulse,
   .enter-nodes-appear {
     animation: none !important;
     opacity: 1 !important;

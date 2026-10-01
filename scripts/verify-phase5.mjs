@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 
 const origin = process.env.PHASE5_TEST_URL || `https://${process.env.REPLIT_DEV_DOMAIN}`;
 const debug = process.env.CHROME_DEBUG_URL || "http://127.0.0.1:9223";
-const out = "/tmp/vanta-phase5-repair";
+const out = "/tmp/vanta-phase5-1-polish";
 await fs.mkdir(out, { recursive: true });
 const target = await (await fetch(`${debug}/json/new?about:blank`, { method: "PUT" })).json();
 const ws = new WebSocket(target.webSocketDebuggerUrl);
@@ -24,7 +24,10 @@ ws.on("message", (buffer) => {
         body: Buffer.from(JSON.stringify({ authorized: true })).toString("base64") });
     } else void send("Fetch.continueRequest", { requestId: message.params.requestId });
   }
-  if (message.method === "Runtime.exceptionThrown") exceptions.push(message.params.exceptionDetails.text);
+  if (message.method === "Runtime.exceptionThrown") {
+    const detail = message.params.exceptionDetails;
+    exceptions.push({ message: detail.exception?.description || detail.text, url: detail.url, line: detail.lineNumber });
+  }
   if (!message.id) return;
   const { resolve, reject } = pending.get(message.id) || {};
   pending.delete(message.id);
@@ -60,7 +63,10 @@ const navigate = async (path) => {
   await sleep(1600);
 };
 const visible = async (width) => {
-  await until(`[...document.querySelectorAll('.vanta-scene-reveal[data-scene-revealed="true"] [data-scene-stage]')].filter(e => !e.closest('.vanta-signal-echo')).every(e => Number(getComputedStyle(e).opacity) >= .99)`, 3000);
+  await until(`[
+    ...document.querySelectorAll('.vanta-scene-reveal[data-scene-revealed="true"]'),
+    ...[...document.querySelectorAll('.vanta-scene-reveal[data-scene-revealed="true"] [data-scene-stage]')].filter(e => !e.closest('.vanta-signal-echo'))
+  ].every(e => Number(getComputedStyle(e).opacity) >= .99)`, 3000);
   const state = await evaluate(`({
     width: document.documentElement.scrollWidth,
     hidden: [...document.querySelectorAll('.vanta-scene-reveal[data-scene-revealed="true"]')].filter(e => Number(getComputedStyle(e).opacity) < .99).length,
@@ -98,8 +104,10 @@ try {
         assert.equal(await evaluate("document.activeElement === document.querySelector('[data-testid=\"input-enter-access-key\"]')"), true, "Gateway autofocus");
       }
       if (name === "worlds") {
-        assert.equal(await evaluate("getComputedStyle(document.querySelector('.vanta-worlds-depth-image')).opacity"), phone ? "0.16" : "0.14");
+        assert.equal(await evaluate("getComputedStyle(document.querySelector('.vanta-worlds-depth-image > img')).opacity"), phone ? "0.16" : "0.14");
         assert.equal(await evaluate("document.querySelector('.vanta-city-lights').parentElement.classList.contains('vanta-city-image-drift')"), true);
+        assert.equal(await evaluate("document.querySelector('.vanta-worlds-depth-image .vanta-city-lights').parentElement.querySelector('img') !== null"), true);
+        assert.equal(await evaluate("getComputedStyle(document.querySelector('.vanta-worlds-depth-image .vanta-city-lights')).opacity"), "0.16");
         await evaluate("window.scrollTo(0, 690)");
         await sleep(1200);
         await screenshot(`${phone ? "phone" : "desktop"}-worlds-projects`);
@@ -112,7 +120,7 @@ try {
               count: document.querySelectorAll('[data-scene-entry-lock]').length,
               scope: r.target.closest('[data-scene-media-lock]') != null });
           }
-        }).observe(document.body, {subtree:true, attributes:true}); 
+        }).observe(document.body, {subtree:true, attributes:true});
         document.querySelector('[data-scene-media-lock]').scrollIntoView({block:'center'});`);
         await sleep(1100);
         const locks = await evaluate("window.__locks");
@@ -167,6 +175,74 @@ try {
   assert.notEqual(await evaluate("getComputedStyle(document.querySelector('.vanta-release-artwork')).transform"), "none");
   assert.equal(await evaluate("getComputedStyle(document.querySelector('.vanta-release-artwork-entry')).transform"), "none");
   await screenshot("desktop-release-hover");
+  // Sample the offscreen-to-visible entrance, not just its settled hover state.
+  if (routes.some(([name]) => name === "releases")) {
+    for (const phone of [false, true]) {
+      const width = phone ? 390 : 1280;
+      await send("Emulation.setDeviceMetricsOverride", { width, height: 320, deviceScaleFactor: 1, mobile: phone });
+      await navigate("/releases");
+      const entry = ".vanta-release-artwork-entry";
+      assert.equal(await evaluate(`document.querySelector('${entry}').closest('[data-scene-pending]') !== null`), true, "Artwork should begin offscreen");
+      const start = await evaluate(`(() => { const transform = getComputedStyle(document.querySelector('${entry}')).transform;
+        const matrix = new DOMMatrixReadOnly(transform); return {transform, x: matrix.m41, y: matrix.m42}; })()`);
+      assert.ok(Math.abs(start.x + (phone ? 6 : 12)) < 1 && Math.abs(start.y - (phone ? 6 : 12)) < 1,
+        `Archive placement must win the pending-stage cascade: ${start.transform}`);
+      await evaluate(`document.querySelector('${entry}').scrollIntoView({block:'center'})`);
+      await until(`document.querySelector('${entry}').closest('[data-scene-revealed="true"]') !== null`);
+      await sleep(130);
+      const moving = await evaluate(`getComputedStyle(document.querySelector('${entry}')).transform`);
+      assert.notEqual(moving, "none", "Artwork should visibly travel toward rest");
+      await screenshot(`${phone ? "phone" : "desktop"}-release-entrance-mid`);
+      await sleep(950);
+      assert.equal(await evaluate(`getComputedStyle(document.querySelector('${entry}')).transform`), "none");
+      await screenshot(`${phone ? "phone" : "desktop"}-release-entrance-settled`);
+    }
+  }
+  if (routes.some(([name]) => name === "transmission")) {
+    // Observe a real article arrival before the usual 1600ms settle delay.
+    const watch = await send("Page.addScriptToEvaluateOnNewDocument", { source: `
+      window.__phase51 = [];
+      new MutationObserver(records => {
+        for (const r of records) {
+          if (r.attributeName === 'data-scene-entry-lock') {
+            window.__phase51.push({ active: r.target.hasAttribute('data-scene-entry-lock'),
+              t: performance.now(), global: document.querySelector('.vanta-environment-root')?.dataset.vantaSignalActive,
+              scoped: !!r.target.closest('[data-scene-media-lock]') });
+          }
+        }
+      }).observe(document, {subtree:true, attributes:true, attributeFilter:['data-scene-entry-lock']});
+    ` });
+    for (const phone of [false, true]) {
+      await send("Emulation.setDeviceMetricsOverride", { width: phone ? 390 : 1280, height: phone ? 844 : 900, deviceScaleFactor: 1, mobile: phone });
+      await send("Page.navigate", { url: `${origin}/post/${post.id}` });
+      await until("window.__phase51?.some(e => !e.active) && window.__phase51?.some(e => e.active)", 12000);
+      const events = await evaluate("window.__phase51");
+      const entry = events.find((e) => e.active);
+      const exit = events.find((e) => !e.active);
+      assert.ok(entry.scoped && entry.global !== "true", "Article lock should begin locally after the route signal");
+      assert.ok(exit.t - entry.t >= 140 && exit.t - entry.t < 350, "Article lock should keep its 155ms window");
+      await visible(phone ? 390 : 1280);
+    }
+    await send("Page.removeScriptToEvaluateOnNewDocument", { identifier: watch.identifier });
+  }
+  if (routes.some(([name]) => name === "home")) {
+    // Hold the route-level flag while revealing featured media, then hand it off.
+    for (const phone of [false, true]) {
+      await send("Emulation.setDeviceMetricsOverride", { width: phone ? 390 : 1280, height: phone ? 844 : 900, deviceScaleFactor: 1, mobile: phone });
+      await navigate("/");
+      assert.equal(await evaluate("document.querySelector('[data-scene-media-lock]').dataset.scenePending"), "true");
+      await evaluate("document.querySelector('.vanta-environment-root').dataset.vantaSignalActive = 'true'; document.querySelector('[data-scene-media-lock]').scrollIntoView({block:'center'})");
+      await until("document.querySelector('[data-scene-media-lock]').dataset.sceneRevealed === 'true'");
+      await sleep(210);
+      assert.equal(await evaluate("document.querySelectorAll('[data-scene-entry-lock]').length"), 0, "Wait for route signal to clear");
+      await evaluate("document.querySelector('.vanta-environment-root').dataset.vantaSignalActive = 'false'");
+      await until("document.querySelectorAll('[data-scene-entry-lock]').length === 1", 1000);
+      assert.equal(await evaluate("getComputedStyle(document.querySelector('[data-scene-entry-lock] .vanta-signal-echo-one')).display"), "block");
+      await screenshot(`${phone ? "phone" : "desktop"}-media-handoff`);
+      await sleep(205);
+      assert.equal(await evaluate("document.querySelectorAll('[data-scene-entry-lock]').length"), 0);
+    }
+  }
   // Keyboard focus reveals offscreen controls and they stay exposed after blur.
   await send("Input.dispatchMouseEvent", { type: "mouseMoved", x: 1270, y: 10 });
   await navigate("/early-access");
@@ -209,7 +285,34 @@ try {
   await navigate("/enter");
   await until("!!document.querySelector('.enter-authorized-pulse')");
   assert.equal(await evaluate("getComputedStyle(document.querySelector('.enter-authorized-pulse')).animationName"), "none");
+  assert.equal(await evaluate("getComputedStyle(document.querySelector('.enter-authorized-pulse')).opacity"), "0.72");
   await screenshot("phone-enter-authorized-reduced");
+  await send("Fetch.disable");
+  authorizedPreview = false;
+  // Exercise the full OS boot without the suite's usual session/local-storage bypass.
+  await send("Emulation.setEmulatedMedia", { features: [] });
+  const boot = await send("Page.addScriptToEvaluateOnNewDocument", { source: `
+    sessionStorage.setItem('vc-boot', '1');
+    sessionStorage.setItem('vc-intro', '1');
+    localStorage.removeItem('vanta-skip-os-boot');
+  ` });
+  for (const phone of [false, true]) {
+    await send("Emulation.setDeviceMetricsOverride", { width: phone ? 390 : 1280, height: phone ? 844 : 900, deviceScaleFactor: 1, mobile: phone });
+    await send("Page.navigate", { url: `${origin}/` });
+    await until("!!document.querySelector('[aria-label=\"Vanta OS boot sequence — press any key to continue\"]')");
+    await sleep(1200);
+    assert.equal(await evaluate("!!document.querySelector('[aria-label=\"Vanta OS boot sequence — press any key to continue\"]')"), true, "OS boot must remain uninterrupted");
+    await screenshot(`${phone ? "phone" : "desktop"}-os-boot`);
+    await until("!!document.querySelector('[data-testid=\"enter-vanta-screen\"]')", 12000);
+    await evaluate("document.querySelector('[aria-label=\"Enter Vanta\"]').click()");
+    await until("!!document.querySelector('.vanta-environment-root') && !!document.querySelector('.vanta-hero-depth')");
+    await evaluate("document.querySelector('a[href=\"/enter\"]').click()");
+    await until("location.pathname === '/enter' && !!document.querySelector('[data-testid=\"input-enter-access-key\"]')");
+    await sleep(1400);
+    await visible(phone ? 390 : 1280);
+    await screenshot(`${phone ? "phone" : "desktop"}-os-after-boot`);
+  }
+  await send("Page.removeScriptToEvaluateOnNewDocument", { identifier: boot.identifier });
   assert.deepEqual(exceptions, [], "No browser exceptions");
   await fs.writeFile(`${out}/results.json`, JSON.stringify({ results, assertions: "passed", exceptions }, null, 2));
   console.log(`PASS: all Phase5 browser checks; screenshots and results in ${out}`);

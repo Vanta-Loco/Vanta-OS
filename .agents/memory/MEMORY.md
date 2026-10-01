@@ -6,3 +6,4 @@
 - [Signal event timer ownership](vanta-signal-timers.md) — each timeout must compare against its captured event ID so an older interaction cannot clear a newer route signal.
 - [Mobile overflow verification](mobile-overflow-verification.md) — compare page width to the configured device width; mobile emulation may expand innerWidth to fit overflowing content.
 - [Scene composition constraints](vanta-scene-composition.md) — one visibility owner per composition; entrance/hover planes separate; media-entry signals stay frame-local.
+- [Media fade progress bounds](media-fade-progress.md) — clamp animation progress at both ends before assigning bounded DOM media values.
