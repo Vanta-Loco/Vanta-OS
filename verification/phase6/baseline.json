@@ -1,0 +1,57 @@
+{
+  "checkpoint": "aa59ec5c9f171a8ee8e6c64a324a3209e2920999",
+  "bundle": {
+    "files": [
+      {
+        "file": "/assets/index-Bvsi6rLa.js",
+        "bytes": 2099425,
+        "gzip": 550074
+      }
+    ],
+    "bytes": 2099425,
+    "gzip": 550074
+  },
+  "composition": {
+    ".vanta-hero-depth": {
+      "x": 0,
+      "y": 0,
+      "width": 1265,
+      "height": 765,
+      "font": "16px / 24px Inter, system-ui, -apple-system, sans-serif",
+      "objectFit": "fill",
+      "objectPosition": "50% 50%",
+      "text": "Vanta ColdVANTA OS — A DIGITAL INTERFACE FOR MUSIC, FASHION, AND WORLDBUILDING.VANTA OS — A DIGITAL INTERFACE FOR MUSIC, FASHION, AND WORLDBUILDING.The Music JourneyDocumenting the creative process, lifestyle moments, and the path of building Vanta Cold from the ground up."
+    },
+    ".vanta-hero-image": {
+      "x": -141.66510009765625,
+      "y": -98.64419555664062,
+      "width": 1548.330078125,
+      "height": 936.33642578125,
+      "font": "16px / 24px Inter, system-ui, -apple-system, sans-serif",
+      "objectFit": "cover",
+      "objectPosition": "50% 50%",
+      "text": null
+    },
+    "[data-testid=\"text-hero-title\"]": {
+      "x": 32,
+      "y": 405.20379638671875,
+      "width": 896,
+      "height": 72,
+      "font": "700 72px / 72px \"Space Grotesk\", system-ui, sans-serif",
+      "objectFit": "fill",
+      "objectPosition": "50% 50%",
+      "text": "Vanta Cold"
+    },
+    "[data-testid=\"text-hero-subtitle\"]": {
+      "x": 32,
+      "y": 585.7037963867188,
+      "width": 672,
+      "height": 56,
+      "font": "20px / 28px Inter, system-ui, -apple-system, sans-serif",
+      "objectFit": "fill",
+      "objectPosition": "50% 50%",
+      "text": "Documenting the creative process, lifestyle moments, and the path of building Vanta Cold from the ground up."
+    }
+  },
+  "exceptions": []
+}

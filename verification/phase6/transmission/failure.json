@@ -1,0 +1,181 @@
+{
+  "error": "AssertionError [ERR_ASSERTION]: metadata: onset 502.19999999925494ms versus 250ms; frame gap 108.59999999962747ms\n    at file:///home/runner/workspace/scripts/verify-transmission-handoff.mjs:122:18\n    at Array.forEach (<anonymous>)\n    at verify (file:///home/runner/workspace/scripts/verify-transmission-handoff.mjs:93:12)\n    at verifyTransmissionHandoff (file:///home/runner/workspace/scripts/verify-transmission-handoff.mjs:153:23)\n    at async file:///home/runner/workspace/scripts/verify-phase5.mjs:100:21",
+  "results": [],
+  "exceptions": [],
+  "handoff": {
+    "locks": [
+      {
+        "t": 1112.9000000003725,
+        "active": true,
+        "echoes": [
+          {
+            "name": "vanta-entry-echo-one",
+            "time": 0
+          },
+          {
+            "name": "vanta-entry-echo-two",
+            "time": 0
+          }
+        ],
+        "count": 1,
+        "scoped": true
+      },
+      {
+        "t": 1333.2999999998137,
+        "active": false,
+        "echoes": [
+          {
+            "name": "none"
+          },
+          {
+            "name": "none"
+          }
+        ],
+        "count": 0,
+        "scoped": true
+      }
+    ],
+    "releases": [
+      {
+        "t": 1112.9000000003725,
+        "delays": {
+          "metadata": 250,
+          "title": 180
+        }
+      }
+    ],
+    "samples": [
+      {
+        "t": 1139.7000000001863,
+        "attempt": 1,
+        "text": {
+          "metadata": 0,
+          "title": 0
+        },
+        "echoes": [
+          {
+            "name": "vanta-entry-echo-one",
+            "time": 26.5,
+            "opacity": 0.555,
+            "duration": 155
+          },
+          {
+            "name": "vanta-entry-echo-two",
+            "time": 26.5,
+            "opacity": 0.29,
+            "duration": 155
+          }
+        ]
+      },
+      {
+        "t": 1248.2999999998137,
+        "attempt": 1,
+        "text": {
+          "metadata": 0,
+          "title": 0
+        },
+        "echoes": [
+          {
+            "name": "vanta-entry-echo-one",
+            "time": 135.19999999925494,
+            "opacity": 0.06,
+            "duration": 155
+          },
+          {
+            "name": "vanta-entry-echo-two",
+            "time": 135.19999999925494,
+            "opacity": 0.04,
+            "duration": 155
+          }
+        ]
+      }
+    ],
+    "textSamples": [
+      {
+        "t": 1139.7000000001863,
+        "attempt": 1,
+        "text": {
+          "metadata": 0,
+          "title": 0
+        }
+      },
+      {
+        "t": 1248.2999999998137,
+        "attempt": 1,
+        "text": {
+          "metadata": 0,
+          "title": 0
+        }
+      },
+      {
+        "t": 1334.7999999998137,
+        "attempt": 1,
+        "text": {
+          "metadata": 0,
+          "title": 0
+        }
+      },
+      {
+        "t": 1385.5999999996275,
+        "attempt": 1,
+        "text": {
+          "metadata": 0,
+          "title": 0
+        }
+      },
+      {
+        "t": 1462.5999999996275,
+        "attempt": 1,
+        "text": {
+          "metadata": 0,
+          "title": 0
+        }
+      },
+      {
+        "t": 1515.5999999996275,
+        "attempt": 1,
+        "text": {
+          "metadata": 0,
+          "title": 0.0338669
+        }
+      },
+      {
+        "t": 1569.2999999998137,
+        "attempt": 1,
+        "text": {
+          "metadata": 0,
+          "title": 0.520179
+        }
+      },
+      {
+        "t": 1615.0999999996275,
+        "attempt": 1,
+        "text": {
+          "metadata": 0.339939,
+          "title": 0.78463
+        }
+      },
+      {
+        "t": 1664.7000000001863,
+        "attempt": 1,
+        "text": {
+          "metadata": 0.706044,
+          "title": 0.898769
+        }
+      }
+    ],
+    "textStarts": [
+      {
+        "t": 1515.5999999996275,
+        "attempt": 1,
+        "stage": "title"
+      },
+      {
+        "t": 1615.0999999996275,
+        "attempt": 1,
+        "stage": "metadata"
+      }
+    ],
+    "signals": []
+  }
+}

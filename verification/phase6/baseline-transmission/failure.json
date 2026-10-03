@@ -1,0 +1,175 @@
+{
+  "error": "AssertionError [ERR_ASSERTION]: Observe the interrupted frame and multiple frames of each complete window\n    at file:///home/runner/workspace/scripts/verify-transmission-handoff.mjs:98:14\n    at Array.forEach (<anonymous>)\n    at verify (file:///home/runner/workspace/scripts/verify-transmission-handoff.mjs:93:12)\n    at verifyTransmissionHandoff (file:///home/runner/workspace/scripts/verify-transmission-handoff.mjs:153:23)\n    at async file:///home/runner/workspace/scripts/verify-phase5.mjs:100:21",
+  "results": [],
+  "exceptions": [],
+  "handoff": {
+    "locks": [
+      {
+        "t": 984.3999999994412,
+        "active": true,
+        "echoes": [
+          {
+            "name": "vanta-entry-echo-one",
+            "time": 0
+          },
+          {
+            "name": "vanta-entry-echo-two",
+            "time": 0
+          }
+        ],
+        "count": 1,
+        "scoped": true
+      },
+      {
+        "t": 1174.3999999994412,
+        "active": false,
+        "echoes": [
+          {
+            "name": "none"
+          },
+          {
+            "name": "none"
+          }
+        ],
+        "count": 0,
+        "scoped": true
+      }
+    ],
+    "releases": [
+      {
+        "t": 984.3999999994412,
+        "delays": {
+          "metadata": 250,
+          "title": 180
+        }
+      }
+    ],
+    "samples": [
+      {
+        "t": 1116.5999999996275,
+        "attempt": 1,
+        "text": {
+          "metadata": 0,
+          "title": 0
+        },
+        "echoes": [
+          {
+            "name": "vanta-entry-echo-one",
+            "time": 132.09999999962747,
+            "opacity": 0.06,
+            "duration": 155
+          },
+          {
+            "name": "vanta-entry-echo-two",
+            "time": 132.09999999962747,
+            "opacity": 0.06,
+            "duration": 155
+          }
+        ]
+      }
+    ],
+    "textSamples": [
+      {
+        "t": 1116.5999999996275,
+        "attempt": 1,
+        "text": {
+          "metadata": 0,
+          "title": 0
+        }
+      },
+      {
+        "t": 1175.5,
+        "attempt": 1,
+        "text": {
+          "metadata": 0,
+          "title": 0
+        }
+      },
+      {
+        "t": 1212.699999999255,
+        "attempt": 1,
+        "text": {
+          "metadata": 0,
+          "title": 0
+        }
+      },
+      {
+        "t": 1253.0999999996275,
+        "attempt": 1,
+        "text": {
+          "metadata": 0,
+          "title": 0
+        }
+      },
+      {
+        "t": 1297.8999999994412,
+        "attempt": 1,
+        "text": {
+          "metadata": 0,
+          "title": 0
+        }
+      },
+      {
+        "t": 1340.0999999996275,
+        "attempt": 1,
+        "text": {
+          "metadata": 0,
+          "title": 0
+        }
+      },
+      {
+        "t": 1382.2999999998137,
+        "attempt": 1,
+        "text": {
+          "metadata": 0,
+          "title": 0
+        }
+      },
+      {
+        "t": 1427.699999999255,
+        "attempt": 1,
+        "text": {
+          "metadata": 0,
+          "title": 0.372213
+        }
+      },
+      {
+        "t": 1476.5999999996275,
+        "attempt": 1,
+        "text": {
+          "metadata": 0.170612,
+          "title": 0.721111
+        }
+      },
+      {
+        "t": 1519.5999999996275,
+        "attempt": 1,
+        "text": {
+          "metadata": 0.492766,
+          "title": 0.832888
+        }
+      },
+      {
+        "t": 1561.5999999996275,
+        "attempt": 1,
+        "text": {
+          "metadata": 0.773448,
+          "title": 0.921475
+        }
+      }
+    ],
+    "textStarts": [
+      {
+        "t": 1427.699999999255,
+        "attempt": 1,
+        "stage": "title"
+      },
+      {
+        "t": 1476.5999999996275,
+        "attempt": 1,
+        "stage": "metadata"
+      }
+    ],
+    "signals": []
+  }
+}

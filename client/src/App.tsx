@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { lazy, Suspense, useState, useCallback, useEffect } from "react";
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -44,7 +44,6 @@ import AdminWaitlists from "@/pages/admin/waitlists";
 import AdminApps from "@/pages/admin/apps";
 import AdminSettings from "@/pages/admin/settings";
 import Vault from "@/pages/vault";
-import World from "@/pages/world";
 import Wireline from "@/pages/wireline";
 import Fract from "@/pages/fract";
 import Himalayas from "@/pages/himalayas";
@@ -112,6 +111,16 @@ function getInitialPhase(path: string): BootPhase {
   return "done";                     // skip-boot set — go straight to app
 }
 
+// Keep the existing district intact, but do not download its engine on editorial entry.
+const World = lazy(() => import("@/pages/world"));
+function WorldRoute() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-background" aria-busy="true"><span className="sr-only">Loading Vanta District</span></div>}>
+      <World />
+    </Suspense>
+  );
+}
+
 function Router() {
   return (
     <Switch>
@@ -128,7 +137,7 @@ function Router() {
       <Route path="/worlds" component={Worlds} />
       <Route path="/enter" component={Enter} />
       <Route path="/vault" component={Vault} />
-      <Route path="/world" component={World} />
+      <Route path="/world" component={WorldRoute} />
       <Route path="/play" component={VantaPlay} />
       <Route path="/passport" component={Passport} />
       <Route path="/rooms" component={Rooms} />

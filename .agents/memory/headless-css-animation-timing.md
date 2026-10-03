@@ -14,3 +14,14 @@ Headless frame delivery can also have gaps exceeding 100ms. A first-observed tex
 **Why:** A fixed wall-clock tolerance incorrectly rejected correctly configured text delays when the browser delivered no intermediate observation frame.
 
 **How to apply:** Assert the actual release boundary and configured delay separately; retain frame samples and account for observed frame gaps when checking the first visible text sample.
+
+Timing-dependent entry checks can fail on an untouched baseline as well as a
+candidate in the same headless-browser setup.
+
+**Why:** Short-window capture and text-onset failures were reproduced without
+changing the accepted animation code; the failing check alone did not identify
+a new application regression.
+
+**How to apply:** Compare an untouched baseline before changing previously
+accepted timings or weakening assertions. Retain failed observations and report
+the preservation check as blocked: baseline failure is not a passing result.

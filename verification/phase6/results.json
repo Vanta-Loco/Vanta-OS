@@ -1,0 +1,163 @@
+{
+  "baseline": "aa59ec5c9f171a8ee8e6c64a324a3209e2920999",
+  "cases": [
+    {
+      "name": "desktop-render-lifecycle-composition",
+      "passed": true,
+      "stats": {
+        "studioState": "rendering",
+        "studioReason": "",
+        "studioDisposed": "false",
+        "studioPixelRatio": "1",
+        "studioFrames": "19",
+        "studioDrawCalls": "2",
+        "studioPoints": "68",
+        "studioTriangles": "4"
+      },
+      "loadBoundary": {
+        "t": 2509,
+        "state": "loading",
+        "imageReady": true,
+        "titleOpacity": 0.99914
+      },
+      "enhancementLayoutShift": 0,
+      "composition": {
+        ".vanta-hero-depth": {
+          "x": 0,
+          "y": 0,
+          "width": 1265,
+          "height": 765,
+          "font": "16px / 24px Inter, system-ui, -apple-system, sans-serif",
+          "objectFit": "fill",
+          "objectPosition": "50% 50%"
+        },
+        ".vanta-hero-image": {
+          "x": -141.66510009765625,
+          "y": -98.64419555664062,
+          "width": 1548.330078125,
+          "height": 936.33642578125,
+          "font": "16px / 24px Inter, system-ui, -apple-system, sans-serif",
+          "objectFit": "cover",
+          "objectPosition": "50% 50%"
+        },
+        "[data-testid=\"text-hero-title\"]": {
+          "x": 32,
+          "y": 405.20379638671875,
+          "width": 896,
+          "height": 72,
+          "font": "700 72px / 72px \"Space Grotesk\", system-ui, sans-serif",
+          "objectFit": "fill",
+          "objectPosition": "50% 50%"
+        },
+        "[data-testid=\"text-hero-subtitle\"]": {
+          "x": 32,
+          "y": 585.7037963867188,
+          "width": 672,
+          "height": 56,
+          "font": "20px / 28px Inter, system-ui, -apple-system, sans-serif",
+          "objectFit": "fill",
+          "objectPosition": "50% 50%"
+        }
+      },
+      "pixels": {
+        "window": {
+          "changedPixels": 51003,
+          "maximumChannelDifference": 17,
+          "meanDifference": 0.9111774470582729
+        },
+        "navigation": {
+          "changedPixels": 638,
+          "maximumChannelDifference": 2,
+          "meanDifference": 0.06338169642857143
+        },
+        "lowerContent": {
+          "changedPixels": 0,
+          "maximumChannelDifference": 0,
+          "meanDifference": 0
+        }
+      },
+      "updatesIn1200ms": 9,
+      "offscreen": "passed",
+      "hidden": "passed",
+      "cleanup": "passed",
+      "backForward": "passed"
+    },
+    {
+      "name": "context-loss-css-recovery",
+      "passed": true,
+      "recovery": "permanent CSS underlay; navigation remains usable"
+    },
+    {
+      "name": "unavailable-webgl-css-fallback",
+      "passed": true,
+      "reason": "webgl-unavailable"
+    },
+    {
+      "name": "phone-css-only",
+      "passed": true,
+      "width": 390,
+      "reason": "ineligible-device"
+    },
+    {
+      "name": "wide-coarse-pointer-css-only",
+      "passed": true,
+      "width": 1280,
+      "reason": "ineligible-device"
+    },
+    {
+      "name": "initial-reduced-motion-css-only",
+      "passed": true,
+      "reason": "reduced-motion"
+    },
+    {
+      "name": "active-reduced-motion-cleanup",
+      "passed": true,
+      "cleanup": "passed"
+    },
+    {
+      "name": "observer-fallback-css-only",
+      "passed": true,
+      "reason": "unsupported-observers"
+    },
+    {
+      "name": "high-density-cap-and-desktop-width-eligibility",
+      "passed": true,
+      "cappedRatio": 1.25,
+      "resizeCleanupAndReentry": "passed"
+    },
+    {
+      "name": "district-lazy-route-preserved",
+      "passed": true,
+      "engineDeferredUntilDistrictNavigation": true,
+      "worldSourceUnchanged": true
+    }
+  ],
+  "exceptions": [],
+  "bundle": {
+    "before": {
+      "files": [
+        {
+          "file": "/assets/index-Bvsi6rLa.js",
+          "bytes": 2099425,
+          "gzip": 550074
+        }
+      ],
+      "bytes": 2099425,
+      "gzip": 550074
+    },
+    "after": {
+      "files": [
+        {
+          "file": "/assets/index-BgaEVopD.js",
+          "bytes": 1222702,
+          "gzip": 314354
+        }
+      ],
+      "bytes": 1222702,
+      "gzip": 314354
+    },
+    "rawSaved": 876723,
+    "gzipSaved": 235720
+  },
+  "assertions": "passed"
+}

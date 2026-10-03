@@ -1,0 +1,15 @@
+{
+  "assertions": "passed",
+  "pointer": {
+    "observedNonzeroGpuValues": true,
+    "normalizedBound": 1,
+    "imageGeometryUnchanged": true
+  },
+  "scroll": {
+    "observedNonzeroGpuValues": true,
+    "maximumObservedEnergy": 0.025,
+    "settledEnergy": 0
+  },
+  "keyboard": "passed",
+  "exceptions": []
+}

@@ -17,6 +17,7 @@ import { getImageLayout } from "@/components/image-layout-picker";
 import { AtmosphericOverlay, ParallaxLayer, VantaDepth } from "@/components/vanta-depth";
 import { GlitchText, SignalGlitch, TransmissionFrame } from "@/components/vanta-signal";
 import { LivingScene, SceneReveal } from "@/components/vanta-living-scene";
+import { StudioAtmosphere } from "@/components/vanta-studio-atmosphere";
 
 const worlds = [
   {
@@ -100,6 +101,8 @@ export default function Home() {
             <SignalGlitch intensity="medium" className="h-full w-full">
               <img src={heroImage} alt="Vanta Cold Studio" className="vanta-hero-image h-full w-full object-cover" />
             </SignalGlitch>
+            {/* Outside SignalGlitch: its children are cloned into two echo planes. */}
+            <StudioAtmosphere />
           </div>
         </ParallaxLayer>
         <ParallaxLayer depth={-34} mobileDepth={-30} className="pointer-events-none absolute inset-[-5%] z-[1]">
