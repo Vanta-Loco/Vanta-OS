@@ -4,10 +4,12 @@ import { execFileSync } from "node:child_process";
 import { browserPage, sleep } from "./browser-cdp.mjs";
 import { initialBundle } from "./phase6-bundle.mjs";
 import { compareFrames } from "./phase6-pixels.mjs";
+import { studioTelemetry } from "./phase6-telemetry.mjs";
 
-const out = "verification/phase6";
+const out = process.env.PHASE6_TEST_OUTPUT || "verification/phase6-1";
 await fs.mkdir(out, { recursive: true });
-const baseline = JSON.parse(await fs.readFile(`${out}/baseline.json`, "utf8"));
+const baseline = JSON.parse(await fs.readFile("verification/phase6/baseline.json", "utf8"));
+const previous = JSON.parse(await fs.readFile("verification/phase6/results.json", "utf8"));
 assert.ok(baseline.checkpoint.startsWith("aa59ec5"));
 const results = { baseline: baseline.checkpoint, cases: [], exceptions: [] };
 const host = "document.querySelector('.vanta-studio-atmosphere')";
@@ -30,7 +32,7 @@ async function create({ phone = false, coarse = false, reduce = false, source = 
   await p.send("Emulation.setDeviceMetricsOverride", { width: phone ? 390 : 1280, height: phone ? 844 : 900, deviceScaleFactor: 1, mobile: phone });
   if (coarse || phone) await p.send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 5 });
   if (reduce) await p.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
-  await p.send("Page.addScriptToEvaluateOnNewDocument", { source: observation + source });
+  await p.send("Page.addScriptToEvaluateOnNewDocument", { source: observation + studioTelemetry + source });
   return p;
 }
 async function settled(p, width = 1280) {
@@ -61,12 +63,18 @@ try {
     "client/src/components/vanta-scroll-velocity.ts", "client/src/index.css", "client/src/phase5-pages.css",
     "client/src/pages/world.tsx", "client/src/components/vanta-bedroom.tsx", "client/src/pages/worlds.tsx",
     "client/src/components/header.tsx", "client/src/components/vanta-os-boot.tsx", "client/src/components/vanta-os-intro.tsx",
-    "scripts/verify-phase5.mjs", "scripts/verify-transmission-handoff.mjs", "package.json", "package-lock.json",
+    "scripts/verify-phase5.mjs", "package.json", "package-lock.json",
     "attached_assets/generated_images/Music_studio_lifestyle_hero_cf7ae2f2.png"]) {
     assert.deepEqual(await fs.readFile(file), execFileSync("git", ["show", `aa59ec5:${file}`], { maxBuffer: 4 * 1024 * 1024 }), `${file}: preserved`);
   }
+  for (const file of ["client/src/App.tsx", "client/src/pages/home.tsx",
+    "client/src/components/vanta-studio-atmosphere.tsx", "client/src/components/vanta-studio-atmosphere.css"]) {
+    assert.deepEqual(await fs.readFile(file), execFileSync("git", ["show", `d23bff9:${file}`]), `${file}: Phase 6 lifecycle/layout preserved`);
+  }
   const bundle = await initialBundle();
   assert.ok(bundle.bytes < baseline.bundle.bytes && bundle.gzip < baseline.bundle.gzip, "Initial JS transfer decreases");
+  assert.ok(bundle.bytes <= previous.bundle.after.bytes && bundle.gzip <= previous.bundle.after.gzip + 128,
+    "Phase 6 startup budget unchanged; gzip tolerance is only content-hash variation");
   results.bundle = { before: baseline.bundle, after: bundle, rawSaved: baseline.bundle.bytes - bundle.bytes,
     gzipSaved: baseline.bundle.gzip - bundle.gzip };
 
@@ -96,30 +104,61 @@ try {
     }
     assert.equal(p.requests.some(r => /\/world-[^/]+\.js/.test(r.url)), false, "No district code on Home");
 
-    // Freeze only settled CSS atmosphere, not the new renderer, for a controlled
-    // photographic A/B. Hiding the transparent canvas reveals its permanent underlay.
+    // Pause settled CSS and hold the identified renderer's next native callback
+    // without seeking its clock. Both captures have identical animation
+    // timestamps, viewport, crop and scroll—not merely similar wall-clock delays.
+    // CDP screenshots can unminimize a hidden window, so hidden state is tested
+    // separately below and is not used as a screenshot-freezing mechanism.
     await p.evaluate("document.getAnimations().filter(a=>a instanceof CSSAnimation).forEach(a=>a.pause())");
+    await p.evaluate("window.__studioCaptureFrozen=true");
     await sleep(200);
+    const captureState = () => p.evaluate(`({scrollY,frames:${host}.dataset.studioFrames,
+      gpuTime:window.__studioTiming.samples.at(-1)?.time,
+      cssTimes:document.getAnimations().filter(a=>a instanceof CSSAnimation).map(a=>a.currentTime)})`);
+    const pairBefore = await captureState();
     await p.screenshot(`${out}/desktop-enhanced.png`);
     await p.evaluate(`${host}.style.visibility='hidden'`);
     await p.screenshot(`${out}/desktop-css-only.png`);
+    const pairAfter = await captureState();
+    assert.deepEqual(pairAfter, pairBefore, "CSS-only and enhanced images have exactly identical animation timing and scroll");
     await p.evaluate(`${host}.style.visibility=''`);
+    await p.evaluate("window.__studioCaptureResume()");
     const pixels = await compareFrames(`${out}/desktop-enhanced.png`, `${out}/desktop-css-only.png`);
-    assert.ok(pixels.window.changedPixels > 1000 && pixels.window.maximumChannelDifference >= 8, "Real meaningful nonzero light/dust output");
+    assert.ok(pixels.window.changedPixels > 20000 && pixels.window.maximumChannelDifference >= 25 && pixels.window.meanDifference > 1.2,
+      "Perceptibility exceeds the original faint Phase 6 effect, not merely nonzero output");
     // The unchanged translucent header samples the photo behind it. Allow only
     // tiny background-light rounding, not a visible navigation/content change.
     assert.ok(pixels.navigation.maximumChannelDifference <= 3 && pixels.navigation.meanDifference < .2,
       "Navigation appearance preserved (translucent background tolerance only)");
     assert.equal(pixels.lowerContent.changedPixels, 0, "Below-hero content unchanged in controlled A/B");
 
-    let start = Number(await p.evaluate(`${host}.dataset.studioFrames`));
-    await sleep(1200);
-    const updates = Number(await p.evaluate(`${host}.dataset.studioFrames`)) - start;
-    assert.ok(updates > 0 && updates <= 30, "Atmospheric updates bounded below 25fps");
+    await p.until("window.__studioTiming.dustSnapshots.length === 2", 20000);
+    const dust = await p.evaluate("window.__studioTiming.dustSnapshots");
+    assert.ok(dust.every(s => s.centers.length >= 50), "Real point-pass pixels contain the sparse dust cloud");
+    const movement = dust[0].centers.map(a => {
+      const candidates = dust[1].centers.map(b => ({ dx: b.x - a.x, dy: b.y - a.y }));
+      return candidates.sort((a, b) => Math.hypot(a.dx, a.dy) - Math.hypot(b.dx, b.dy))[0];
+    });
+    const distances = movement.map(p => Math.hypot(p.dx, p.dy));
+    assert.ok(distances.filter(d => d > .6).length >= 20, "Actual dust pixels move perceptibly over two animation seconds");
+    assert.ok(Math.max(...distances) < 10, "Dust stays restrained rather than sweeping across the composition");
+    const spread = axis => {
+      const mean = movement.reduce((n, p) => n + p[axis], 0) / movement.length;
+      return Math.sqrt(movement.reduce((n, p) => n + (p[axis] - mean) ** 2, 0) / movement.length);
+    };
+    assert.ok(spread("dx") > .3 && spread("dy") > .3, "Dust does not move as one flat translated layer");
+    const timingStart = await p.evaluate("window.__studioTiming.samples.length");
+    await sleep(2400);
+    const timestamps = await p.evaluate(`window.__studioTiming.samples.slice(${timingStart})`);
+    assert.ok(timestamps.length >= 3, "Actual GPU animation updates observed");
+    const intervals = timestamps.slice(1).map((e, i) => e.stamp - timestamps[i].stamp);
+    const animationDeltas = timestamps.slice(1).map((e, i) => e.time - timestamps[i].time);
+    assert.ok(intervals.every(dt => dt >= 1000 / 24 - 1), "Native animation timestamps enforce the 24Hz ceiling");
+    assert.ok(animationDeltas.every(dt => dt > 0 && dt <= .10001), "Animation clock progresses with bounded delivered-frame deltas");
 
     await p.evaluate("window.scrollTo(0,1200)");
     await p.until(`${host}.dataset.studioState === 'paused' && ${host}.dataset.studioReason === 'offscreen'`);
-    start = Number(await p.evaluate(`${host}.dataset.studioFrames`));
+    let start = Number(await p.evaluate(`${host}.dataset.studioFrames`));
     await sleep(450);
     assert.equal(Number(await p.evaluate(`${host}.dataset.studioFrames`)), start, "No offscreen render calls");
     await p.evaluate("window.scrollTo(0,0)");
@@ -154,9 +193,12 @@ try {
     await p.until("location.pathname === '/worlds'");
     assert.equal(await p.evaluate(host), null);
     assert.deepEqual(p.consoleMessages.filter(m => m.type === "error"), [], "No shader/WebGL console errors on success");
-    return { stats, loadBoundary: load, enhancementLayoutShift: 0, composition, pixels, updatesIn1200ms: updates,
+    return { stats, loadBoundary: load, enhancementLayoutShift: 0, composition, pixels, controlledPair: pairBefore,
+      scheduler: { nativeAnimationTimestamps: timestamps, intervals, animationDeltas, maximumHz: 24 },
+      motion: { snapshots: dust, movingPoints: distances.filter(d => d > .6).length,
+        maximumTravelPixels: Math.max(...distances), horizontalSpread: spread("dx"), verticalSpread: spread("dy") },
       offscreen: "passed", hidden: "passed", cleanup: "passed", backForward: "passed" };
-  });
+  }, { source: "window.__studioDustProbe=true;" });
 
   await caseRun("context-loss-css-recovery", async p => {
     await p.navigate(); await p.until(ready, 30000);

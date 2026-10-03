@@ -1,0 +1,16 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "W0HvpGftuRU7DlenP2_F1"
+uri = "file://verification/phase6-1/controlled-comparison.html"
+type = "html"
+title = "Vanta Home — controlled comparison"
+description = "Drag the divider or toggle the identical CSS-only and enhanced frames. Animation time, crop and scroll are matched."
+logical_id = "383f5c93-0944-4e57-9fa5-4b161ec60b14"
+content_hash = "sha256:0d4a271620b98f409c30b0ecb9b2380d6e4be4574c3fb2434507652ba123c99c"
+size = 2805978
+mtime_ms = 1791030896558
+storage_uri = "gcs://replit-rams-assets-worf/rams/assets/repl:7edd2e30-b8d1-4316-8732-5545e467066a/383f5c93-0944-4e57-9fa5-4b161ec60b14/1fbca28f-35b8-4f03-b182-8260729cc0d3"
+storage_version_token = "1791031026399178"
+content_type = "text/html"

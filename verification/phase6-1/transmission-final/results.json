@@ -1,0 +1,1764 @@
+{
+  "results": [
+    {
+      "layout": "desktop",
+      "nominal": {
+        "windows": [
+          {
+            "duration": 452.3999999994412,
+            "start": 652,
+            "textDelays": {
+              "metadata": 250,
+              "title": 180
+            },
+            "initialEchoes": [
+              {
+                "name": "vanta-entry-echo-one",
+                "time": 0
+              },
+              {
+                "name": "vanta-entry-echo-two",
+                "time": 0
+              }
+            ],
+            "lifecycle": {
+              "attempt": 1,
+              "start": 651.2999999998137,
+              "echoes": [
+                {
+                  "name": "vanta-entry-echo-one",
+                  "initialTime": 0,
+                  "duration": 155,
+                  "playState": "paused",
+                  "keyframes": [
+                    {
+                      "offset": 0,
+                      "opacity": "0"
+                    },
+                    {
+                      "offset": 0.18,
+                      "opacity": "0.74"
+                    },
+                    {
+                      "offset": 0.42,
+                      "opacity": "0.5"
+                    },
+                    {
+                      "offset": 0.7,
+                      "opacity": "0.12"
+                    },
+                    {
+                      "offset": 1,
+                      "opacity": "0"
+                    }
+                  ],
+                  "titleOpacity": 0,
+                  "scoped": true,
+                  "count": 1
+                },
+                {
+                  "name": "vanta-entry-echo-two",
+                  "initialTime": 0,
+                  "duration": 155,
+                  "playState": "paused",
+                  "keyframes": [
+                    {
+                      "offset": 0,
+                      "opacity": "0"
+                    },
+                    {
+                      "offset": 0.3,
+                      "opacity": "0.58"
+                    },
+                    {
+                      "offset": 0.52,
+                      "opacity": "0.32"
+                    },
+                    {
+                      "offset": 0.74,
+                      "opacity": "0.08"
+                    },
+                    {
+                      "offset": 1,
+                      "opacity": "0"
+                    }
+                  ],
+                  "titleOpacity": 0,
+                  "scoped": true,
+                  "count": 1
+                }
+              ],
+              "progress": [
+                {
+                  "t": 651.7000000001863,
+                  "name": "vanta-entry-echo-one",
+                  "time": 0
+                },
+                {
+                  "t": 651.8999999994412,
+                  "name": "vanta-entry-echo-two",
+                  "time": 0
+                },
+                {
+                  "t": 1104.2000000001863,
+                  "name": "vanta-entry-echo-one",
+                  "time": 155
+                },
+                {
+                  "t": 1104.2000000001863,
+                  "name": "vanta-entry-echo-two",
+                  "time": 155
+                }
+              ],
+              "closed": true,
+              "end": 1104.3999999994412
+            },
+            "intermediateWritesObserved": 0
+          }
+        ],
+        "textStarts": [
+          {
+            "t": 1103.7000000001863,
+            "attempt": 1,
+            "stage": "media",
+            "type": "transitionstart",
+            "elapsedTime": 0,
+            "delay": 0,
+            "duration": 360,
+            "startTime": 645.9279999999126
+          },
+          {
+            "t": 1349.7000000001863,
+            "attempt": 1,
+            "stage": "metadata",
+            "type": "transitionstart",
+            "elapsedTime": 0,
+            "delay": 250,
+            "duration": 360,
+            "startTime": 1079.2440000004717
+          },
+          {
+            "t": 1349.7999999998137,
+            "attempt": 1,
+            "stage": "title",
+            "type": "transitionstart",
+            "elapsedTime": 0,
+            "delay": 180,
+            "duration": 360,
+            "startTime": 1079.2440000004717
+          }
+        ],
+        "transitions": [
+          {
+            "t": 1103.5999999996275,
+            "attempt": 1,
+            "stage": "media",
+            "type": "transitionrun",
+            "elapsedTime": 0,
+            "delay": 0,
+            "duration": 360,
+            "startTime": 645.9279999999126
+          },
+          {
+            "t": 1103.7000000001863,
+            "attempt": 1,
+            "stage": "media",
+            "type": "transitionstart",
+            "elapsedTime": 0,
+            "delay": 0,
+            "duration": 360,
+            "startTime": 645.9279999999126
+          },
+          {
+            "t": 1103.7000000001863,
+            "attempt": 1,
+            "stage": "media",
+            "type": "transitionend",
+            "elapsedTime": 0.36,
+            "delay": 0,
+            "duration": 360,
+            "startTime": 645.9279999999126
+          },
+          {
+            "t": 1349.7000000001863,
+            "attempt": 1,
+            "stage": "metadata",
+            "type": "transitionrun",
+            "elapsedTime": 0,
+            "delay": 250,
+            "duration": 360,
+            "startTime": 1079.2440000004717
+          },
+          {
+            "t": 1349.7000000001863,
+            "attempt": 1,
+            "stage": "metadata",
+            "type": "transitionstart",
+            "elapsedTime": 0,
+            "delay": 250,
+            "duration": 360,
+            "startTime": 1079.2440000004717
+          },
+          {
+            "t": 1349.7999999998137,
+            "attempt": 1,
+            "stage": "title",
+            "type": "transitionrun",
+            "elapsedTime": 0,
+            "delay": 180,
+            "duration": 360,
+            "startTime": 1079.2440000004717
+          },
+          {
+            "t": 1349.7999999998137,
+            "attempt": 1,
+            "stage": "title",
+            "type": "transitionstart",
+            "elapsedTime": 0,
+            "delay": 180,
+            "duration": 360,
+            "startTime": 1079.2440000004717
+          }
+        ],
+        "routeSignals": []
+      },
+      "retry": {
+        "windows": [
+          {
+            "duration": 6.2000000001862645,
+            "start": 4929,
+            "textDelays": {
+              "metadata": 250,
+              "title": 180,
+              "description": 315,
+              "controls": 380
+            },
+            "initialEchoes": [
+              {
+                "name": "vanta-entry-echo-one",
+                "time": 0
+              },
+              {
+                "name": "vanta-entry-echo-two",
+                "time": 0
+              }
+            ],
+            "lifecycle": {
+              "attempt": 1,
+              "start": 4927.700000000186,
+              "echoes": [
+                {
+                  "name": "vanta-entry-echo-one",
+                  "initialTime": 0,
+                  "duration": 155,
+                  "playState": "paused",
+                  "keyframes": [
+                    {
+                      "offset": 0,
+                      "opacity": "0"
+                    },
+                    {
+                      "offset": 0.18,
+                      "opacity": "0.74"
+                    },
+                    {
+                      "offset": 0.42,
+                      "opacity": "0.5"
+                    },
+                    {
+                      "offset": 0.7,
+                      "opacity": "0.12"
+                    },
+                    {
+                      "offset": 1,
+                      "opacity": "0"
+                    }
+                  ],
+                  "titleOpacity": 0,
+                  "scoped": true,
+                  "count": 1,
+                  "global": "false"
+                },
+                {
+                  "name": "vanta-entry-echo-two",
+                  "initialTime": 0,
+                  "duration": 155,
+                  "playState": "paused",
+                  "keyframes": [
+                    {
+                      "offset": 0,
+                      "opacity": "0"
+                    },
+                    {
+                      "offset": 0.3,
+                      "opacity": "0.58"
+                    },
+                    {
+                      "offset": 0.52,
+                      "opacity": "0.32"
+                    },
+                    {
+                      "offset": 0.74,
+                      "opacity": "0.08"
+                    },
+                    {
+                      "offset": 1,
+                      "opacity": "0"
+                    }
+                  ],
+                  "titleOpacity": 0,
+                  "scoped": true,
+                  "count": 1,
+                  "global": "false"
+                }
+              ],
+              "progress": [
+                {
+                  "t": 4928.5999999996275,
+                  "name": "vanta-entry-echo-one",
+                  "time": 0
+                },
+                {
+                  "t": 4929,
+                  "name": "vanta-entry-echo-two",
+                  "time": 0
+                }
+              ],
+              "closed": true,
+              "end": 4935.200000000186
+            },
+            "intermediateWritesObserved": 0
+          },
+          {
+            "duration": 405.70000000018626,
+            "start": 5284.700000000186,
+            "textDelays": {
+              "metadata": 250,
+              "title": 180,
+              "description": 315,
+              "controls": 380
+            },
+            "initialEchoes": [
+              {
+                "name": "vanta-entry-echo-one",
+                "time": 0
+              },
+              {
+                "name": "vanta-entry-echo-two",
+                "time": 0
+              }
+            ],
+            "lifecycle": {
+              "attempt": 2,
+              "start": 5284.4000000003725,
+              "echoes": [
+                {
+                  "name": "vanta-entry-echo-one",
+                  "initialTime": 0,
+                  "duration": 155,
+                  "playState": "paused",
+                  "keyframes": [
+                    {
+                      "offset": 0,
+                      "opacity": "0"
+                    },
+                    {
+                      "offset": 0.18,
+                      "opacity": "0.74"
+                    },
+                    {
+                      "offset": 0.42,
+                      "opacity": "0.5"
+                    },
+                    {
+                      "offset": 0.7,
+                      "opacity": "0.12"
+                    },
+                    {
+                      "offset": 1,
+                      "opacity": "0"
+                    }
+                  ],
+                  "titleOpacity": 0,
+                  "scoped": true,
+                  "count": 1,
+                  "global": "false"
+                },
+                {
+                  "name": "vanta-entry-echo-two",
+                  "initialTime": 0,
+                  "duration": 155,
+                  "playState": "paused",
+                  "keyframes": [
+                    {
+                      "offset": 0,
+                      "opacity": "0"
+                    },
+                    {
+                      "offset": 0.3,
+                      "opacity": "0.58"
+                    },
+                    {
+                      "offset": 0.52,
+                      "opacity": "0.32"
+                    },
+                    {
+                      "offset": 0.74,
+                      "opacity": "0.08"
+                    },
+                    {
+                      "offset": 1,
+                      "opacity": "0"
+                    }
+                  ],
+                  "titleOpacity": 0,
+                  "scoped": true,
+                  "count": 1,
+                  "global": "false"
+                }
+              ],
+              "progress": [
+                {
+                  "t": 5284.5999999996275,
+                  "name": "vanta-entry-echo-one",
+                  "time": 0
+                },
+                {
+                  "t": 5284.700000000186,
+                  "name": "vanta-entry-echo-two",
+                  "time": 0
+                },
+                {
+                  "t": 5370.5999999996275,
+                  "name": "vanta-entry-echo-one",
+                  "time": 85.8999999994412
+                },
+                {
+                  "t": 5370.5999999996275,
+                  "name": "vanta-entry-echo-two",
+                  "time": 85.8999999994412
+                },
+                {
+                  "t": 5690.4000000003725,
+                  "name": "vanta-entry-echo-one",
+                  "time": 155
+                },
+                {
+                  "t": 5690.4000000003725,
+                  "name": "vanta-entry-echo-two",
+                  "time": 155
+                }
+              ],
+              "closed": true,
+              "end": 5690.4000000003725
+            },
+            "intermediateWritesObserved": 2
+          }
+        ],
+        "textStarts": [
+          {
+            "t": 5264.4000000003725,
+            "attempt": 1,
+            "stage": "media",
+            "type": "transitionstart",
+            "elapsedTime": 0,
+            "delay": 0,
+            "duration": 360,
+            "startTime": 4903.487999999925
+          },
+          {
+            "t": 5689.9000000003725,
+            "attempt": 2,
+            "stage": "metadata",
+            "type": "transitionstart",
+            "elapsedTime": 0,
+            "delay": 250,
+            "duration": 360,
+            "startTime": 5353.470000000016
+          },
+          {
+            "t": 5690.0999999996275,
+            "attempt": 2,
+            "stage": "title",
+            "type": "transitionstart",
+            "elapsedTime": 0,
+            "delay": 180,
+            "duration": 360,
+            "startTime": 5353.470000000016
+          },
+          {
+            "t": 5690.0999999996275,
+            "attempt": 2,
+            "stage": "description",
+            "type": "transitionstart",
+            "elapsedTime": 0,
+            "delay": 315,
+            "duration": 360,
+            "startTime": 5353.470000000016
+          },
+          {
+            "t": 5907.799999999814,
+            "attempt": 2,
+            "stage": "controls",
+            "type": "transitionstart",
+            "elapsedTime": 0,
+            "delay": 380,
+            "duration": 360,
+            "startTime": 5353.470000000016
+          }
+        ],
+        "transitions": [
+          {
+            "t": 5264.0999999996275,
+            "attempt": 1,
+            "stage": "media",
+            "type": "transitionrun",
+            "elapsedTime": 0,
+            "delay": 0,
+            "duration": 360,
+            "startTime": 4903.487999999925
+          },
+          {
+            "t": 5264.4000000003725,
+            "attempt": 1,
+            "stage": "media",
+            "type": "transitionstart",
+            "elapsedTime": 0,
+            "delay": 0,
+            "duration": 360,
+            "startTime": 4903.487999999925
+          },
+          {
+            "t": 5370.200000000186,
+            "attempt": 2,
+            "stage": "media",
+            "type": "transitionend",
+            "elapsedTime": 0.36,
+            "delay": 0,
+            "duration": 360,
+            "startTime": 4903.487999999925
+          },
+          {
+            "t": 5689.700000000186,
+            "attempt": 2,
+            "stage": "metadata",
+            "type": "transitionrun",
+            "elapsedTime": 0,
+            "delay": 250,
+            "duration": 360,
+            "startTime": 5353.470000000016
+          },
+          {
+            "t": 5689.9000000003725,
+            "attempt": 2,
+            "stage": "metadata",
+            "type": "transitionstart",
+            "elapsedTime": 0,
+            "delay": 250,
+            "duration": 360,
+            "startTime": 5353.470000000016
+          },
+          {
+            "t": 5690,
+            "attempt": 2,
+            "stage": "title",
+            "type": "transitionrun",
+            "elapsedTime": 0,
+            "delay": 180,
+            "duration": 360,
+            "startTime": 5353.470000000016
+          },
+          {
+            "t": 5690.0999999996275,
+            "attempt": 2,
+            "stage": "title",
+            "type": "transitionstart",
+            "elapsedTime": 0,
+            "delay": 180,
+            "duration": 360,
+            "startTime": 5353.470000000016
+          },
+          {
+            "t": 5690.0999999996275,
+            "attempt": 2,
+            "stage": "description",
+            "type": "transitionrun",
+            "elapsedTime": 0,
+            "delay": 315,
+            "duration": 360,
+            "startTime": 5353.470000000016
+          },
+          {
+            "t": 5690.0999999996275,
+            "attempt": 2,
+            "stage": "description",
+            "type": "transitionstart",
+            "elapsedTime": 0,
+            "delay": 315,
+            "duration": 360,
+            "startTime": 5353.470000000016
+          },
+          {
+            "t": 5690.200000000186,
+            "attempt": 2,
+            "stage": "controls",
+            "type": "transitionrun",
+            "elapsedTime": 0,
+            "delay": 380,
+            "duration": 360,
+            "startTime": 5353.470000000016
+          },
+          {
+            "t": 5907.5999999996275,
+            "attempt": 2,
+            "stage": "title",
+            "type": "transitionend",
+            "elapsedTime": 0.36,
+            "delay": 180,
+            "duration": 360,
+            "startTime": 5353.470000000016
+          },
+          {
+            "t": 5907.799999999814,
+            "attempt": 2,
+            "stage": "controls",
+            "type": "transitionstart",
+            "elapsedTime": 0,
+            "delay": 380,
+            "duration": 360,
+            "startTime": 5353.470000000016
+          }
+        ],
+        "routeSignals": [
+          {
+            "active": true,
+            "t": 4930.0999999996275
+          },
+          {
+            "active": false,
+            "t": 5115.4000000003725
+          }
+        ]
+      },
+      "navigation": {
+        "windows": [
+          {
+            "duration": 405.1000000005588,
+            "start": 9697.099999999627,
+            "textDelays": {
+              "metadata": 250,
+              "title": 180
+            },
+            "initialEchoes": [
+              {
+                "name": "vanta-entry-echo-one",
+                "time": 0
+              },
+              {
+                "name": "vanta-entry-echo-two",
+                "time": 0
+              }
+            ],
+            "lifecycle": {
+              "attempt": 1,
+              "start": 9696.599999999627,
+              "echoes": [
+                {
+                  "name": "vanta-entry-echo-one",
+                  "initialTime": 0,
+                  "duration": 155,
+                  "playState": "paused",
+                  "keyframes": [
+                    {
+                      "offset": 0,
+                      "opacity": "0"
+                    },
+                    {
+                      "offset": 0.18,
+                      "opacity": "0.74"
+                    },
+                    {
+                      "offset": 0.42,
+                      "opacity": "0.5"
+                    },
+                    {
+                      "offset": 0.7,
+                      "opacity": "0.12"
+                    },
+                    {
+                      "offset": 1,
+                      "opacity": "0"
+                    }
+                  ],
+                  "titleOpacity": 0,
+                  "scoped": true,
+                  "count": 1
+                },
+                {
+                  "name": "vanta-entry-echo-two",
+                  "initialTime": 0,
+                  "duration": 155,
+                  "playState": "paused",
+                  "keyframes": [
+                    {
+                      "offset": 0,
+                      "opacity": "0"
+                    },
+                    {
+                      "offset": 0.3,
+                      "opacity": "0.58"
+                    },
+                    {
+                      "offset": 0.52,
+                      "opacity": "0.32"
+                    },
+                    {
+                      "offset": 0.74,
+                      "opacity": "0.08"
+                    },
+                    {
+                      "offset": 1,
+                      "opacity": "0"
+                    }
+                  ],
+                  "titleOpacity": 0,
+                  "scoped": true,
+                  "count": 1
+                }
+              ],
+              "progress": [
+                {
+                  "t": 9697,
+                  "name": "vanta-entry-echo-one",
+                  "time": 0
+                },
+                {
+                  "t": 9697.099999999627,
+                  "name": "vanta-entry-echo-two",
+                  "time": 0
+                },
+                {
+                  "t": 10102.099999999627,
+                  "name": "vanta-entry-echo-one",
+                  "time": 155
+                },
+                {
+                  "t": 10102.099999999627,
+                  "name": "vanta-entry-echo-two",
+                  "time": 155
+                }
+              ],
+              "closed": true,
+              "end": 10102.200000000186
+            },
+            "intermediateWritesObserved": 0
+          }
+        ],
+        "textStarts": [
+          {
+            "t": 10101.799999999814,
+            "attempt": 1,
+            "stage": "media",
+            "type": "transitionstart",
+            "elapsedTime": 0,
+            "delay": 0,
+            "duration": 360,
+            "startTime": 9686.63000000015
+          },
+          {
+            "t": 10574.799999999814,
+            "attempt": 1,
+            "stage": "metadata",
+            "type": "transitionstart",
+            "elapsedTime": 0,
+            "delay": 250,
+            "duration": 360,
+            "startTime": 10086.613999999827
+          },
+          {
+            "t": 10574.900000000373,
+            "attempt": 1,
+            "stage": "title",
+            "type": "transitionstart",
+            "elapsedTime": 0,
+            "delay": 180,
+            "duration": 360,
+            "startTime": 10086.613999999827
+          }
+        ],
+        "transitions": [
+          {
+            "t": 10101.799999999814,
+            "attempt": 1,
+            "stage": "media",
+            "type": "transitionrun",
+            "elapsedTime": 0,
+            "delay": 0,
+            "duration": 360,
+            "startTime": 9686.63000000015
+          },
+          {
+            "t": 10101.799999999814,
+            "attempt": 1,
+            "stage": "media",
+            "type": "transitionstart",
+            "elapsedTime": 0,
+            "delay": 0,
+            "duration": 360,
+            "startTime": 9686.63000000015
+          },
+          {
+            "t": 10101.799999999814,
+            "attempt": 1,
+            "stage": "media",
+            "type": "transitionend",
+            "elapsedTime": 0.36,
+            "delay": 0,
+            "duration": 360,
+            "startTime": 9686.63000000015
+          },
+          {
+            "t": 10209.599999999627,
+            "attempt": 1,
+            "stage": "metadata",
+            "type": "transitionrun",
+            "elapsedTime": 0,
+            "delay": 250,
+            "duration": 360,
+            "startTime": 10086.613999999827
+          },
+          {
+            "t": 10209.700000000186,
+            "attempt": 1,
+            "stage": "title",
+            "type": "transitionrun",
+            "elapsedTime": 0,
+            "delay": 180,
+            "duration": 360,
+            "startTime": 10086.613999999827
+          },
+          {
+            "t": 10574.799999999814,
+            "attempt": 1,
+            "stage": "metadata",
+            "type": "transitionstart",
+            "elapsedTime": 0,
+            "delay": 250,
+            "duration": 360,
+            "startTime": 10086.613999999827
+          },
+          {
+            "t": 10574.900000000373,
+            "attempt": 1,
+            "stage": "title",
+            "type": "transitionstart",
+            "elapsedTime": 0,
+            "delay": 180,
+            "duration": 360,
+            "startTime": 10086.613999999827
+          }
+        ],
+        "routeSignals": []
+      },
+      "energies": {
+        "slow": 0.009,
+        "normal": 0.051,
+        "fast": 0.385
+      },
+      "focus": "passed",
+      "reducedMotion": "passed",
+      "overflow": "passed"
+    },
+    {
+      "layout": "phone",
+      "nominal": {
+        "windows": [
+          {
+            "duration": 178.20000000018626,
+            "start": 438.59999999962747,
+            "textDelays": {
+              "metadata": 210,
+              "title": 170
+            },
+            "initialEchoes": [
+              {
+                "name": "vanta-entry-echo-one",
+                "time": 0
+              },
+              {
+                "name": "vanta-entry-echo-two",
+                "time": 0
+              }
+            ],
+            "lifecycle": {
+              "attempt": 1,
+              "start": 438.20000000018626,
+              "echoes": [
+                {
+                  "name": "vanta-entry-echo-one",
+                  "initialTime": 0,
+                  "duration": 155,
+                  "playState": "paused",
+                  "keyframes": [
+                    {
+                      "offset": 0,
+                      "opacity": "0"
+                    },
+                    {
+                      "offset": 0.18,
+                      "opacity": "0.74"
+                    },
+                    {
+                      "offset": 0.42,
+                      "opacity": "0.5"
+                    },
+                    {
+                      "offset": 0.7,
+                      "opacity": "0.12"
+                    },
+                    {
+                      "offset": 1,
+                      "opacity": "0"
+                    }
+                  ],
+                  "titleOpacity": 0,
+                  "scoped": true,
+                  "count": 1
+                },
+                {
+                  "name": "vanta-entry-echo-two",
+                  "initialTime": 0,
+                  "duration": 155,
+                  "playState": "paused",
+                  "keyframes": [
+                    {
+                      "offset": 0,
+                      "opacity": "0"
+                    },
+                    {
+                      "offset": 0.3,
+                      "opacity": "0.58"
+                    },
+                    {
+                      "offset": 0.52,
+                      "opacity": "0.32"
+                    },
+                    {
+                      "offset": 0.74,
+                      "opacity": "0.08"
+                    },
+                    {
+                      "offset": 1,
+                      "opacity": "0"
+                    }
+                  ],
+                  "titleOpacity": 0,
+                  "scoped": true,
+                  "count": 1
+                }
+              ],
+              "progress": [
+                {
+                  "t": 438.5,
+                  "name": "vanta-entry-echo-one",
+                  "time": 0
+                },
+                {
+                  "t": 438.5,
+                  "name": "vanta-entry-echo-two",
+                  "time": 0
+                },
+                {
+                  "t": 463.5,
+                  "name": "vanta-entry-echo-one",
+                  "time": 25
+                },
+                {
+                  "t": 463.5,
+                  "name": "vanta-entry-echo-two",
+                  "time": 25
+                },
+                {
+                  "t": 533.8999999994412,
+                  "name": "vanta-entry-echo-one",
+                  "time": 95.29999999981374
+                },
+                {
+                  "t": 533.8999999994412,
+                  "name": "vanta-entry-echo-two",
+                  "time": 95.29999999981374
+                },
+                {
+                  "t": 583.3999999994412,
+                  "name": "vanta-entry-echo-one",
+                  "time": 144.8999999994412
+                },
+                {
+                  "t": 583.3999999994412,
+                  "name": "vanta-entry-echo-two",
+                  "time": 144.8999999994412
+                },
+                {
+                  "t": 616.7000000001863,
+                  "name": "vanta-entry-echo-one",
+                  "time": 155
+                },
+                {
+                  "t": 616.7000000001863,
+                  "name": "vanta-entry-echo-two",
+                  "time": 155
+                }
+              ],
+              "closed": true,
+              "end": 616.7999999998137
+            },
+            "intermediateWritesObserved": 6
+          }
+        ],
+        "textStarts": [
+          {
+            "t": 463.3999999994412,
+            "attempt": 1,
+            "stage": "media",
+            "type": "transitionstart",
+            "elapsedTime": 0,
+            "delay": 0,
+            "duration": 220,
+            "startTime": 432.781999999861
+          },
+          {
+            "t": 644.2000000001863,
+            "attempt": 1,
+            "stage": "title",
+            "type": "transitionstart",
+            "elapsedTime": 0,
+            "delay": 170,
+            "duration": 220,
+            "startTime": 449.4480000003023
+          },
+          {
+            "t": 671.7000000001863,
+            "attempt": 1,
+            "stage": "metadata",
+            "type": "transitionstart",
+            "elapsedTime": 0,
+            "delay": 210,
+            "duration": 220,
+            "startTime": 449.4480000003023
+          }
+        ],
+        "transitions": [
+          {
+            "t": 463.20000000018626,
+            "attempt": 1,
+            "stage": "media",
+            "type": "transitionrun",
+            "elapsedTime": 0,
+            "delay": 0,
+            "duration": 220,
+            "startTime": 432.781999999861
+          },
+          {
+            "t": 463.3999999994412,
+            "attempt": 1,
+            "stage": "media",
+            "type": "transitionstart",
+            "elapsedTime": 0,
+            "delay": 0,
+            "duration": 220,
+            "startTime": 432.781999999861
+          },
+          {
+            "t": 533.7000000001863,
+            "attempt": 1,
+            "stage": "metadata",
+            "type": "transitionrun",
+            "elapsedTime": 0,
+            "delay": 210,
+            "duration": 220,
+            "startTime": 449.4480000003023
+          },
+          {
+            "t": 533.7999999998137,
+            "attempt": 1,
+            "stage": "title",
+            "type": "transitionrun",
+            "elapsedTime": 0,
+            "delay": 170,
+            "duration": 220,
+            "startTime": 449.4480000003023
+          },
+          {
+            "t": 644.2000000001863,
+            "attempt": 1,
+            "stage": "title",
+            "type": "transitionstart",
+            "elapsedTime": 0,
+            "delay": 170,
+            "duration": 220,
+            "startTime": 449.4480000003023
+          },
+          {
+            "t": 671.7000000001863,
+            "attempt": 1,
+            "stage": "metadata",
+            "type": "transitionstart",
+            "elapsedTime": 0,
+            "delay": 210,
+            "duration": 220,
+            "startTime": 449.4480000003023
+          },
+          {
+            "t": 671.7999999998137,
+            "attempt": 1,
+            "stage": "media",
+            "type": "transitionend",
+            "elapsedTime": 0.22,
+            "delay": 0,
+            "duration": 220,
+            "startTime": 432.781999999861
+          }
+        ],
+        "routeSignals": []
+      },
+      "retry": {
+        "windows": [
+          {
+            "duration": 4.5,
+            "start": 2078.4000000003725,
+            "textDelays": {
+              "metadata": 210,
+              "title": 170,
+              "description": 250,
+              "controls": 290
+            },
+            "initialEchoes": [
+              {
+                "name": "vanta-entry-echo-one",
+                "time": 0
+              },
+              {
+                "name": "vanta-entry-echo-two",
+                "time": 0
+              }
+            ],
+            "lifecycle": {
+              "attempt": 1,
+              "start": 2078.0999999996275,
+              "echoes": [
+                {
+                  "name": "vanta-entry-echo-one",
+                  "initialTime": 0,
+                  "duration": 155,
+                  "playState": "paused",
+                  "keyframes": [
+                    {
+                      "offset": 0,
+                      "opacity": "0"
+                    },
+                    {
+                      "offset": 0.18,
+                      "opacity": "0.74"
+                    },
+                    {
+                      "offset": 0.42,
+                      "opacity": "0.5"
+                    },
+                    {
+                      "offset": 0.7,
+                      "opacity": "0.12"
+                    },
+                    {
+                      "offset": 1,
+                      "opacity": "0"
+                    }
+                  ],
+                  "titleOpacity": 0,
+                  "scoped": true,
+                  "count": 1,
+                  "global": "false"
+                },
+                {
+                  "name": "vanta-entry-echo-two",
+                  "initialTime": 0,
+                  "duration": 155,
+                  "playState": "paused",
+                  "keyframes": [
+                    {
+                      "offset": 0,
+                      "opacity": "0"
+                    },
+                    {
+                      "offset": 0.3,
+                      "opacity": "0.58"
+                    },
+                    {
+                      "offset": 0.52,
+                      "opacity": "0.32"
+                    },
+                    {
+                      "offset": 0.74,
+                      "opacity": "0.08"
+                    },
+                    {
+                      "offset": 1,
+                      "opacity": "0"
+                    }
+                  ],
+                  "titleOpacity": 0,
+                  "scoped": true,
+                  "count": 1,
+                  "global": "false"
+                }
+              ],
+              "progress": [
+                {
+                  "t": 2078.2000000001863,
+                  "name": "vanta-entry-echo-one",
+                  "time": 0
+                },
+                {
+                  "t": 2078.2999999998137,
+                  "name": "vanta-entry-echo-two",
+                  "time": 0
+                }
+              ],
+              "closed": true,
+              "end": 2082.9000000003725
+            },
+            "intermediateWritesObserved": 0
+          },
+          {
+            "duration": 162,
+            "start": 2281.2000000001863,
+            "textDelays": {
+              "metadata": 210,
+              "title": 170,
+              "description": 250,
+              "controls": 290
+            },
+            "initialEchoes": [
+              {
+                "name": "vanta-entry-echo-one",
+                "time": 0
+              },
+              {
+                "name": "vanta-entry-echo-two",
+                "time": 0
+              }
+            ],
+            "lifecycle": {
+              "attempt": 2,
+              "start": 2280.9000000003725,
+              "echoes": [
+                {
+                  "name": "vanta-entry-echo-one",
+                  "initialTime": 0,
+                  "duration": 155,
+                  "playState": "paused",
+                  "keyframes": [
+                    {
+                      "offset": 0,
+                      "opacity": "0"
+                    },
+                    {
+                      "offset": 0.18,
+                      "opacity": "0.74"
+                    },
+                    {
+                      "offset": 0.42,
+                      "opacity": "0.5"
+                    },
+                    {
+                      "offset": 0.7,
+                      "opacity": "0.12"
+                    },
+                    {
+                      "offset": 1,
+                      "opacity": "0"
+                    }
+                  ],
+                  "titleOpacity": 0,
+                  "scoped": true,
+                  "count": 1,
+                  "global": "false"
+                },
+                {
+                  "name": "vanta-entry-echo-two",
+                  "initialTime": 0,
+                  "duration": 155,
+                  "playState": "paused",
+                  "keyframes": [
+                    {
+                      "offset": 0,
+                      "opacity": "0"
+                    },
+                    {
+                      "offset": 0.3,
+                      "opacity": "0.58"
+                    },
+                    {
+                      "offset": 0.52,
+                      "opacity": "0.32"
+                    },
+                    {
+                      "offset": 0.74,
+                      "opacity": "0.08"
+                    },
+                    {
+                      "offset": 1,
+                      "opacity": "0"
+                    }
+                  ],
+                  "titleOpacity": 0,
+                  "scoped": true,
+                  "count": 1,
+                  "global": "false"
+                }
+              ],
+              "progress": [
+                {
+                  "t": 2281,
+                  "name": "vanta-entry-echo-one",
+                  "time": 0
+                },
+                {
+                  "t": 2281.2000000001863,
+                  "name": "vanta-entry-echo-two",
+                  "time": 0
+                },
+                {
+                  "t": 2311.5999999996275,
+                  "name": "vanta-entry-echo-one",
+                  "time": 30.399999999441206
+                },
+                {
+                  "t": 2311.7000000001863,
+                  "name": "vanta-entry-echo-two",
+                  "time": 30.399999999441206
+                },
+                {
+                  "t": 2354.4000000003725,
+                  "name": "vanta-entry-echo-one",
+                  "time": 73.20000000018626
+                },
+                {
+                  "t": 2354.4000000003725,
+                  "name": "vanta-entry-echo-two",
+                  "time": 73.20000000018626
+                },
+                {
+                  "t": 2389.2999999998137,
+                  "name": "vanta-entry-echo-one",
+                  "time": 107.8999999994412
+                },
+                {
+                  "t": 2389.2999999998137,
+                  "name": "vanta-entry-echo-two",
+                  "time": 107.8999999994412
+                },
+                {
+                  "t": 2416.4000000003725,
+                  "name": "vanta-entry-echo-one",
+                  "time": 135.09999999962747
+                },
+                {
+                  "t": 2416.4000000003725,
+                  "name": "vanta-entry-echo-two",
+                  "time": 135.09999999962747
+                },
+                {
+                  "t": 2443.0999999996275,
+                  "name": "vanta-entry-echo-one",
+                  "time": 155
+                },
+                {
+                  "t": 2443.0999999996275,
+                  "name": "vanta-entry-echo-two",
+                  "time": 155
+                }
+              ],
+              "closed": true,
+              "end": 2443.2000000001863
+            },
+            "intermediateWritesObserved": 8
+          }
+        ],
+        "textStarts": [
+          {
+            "t": 2500.9000000003725,
+            "attempt": 2,
+            "stage": "title",
+            "type": "transitionstart",
+            "elapsedTime": 0,
+            "delay": 170,
+            "duration": 220,
+            "startTime": 2309.3010000002323
+          },
+          {
+            "t": 2527.9000000003725,
+            "attempt": 2,
+            "stage": "metadata",
+            "type": "transitionstart",
+            "elapsedTime": 0,
+            "delay": 210,
+            "duration": 220,
+            "startTime": 2309.3010000002323
+          },
+          {
+            "t": 2576.7000000001863,
+            "attempt": 2,
+            "stage": "description",
+            "type": "transitionstart",
+            "elapsedTime": 0,
+            "delay": 250,
+            "duration": 220,
+            "startTime": 2309.3010000002323
+          },
+          {
+            "t": 2619,
+            "attempt": 2,
+            "stage": "controls",
+            "type": "transitionstart",
+            "elapsedTime": 0,
+            "delay": 290,
+            "duration": 220,
+            "startTime": 2309.3010000002323
+          }
+        ],
+        "transitions": [
+          {
+            "t": 2161.5999999996275,
+            "attempt": 1,
+            "stage": "media",
+            "type": "transitionend",
+            "elapsedTime": 0.22,
+            "delay": 0,
+            "duration": 220,
+            "startTime": 1892.6510000001144
+          },
+          {
+            "t": 2354.0999999996275,
+            "attempt": 2,
+            "stage": "metadata",
+            "type": "transitionrun",
+            "elapsedTime": 0,
+            "delay": 210,
+            "duration": 220,
+            "startTime": 2309.3010000002323
+          },
+          {
+            "t": 2354.0999999996275,
+            "attempt": 2,
+            "stage": "title",
+            "type": "transitionrun",
+            "elapsedTime": 0,
+            "delay": 170,
+            "duration": 220,
+            "startTime": 2309.3010000002323
+          },
+          {
+            "t": 2354.2000000001863,
+            "attempt": 2,
+            "stage": "description",
+            "type": "transitionrun",
+            "elapsedTime": 0,
+            "delay": 250,
+            "duration": 220,
+            "startTime": 2309.3010000002323
+          },
+          {
+            "t": 2354.2000000001863,
+            "attempt": 2,
+            "stage": "controls",
+            "type": "transitionrun",
+            "elapsedTime": 0,
+            "delay": 290,
+            "duration": 220,
+            "startTime": 2309.3010000002323
+          },
+          {
+            "t": 2500.9000000003725,
+            "attempt": 2,
+            "stage": "title",
+            "type": "transitionstart",
+            "elapsedTime": 0,
+            "delay": 170,
+            "duration": 220,
+            "startTime": 2309.3010000002323
+          },
+          {
+            "t": 2527.9000000003725,
+            "attempt": 2,
+            "stage": "metadata",
+            "type": "transitionstart",
+            "elapsedTime": 0,
+            "delay": 210,
+            "duration": 220,
+            "startTime": 2309.3010000002323
+          },
+          {
+            "t": 2576.7000000001863,
+            "attempt": 2,
+            "stage": "description",
+            "type": "transitionstart",
+            "elapsedTime": 0,
+            "delay": 250,
+            "duration": 220,
+            "startTime": 2309.3010000002323
+          },
+          {
+            "t": 2619,
+            "attempt": 2,
+            "stage": "controls",
+            "type": "transitionstart",
+            "elapsedTime": 0,
+            "delay": 290,
+            "duration": 220,
+            "startTime": 2309.3010000002323
+          }
+        ],
+        "routeSignals": [
+          {
+            "active": true,
+            "t": 2079.0999999996275
+          },
+          {
+            "active": false,
+            "t": 2264.4000000003725
+          }
+        ]
+      },
+      "navigation": {
+        "windows": [
+          {
+            "duration": 159.70000000018626,
+            "start": 4137.5,
+            "textDelays": {
+              "metadata": 210,
+              "title": 170
+            },
+            "initialEchoes": [
+              {
+                "name": "vanta-entry-echo-one",
+                "time": 0
+              },
+              {
+                "name": "vanta-entry-echo-two",
+                "time": 0
+              }
+            ],
+            "lifecycle": {
+              "attempt": 1,
+              "start": 4137.0999999996275,
+              "echoes": [
+                {
+                  "name": "vanta-entry-echo-one",
+                  "initialTime": 0,
+                  "duration": 155,
+                  "playState": "paused",
+                  "keyframes": [
+                    {
+                      "offset": 0,
+                      "opacity": "0"
+                    },
+                    {
+                      "offset": 0.18,
+                      "opacity": "0.74"
+                    },
+                    {
+                      "offset": 0.42,
+                      "opacity": "0.5"
+                    },
+                    {
+                      "offset": 0.7,
+                      "opacity": "0.12"
+                    },
+                    {
+                      "offset": 1,
+                      "opacity": "0"
+                    }
+                  ],
+                  "titleOpacity": 0,
+                  "scoped": true,
+                  "count": 1
+                },
+                {
+                  "name": "vanta-entry-echo-two",
+                  "initialTime": 0,
+                  "duration": 155,
+                  "playState": "paused",
+                  "keyframes": [
+                    {
+                      "offset": 0,
+                      "opacity": "0"
+                    },
+                    {
+                      "offset": 0.3,
+                      "opacity": "0.58"
+                    },
+                    {
+                      "offset": 0.52,
+                      "opacity": "0.32"
+                    },
+                    {
+                      "offset": 0.74,
+                      "opacity": "0.08"
+                    },
+                    {
+                      "offset": 1,
+                      "opacity": "0"
+                    }
+                  ],
+                  "titleOpacity": 0,
+                  "scoped": true,
+                  "count": 1
+                }
+              ],
+              "progress": [
+                {
+                  "t": 4137.299999999814,
+                  "name": "vanta-entry-echo-one",
+                  "time": 0
+                },
+                {
+                  "t": 4137.4000000003725,
+                  "name": "vanta-entry-echo-two",
+                  "time": 0
+                },
+                {
+                  "t": 4182.700000000186,
+                  "name": "vanta-entry-echo-one",
+                  "time": 45.299999999813735
+                },
+                {
+                  "t": 4182.700000000186,
+                  "name": "vanta-entry-echo-two",
+                  "time": 45.299999999813735
+                },
+                {
+                  "t": 4217.799999999814,
+                  "name": "vanta-entry-echo-one",
+                  "time": 80.29999999981374
+                },
+                {
+                  "t": 4217.799999999814,
+                  "name": "vanta-entry-echo-two",
+                  "time": 80.29999999981374
+                },
+                {
+                  "t": 4264,
+                  "name": "vanta-entry-echo-one",
+                  "time": 126.59999999962747
+                },
+                {
+                  "t": 4264,
+                  "name": "vanta-entry-echo-two",
+                  "time": 126.59999999962747
+                },
+                {
+                  "t": 4297.0999999996275,
+                  "name": "vanta-entry-echo-one",
+                  "time": 155
+                },
+                {
+                  "t": 4297.0999999996275,
+                  "name": "vanta-entry-echo-two",
+                  "time": 155
+                }
+              ],
+              "closed": true,
+              "end": 4297.200000000186
+            },
+            "intermediateWritesObserved": 6
+          }
+        ],
+        "textStarts": [
+          {
+            "t": 4427.200000000186,
+            "attempt": 1,
+            "stage": "metadata",
+            "type": "transitionstart",
+            "elapsedTime": 0,
+            "delay": 210,
+            "duration": 220,
+            "startTime": 4209.224999999606
+          },
+          {
+            "t": 4427.299999999814,
+            "attempt": 1,
+            "stage": "title",
+            "type": "transitionstart",
+            "elapsedTime": 0,
+            "delay": 170,
+            "duration": 220,
+            "startTime": 4209.224999999606
+          }
+        ],
+        "transitions": [
+          {
+            "t": 4263.5,
+            "attempt": 1,
+            "stage": "media",
+            "type": "transitionend",
+            "elapsedTime": 0.22,
+            "delay": 0,
+            "duration": 220,
+            "startTime": 4025.8990000002086
+          },
+          {
+            "t": 4263.700000000186,
+            "attempt": 1,
+            "stage": "metadata",
+            "type": "transitionrun",
+            "elapsedTime": 0,
+            "delay": 210,
+            "duration": 220,
+            "startTime": 4209.224999999606
+          },
+          {
+            "t": 4263.799999999814,
+            "attempt": 1,
+            "stage": "title",
+            "type": "transitionrun",
+            "elapsedTime": 0,
+            "delay": 170,
+            "duration": 220,
+            "startTime": 4209.224999999606
+          },
+          {
+            "t": 4427.200000000186,
+            "attempt": 1,
+            "stage": "metadata",
+            "type": "transitionstart",
+            "elapsedTime": 0,
+            "delay": 210,
+            "duration": 220,
+            "startTime": 4209.224999999606
+          },
+          {
+            "t": 4427.299999999814,
+            "attempt": 1,
+            "stage": "title",
+            "type": "transitionstart",
+            "elapsedTime": 0,
+            "delay": 170,
+            "duration": 220,
+            "startTime": 4209.224999999606
+          }
+        ],
+        "routeSignals": []
+      },
+      "energies": {
+        "slow": 0.016,
+        "normal": 0.126,
+        "fast": 0.688
+      },
+      "focus": "passed",
+      "reducedMotion": "passed",
+      "overflow": "passed"
+    }
+  ],
+  "assertions": "passed",
+  "exceptions": []
+}

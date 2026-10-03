@@ -13,7 +13,7 @@ Headless frame delivery can also have gaps exceeding 100ms. A first-observed tex
 
 **Why:** A fixed wall-clock tolerance incorrectly rejected correctly configured text delays when the browser delivered no intermediate observation frame.
 
-**How to apply:** Assert the actual release boundary and configured delay separately; retain frame samples and account for observed frame gaps when checking the first visible text sample.
+**How to apply:** Assert the actual release boundary and native transition effect timing separately. Prefer lifecycle events and the application's observed animation-timeline writes to short polling windows; retain delivered-frame coverage as evidence, not a mandatory sample count.
 
 Timing-dependent entry checks can fail on an untouched baseline as well as a
 candidate in the same headless-browser setup.
@@ -25,3 +25,26 @@ a new application regression.
 **How to apply:** Compare an untouched baseline before changing previously
 accepted timings or weakening assertions. Retain failed observations and report
 the preservation check as blocked: baseline failure is not a passing result.
+
+Transition events for separate targets may be delivered together in DOM order,
+even when their intrinsic delays differ.
+
+**Why:** Receipt ordering falsely reversed title and metadata assembly on a
+preserved baseline; native transition start times and delays retained the
+correct order.
+
+**How to apply:** Compare native effect `startTime + delay`, not listener receipt
+times. Passive setter instrumentation can observe manually driven paused
+effects; never seek or drive their clocks to manufacture a passing result.
+Distinguish programmatic completion from visible intermediate-frame coverage.
+
+CDP screenshot capture can make a minimized document visible again.
+
+**Why:** A genuinely hidden renderer resumed between paired captures, so their
+GPU animation times differed despite identical paused CSS clocks.
+
+**How to apply:** Test real hidden-state pause separately from capture. For exact
+visual pairs, hold only the identified renderer's next callback in test code,
+pause settled CSS, and assert identical shader/CSS times and scroll before and
+after. Resume with a fresh native frame timestamp; leave production lifecycle
+and eligibility untouched.

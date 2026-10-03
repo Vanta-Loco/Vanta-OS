@@ -7,5 +7,5 @@
 - [Mobile overflow verification](mobile-overflow-verification.md) — compare page width to the configured device width; mobile emulation may expand innerWidth to fit overflowing content.
 - [Scene composition constraints](vanta-scene-composition.md) — one visibility owner per composition; entrance/hover planes separate; media-entry signals stay frame-local.
 - [Media fade progress bounds](media-fade-progress.md) — clamp animation progress at both ends before assigning bounded DOM media values.
-- [Headless CSS animation timing](headless-css-animation-timing.md) — a visible CDP tab can delay CSS animation readiness and jump its timeline; do not gate text indefinitely on ready.
+- [Headless CSS animation timing](headless-css-animation-timing.md) — use native lifecycle/timeline boundaries, not short polling; screenshots can undo hidden state during paired captures.
 - [Headless device capabilities](headless-device-capabilities.md) — desktop size does not imply a fine pointer; configure actual capabilities and distinguish software WebGL from GPU benchmarks.

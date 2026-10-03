@@ -1,6 +1,10 @@
 # Phase 6 verification
 
-## Acceptance status: blocked; named checkpoint withheld
+## Historical acceptance status: blocked; superseded by Phase 6.1
+
+This records the original blocked verification attempt. The corrected verifier
+has since passed against the untouched baseline and tuned candidate; see
+[`../phase6-1/README.md`](../phase6-1/README.md) for current acceptance evidence.
 
 The Home-only prototype is implemented and its focused checks passed. The
 unchanged Phase 5.1.1 Transmission verifier did **not** pass, so the requested

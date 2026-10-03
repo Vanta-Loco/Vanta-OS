@@ -74,8 +74,8 @@ export function createStudioScene(canvas: HTMLCanvasElement): StudioScene {
     colors[i * 3] = tint.r;
     colors[i * 3 + 1] = tint.g;
     colors[i * 3 + 2] = tint.b;
-    sizes[i] = 1.15 + random() * 1.7;
-    opacities[i] = 0.10 + random() * 0.18;
+    sizes[i] = 1.55 + random() * 2.15;
+    opacities[i] = 0.16 + random() * 0.20;
     phases[i] = random() * Math.PI * 2;
   }
   // Keep source UVs immutable across repeat resize/orientation changes.
@@ -110,17 +110,19 @@ export function createStudioScene(canvas: HTMLCanvasElement): StudioScene {
       varying float vAlpha;
       void main() {
         vec3 p = position;
-        float drift = uTime * (0.12 + aDepth * 0.10) + aPhase;
-        p.x += sin(drift) * 0.0018;
-        p.y += cos(drift * 0.73) * 0.0022;
+        // A few screen pixels of slow, depth-dependent travel reads as air;
+        // the staggered rates keep the cloud from moving like one flat layer.
+        float drift = uTime * (0.42 + aDepth * 0.48) + aPhase;
+        p.x += sin(drift) * (0.0034 + aDepth * 0.0022);
+        p.y += cos(drift * 0.73) * (0.0040 + aDepth * 0.0028);
         p.x += uPointer.x * (aDepth - 0.5) * 0.008;
         p.y -= uPointer.y * (aDepth - 0.5) * 0.006;
         vec4 mvPosition = modelViewMatrix * vec4(p, 1.0);
         gl_Position = projectionMatrix * mvPosition;
-        float depthScale = mix(0.78, 1.18, aDepth);
+        float depthScale = mix(0.82, 1.24, aDepth);
         gl_PointSize = aSize * uPixelRatio * depthScale;
         vColor = aColor;
-        float shimmer = 0.90 + 0.10 * sin(drift * 1.25);
+        float shimmer = 0.82 + 0.18 * sin(drift * 1.25);
         vAlpha = aOpacity * shimmer * (1.0 + uEnergy * 0.12);
       }
     `,
@@ -216,8 +218,8 @@ export function createStudioScene(canvas: HTMLCanvasElement): StudioScene {
       void main() {
         float across = pow(max(0.0, sin(vUv.x * 3.14159265)), 2.15);
         float ends = smoothstep(0.0, 0.14, vUv.y) * (1.0 - smoothstep(0.78, 1.0, vUv.y));
-        float breath = 0.94 + 0.06 * sin(uTime * 0.22 + vUv.y * 3.0);
-        float alpha = across * ends * vStrength * 0.105 * breath * (1.0 + uEnergy * 0.08);
+        float breath = 0.87 + 0.13 * sin(uTime * 0.42 + vUv.y * 3.0);
+        float alpha = across * ends * vStrength * 0.18 * breath * (1.0 + uEnergy * 0.08);
         if (alpha < 0.002) discard;
         vec3 warmRay = vec3(0.98, 0.80, 0.59);
         gl_FragColor = vec4(warmRay, alpha);

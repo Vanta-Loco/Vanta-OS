@@ -54,6 +54,8 @@ try {
   const result = { assertions: "passed", pointer: { observedNonzeroGpuValues: true, normalizedBound: 1, imageGeometryUnchanged: true },
     scroll: { observedNonzeroGpuValues: true, maximumObservedEnergy: Math.max(...energy), settledEnergy: currentEnergy },
     keyboard: "passed", exceptions: p.exceptions };
-  await fs.writeFile("verification/phase6/inputs.json", JSON.stringify(result, null, 2));
+  const out = process.env.PHASE6_TEST_OUTPUT || "verification/phase6-1";
+  await fs.mkdir(out, { recursive: true });
+  await fs.writeFile(`${out}/inputs.json`, JSON.stringify(result, null, 2));
   console.log(JSON.stringify(result));
 } finally { await p.close(); }
