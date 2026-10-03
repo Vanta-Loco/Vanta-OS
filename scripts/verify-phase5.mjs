@@ -1,12 +1,14 @@
 // Dependency-free browser regression checks using the project's existing ws package.
-// Start Chrome with --remote-debugging-port=9223 and run against the development app.
+// Start Chrome with --remote-debugging-port=9223. Prefer a freshly built production preview.
+// PHASE511_FOCUSED=1 runs only the desktop/phone Transmission hardening checks.
 import WebSocket from "ws";
 import fs from "node:fs/promises";
 import assert from "node:assert/strict";
+import { verifyTransmissionHandoff } from "./verify-transmission-handoff.mjs";
 
 const origin = process.env.PHASE5_TEST_URL || `https://${process.env.REPLIT_DEV_DOMAIN}`;
 const debug = process.env.CHROME_DEBUG_URL || "http://127.0.0.1:9223";
-const out = "/tmp/vanta-phase5-1-polish";
+const out = process.env.PHASE5_TEST_OUTPUT || "/tmp/vanta-phase5-1-polish";
 await fs.mkdir(out, { recursive: true });
 const target = await (await fetch(`${debug}/json/new?about:blank`, { method: "PUT" })).json();
 const ws = new WebSocket(target.webSocketDebuggerUrl);
@@ -93,6 +95,10 @@ const routes = [["home", "/"], ["releases", "/releases"], ["worlds", "/worlds"],
   .filter(([name]) => !process.env.PHASE5_TEST_PAGES || process.env.PHASE5_TEST_PAGES.split(",").includes(name));
 const results = [];
 try {
+  const handoff = () => verifyTransmissionHandoff({ send, evaluate, until, sleep, screenshot, visible, navigate, origin, post });
+  if (process.env.PHASE511_FOCUSED === "1") {
+    results.push(...await handoff());
+  } else {
   for (const phone of [false, true]) {
     const width = phone ? 390 : 1280;
     await send("Emulation.setDeviceMetricsOverride", { width, height: phone ? 844 : 900, deviceScaleFactor: 1, mobile: phone });
@@ -129,7 +135,7 @@ try {
         assert.equal(await evaluate("document.querySelectorAll('[data-scene-entry-lock]').length"), 0);
         const order = await evaluate(`[...document.querySelector('[data-scene-media-lock] .vanta-transmission-content').querySelectorAll('[data-scene-stage]')].map(e => [e.dataset.sceneStage, parseFloat(getComputedStyle(e).transitionDelay) * 1000])`);
         const delays = Object.fromEntries(order);
-        assert.ok(delays.title > (phone ? 245 : 295));
+        assert.equal(Math.round(delays.title), phone ? 170 : 180);
         assert.ok(delays.title < delays.metadata && delays.metadata < delays.description && delays.description < delays.controls);
         await screenshot(`${phone ? "phone" : "desktop"}-home-featured`);
         // Once revealed, scrolling away and back must not dispatch a second lock.
@@ -199,31 +205,7 @@ try {
     }
   }
   if (routes.some(([name]) => name === "transmission")) {
-    // Observe a real article arrival before the usual 1600ms settle delay.
-    const watch = await send("Page.addScriptToEvaluateOnNewDocument", { source: `
-      window.__phase51 = [];
-      new MutationObserver(records => {
-        for (const r of records) {
-          if (r.attributeName === 'data-scene-entry-lock') {
-            window.__phase51.push({ active: r.target.hasAttribute('data-scene-entry-lock'),
-              t: performance.now(), global: document.querySelector('.vanta-environment-root')?.dataset.vantaSignalActive,
-              scoped: !!r.target.closest('[data-scene-media-lock]') });
-          }
-        }
-      }).observe(document, {subtree:true, attributes:true, attributeFilter:['data-scene-entry-lock']});
-    ` });
-    for (const phone of [false, true]) {
-      await send("Emulation.setDeviceMetricsOverride", { width: phone ? 390 : 1280, height: phone ? 844 : 900, deviceScaleFactor: 1, mobile: phone });
-      await send("Page.navigate", { url: `${origin}/post/${post.id}` });
-      await until("window.__phase51?.some(e => !e.active) && window.__phase51?.some(e => e.active)", 12000);
-      const events = await evaluate("window.__phase51");
-      const entry = events.find((e) => e.active);
-      const exit = events.find((e) => !e.active);
-      assert.ok(entry.scoped && entry.global !== "true", "Article lock should begin locally after the route signal");
-      assert.ok(exit.t - entry.t >= 140 && exit.t - entry.t < 350, "Article lock should keep its 155ms window");
-      await visible(phone ? 390 : 1280);
-    }
-    await send("Page.removeScriptToEvaluateOnNewDocument", { identifier: watch.identifier });
+    results.push(...await handoff());
   }
   if (routes.some(([name]) => name === "home")) {
     // Hold the route-level flag while revealing featured media, then hand it off.
@@ -313,9 +295,16 @@ try {
     await screenshot(`${phone ? "phone" : "desktop"}-os-after-boot`);
   }
   await send("Page.removeScriptToEvaluateOnNewDocument", { identifier: boot.identifier });
+  }
   assert.deepEqual(exceptions, [], "No browser exceptions");
   await fs.writeFile(`${out}/results.json`, JSON.stringify({ results, assertions: "passed", exceptions }, null, 2));
-  console.log(`PASS: all Phase5 browser checks; screenshots and results in ${out}`);
+  await fs.rm(`${out}/failure.json`, { force: true });
+  console.log(`PASS: ${process.env.PHASE511_FOCUSED === "1" ? "focused Phase 5.1.1 Transmission" : "all Phase5"} browser checks; screenshots and results in ${out}`);
+} catch (error) {
+  await fs.writeFile(`${out}/failure.json`, JSON.stringify({
+    error: error.stack, results, exceptions, handoff: await evaluate("window.__handoff").catch(() => null),
+  }, null, 2));
+  throw error;
 } finally {
   ws.close();
   await fetch(`${debug}/json/close/${target.id}`);

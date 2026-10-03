@@ -1241,24 +1241,46 @@
 .vanta-scene-stage[data-scene-stage="description"] { --scene-stage-delay: 220ms; }
 .vanta-scene-stage[data-scene-stage="controls"] { --scene-stage-delay: 280ms; }
 
-/* Media first, local 140–295ms lock, then original text. Echo text stays clean. */
-.vanta-scene-reveal[data-scene-media-lock="true"] [data-scene-stage="title"] { --scene-stage-delay: 320ms; }
-.vanta-scene-reveal[data-scene-media-lock="true"] [data-scene-stage="metadata"] { --scene-stage-delay: 390ms; }
-.vanta-scene-reveal[data-scene-media-lock="true"] [data-scene-stage="description"] { --scene-stage-delay: 455ms; }
-.vanta-scene-reveal[data-scene-media-lock="true"] [data-scene-stage="controls"] { --scene-stage-delay: 520ms; }
+/* Hold original text until the actual local start, including interrupted attempts. */
+.vanta-scene-reveal[data-scene-text-hold="true"] .vanta-transmission-content [data-scene-stage]:not([data-scene-stage="media"]) {
+  opacity: 0;
+  transform: translate3d(0, var(--scene-travel), 0);
+  transition: none;
+}
+.vanta-scene-reveal[data-scene-media-lock="true"] .vanta-transmission-content [data-scene-stage]:not([data-scene-stage="media"]) {
+  transition-delay: var(--scene-stage-delay);
+}
+/* Preserve the previous pacing, measured from local start rather than scene reveal. */
+.vanta-scene-reveal[data-scene-media-lock="true"] [data-scene-stage="title"] { --scene-stage-delay: 180ms; }
+.vanta-scene-reveal[data-scene-media-lock="true"] [data-scene-stage="metadata"] { --scene-stage-delay: 250ms; }
+.vanta-scene-reveal[data-scene-media-lock="true"] [data-scene-stage="description"] { --scene-stage-delay: 315ms; }
+.vanta-scene-reveal[data-scene-media-lock="true"] [data-scene-stage="controls"] { --scene-stage-delay: 380ms; }
 
-.vanta-environment-root:not([data-vanta-signal-active="true"]) .vanta-transmission-frame[data-scene-entry-lock="true"]:not(:hover):not(:focus-within) > .vanta-transmission-screen > .vanta-signal-echo {
+@keyframes vanta-entry-echo-one {
+  0%, 100% { opacity: 0; transform: translateX(0); filter: brightness(1); }
+  18% { opacity: .74; transform: translateX(calc(var(--vanta-signal-split, 8px) * -1)); filter: brightness(1.18); }
+  42% { opacity: .5; transform: translateX(var(--vanta-signal-split, 8px)); filter: brightness(1.08); }
+  70% { opacity: .12; transform: translateX(-2px); }
+}
+@keyframes vanta-entry-echo-two {
+  0%, 100% { opacity: 0; transform: translateX(0); }
+  30% { opacity: .58; transform: translateX(var(--vanta-signal-split, 8px)); }
+  52% { opacity: .32; transform: translateX(calc(var(--vanta-signal-split, 8px) * -1)); }
+  74% { opacity: .08; transform: translateX(1px); }
+}
+
+.vanta-environment-root:not([data-vanta-signal-active="true"]) .vanta-transmission-frame[data-scene-entry-lock="true"]:not(:focus-within) > .vanta-transmission-screen > .vanta-signal-echo {
   display: block;
   --vanta-signal-duration: 155ms;
   --vanta-signal-split: 8px;
 }
-.vanta-environment-root:not([data-vanta-signal-active="true"]) .vanta-transmission-frame[data-scene-entry-lock="true"]:not(:hover):not(:focus-within) > .vanta-transmission-screen > .vanta-signal-echo-one {
-  animation: vanta-signal-echo-one 155ms steps(4, end) both;
+.vanta-environment-root:not([data-vanta-signal-active="true"]) .vanta-transmission-frame[data-scene-entry-lock="true"]:not(:focus-within) > .vanta-transmission-screen > .vanta-signal-echo-one {
+  animation: vanta-entry-echo-one 155ms steps(4, end) both paused;
 }
-.vanta-environment-root:not([data-vanta-signal-active="true"]) .vanta-transmission-frame[data-scene-entry-lock="true"]:not(:hover):not(:focus-within) > .vanta-transmission-screen > .vanta-signal-echo-two {
-  animation: vanta-signal-echo-two 155ms steps(4, end) both;
+.vanta-environment-root:not([data-vanta-signal-active="true"]) .vanta-transmission-frame[data-scene-entry-lock="true"]:not(:focus-within) > .vanta-transmission-screen > .vanta-signal-echo-two {
+  animation: vanta-entry-echo-two 155ms steps(4, end) both paused;
 }
-.vanta-environment-root:not([data-vanta-signal-active="true"]) .vanta-transmission-frame[data-scene-entry-lock="true"]:not(:hover):not(:focus-within) .vanta-signal-echo [data-scene-stage]:not([data-scene-stage="media"]) {
+.vanta-environment-root:not([data-vanta-signal-active="true"]) .vanta-transmission-frame[data-scene-entry-lock="true"]:not(:focus-within) .vanta-signal-echo [data-scene-stage]:not([data-scene-stage="media"]) {
   visibility: hidden;
 }
 
@@ -1497,10 +1519,10 @@
   .vanta-scene-stage[data-scene-stage="metadata"] { --scene-stage-delay: 100ms; }
   .vanta-scene-stage[data-scene-stage="description"] { --scene-stage-delay: 140ms; }
   .vanta-scene-stage[data-scene-stage="controls"] { --scene-stage-delay: 180ms; }
-  .vanta-scene-reveal[data-scene-media-lock="true"] [data-scene-stage="title"] { --scene-stage-delay: 260ms; }
-  .vanta-scene-reveal[data-scene-media-lock="true"] [data-scene-stage="metadata"] { --scene-stage-delay: 300ms; }
-  .vanta-scene-reveal[data-scene-media-lock="true"] [data-scene-stage="description"] { --scene-stage-delay: 340ms; }
-  .vanta-scene-reveal[data-scene-media-lock="true"] [data-scene-stage="controls"] { --scene-stage-delay: 380ms; }
+  .vanta-scene-reveal[data-scene-media-lock="true"] [data-scene-stage="title"] { --scene-stage-delay: 170ms; }
+  .vanta-scene-reveal[data-scene-media-lock="true"] [data-scene-stage="metadata"] { --scene-stage-delay: 210ms; }
+  .vanta-scene-reveal[data-scene-media-lock="true"] [data-scene-stage="description"] { --scene-stage-delay: 250ms; }
+  .vanta-scene-reveal[data-scene-media-lock="true"] [data-scene-stage="controls"] { --scene-stage-delay: 290ms; }
 
   .vanta-living-scene {
     overflow: clip;
