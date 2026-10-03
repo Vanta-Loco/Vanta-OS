@@ -1,0 +1,1281 @@
+{
+  "engine": "webkit",
+  "capabilities": {
+    "browserName": "MiniBrowser",
+    "browserVersion": "2.40.2",
+    "platformName": "linux",
+    "acceptInsecureCerts": false,
+    "strictFileInteractability": false,
+    "setWindowRect": true,
+    "unhandledPromptBehavior": "dismiss and notify",
+    "pageLoadStrategy": "normal",
+    "proxy": {},
+    "timeouts": {
+      "script": 30000,
+      "pageLoad": 300000,
+      "implicit": 0
+    }
+  },
+  "origin": "http://127.0.0.1:5000",
+  "cases": [
+    {
+      "name": "desktop-home",
+      "state": {
+        "studioDisposed": "true",
+        "studioState": "fallback",
+        "studioReason": "webgl-unavailable"
+      },
+      "desktop": {
+        "fine": true,
+        "reduced": false,
+        "width": 1280,
+        "coarse": false,
+        "overflow": 1280
+      },
+      "geometry": {
+        "title": {
+          "x": 32.953125,
+          "width": 894.578125,
+          "left": 32.953125,
+          "right": 927.53125,
+          "top": 409.03192138671875,
+          "height": 72,
+          "y": 409.03192138671875,
+          "bottom": 481.03192138671875
+        },
+        "image": "cover",
+        "scrollY": 0,
+        "hidden": false,
+        "hero": {
+          "x": 0,
+          "width": 1280,
+          "left": 0,
+          "right": 1280,
+          "top": 0,
+          "height": 765,
+          "y": 0,
+          "bottom": 765
+        },
+        "cssLight": true
+      }
+    },
+    {
+      "name": "native-mouse-keyboard-scroll",
+      "imageGeometryUnchanged": true,
+      "decorativeCanvasNeverFocused": true,
+      "wheel": "native",
+      "energy": 0.005,
+      "passed": true
+    },
+    {
+      "name": "desktop-transmission",
+      "ledger": {
+        "observerErrors": [],
+        "textSamples": [],
+        "textStarts": [
+          {
+            "elapsedTime": 0,
+            "attempt": 1,
+            "startTime": 8769,
+            "stage": "title",
+            "t": 9034,
+            "type": "transitionstart",
+            "duration": 360,
+            "delay": 180
+          },
+          {
+            "elapsedTime": 0,
+            "attempt": 1,
+            "startTime": 8769,
+            "stage": "metadata",
+            "t": 9034,
+            "type": "transitionstart",
+            "duration": 360,
+            "delay": 250
+          },
+          {
+            "elapsedTime": 0,
+            "attempt": 1,
+            "startTime": 8769,
+            "stage": "description",
+            "t": 9253,
+            "type": "transitionstart",
+            "duration": 360,
+            "delay": 315
+          },
+          {
+            "elapsedTime": 0,
+            "attempt": 1,
+            "startTime": 8769,
+            "stage": "controls",
+            "t": 9253,
+            "type": "transitionstart",
+            "duration": 360,
+            "delay": 380
+          }
+        ],
+        "locks": [
+          {
+            "attempt": 1,
+            "echoes": [
+              {
+                "name": "vanta-entry-echo-one",
+                "time": 0
+              },
+              {
+                "name": "vanta-entry-echo-two",
+                "time": 0
+              }
+            ],
+            "count": 1,
+            "active": true,
+            "t": 8581,
+            "scoped": true,
+            "global": null
+          },
+          {
+            "attempt": 1,
+            "echoes": [
+              {
+                "name": "none",
+                "time": null
+              },
+              {
+                "name": "none",
+                "time": null
+              }
+            ],
+            "count": 0,
+            "active": false,
+            "t": 8775,
+            "scoped": true,
+            "global": null
+          }
+        ],
+        "windows": [
+          {
+            "attempt": 1,
+            "echoes": [
+              {
+                "global": null,
+                "count": 1,
+                "keyframes": [
+                  {
+                    "opacity": "0",
+                    "offset": 0
+                  },
+                  {
+                    "opacity": "0.74",
+                    "offset": 0.18
+                  },
+                  {
+                    "opacity": "0.5",
+                    "offset": 0.42
+                  },
+                  {
+                    "opacity": "0.12",
+                    "offset": 0.7
+                  },
+                  {
+                    "opacity": "0",
+                    "offset": 1
+                  }
+                ],
+                "name": "vanta-entry-echo-one",
+                "duration": 155,
+                "initialTime": 0,
+                "playState": "paused",
+                "titleOpacity": 0,
+                "scoped": true
+              },
+              {
+                "global": null,
+                "count": 1,
+                "keyframes": [
+                  {
+                    "opacity": "0",
+                    "offset": 0
+                  },
+                  {
+                    "opacity": "0.58",
+                    "offset": 0.3
+                  },
+                  {
+                    "opacity": "0.32",
+                    "offset": 0.52
+                  },
+                  {
+                    "opacity": "0.08",
+                    "offset": 0.74
+                  },
+                  {
+                    "opacity": "0",
+                    "offset": 1
+                  }
+                ],
+                "name": "vanta-entry-echo-two",
+                "duration": 155,
+                "initialTime": 0,
+                "playState": "paused",
+                "titleOpacity": 0,
+                "scoped": true
+              }
+            ],
+            "closed": true,
+            "end": 8775,
+            "start": 8580,
+            "progress": [
+              {
+                "name": "vanta-entry-echo-one",
+                "t": 8581,
+                "time": 0
+              },
+              {
+                "name": "vanta-entry-echo-two",
+                "t": 8581,
+                "time": 0
+              },
+              {
+                "name": "vanta-entry-echo-one",
+                "t": 8775,
+                "time": 155
+              },
+              {
+                "name": "vanta-entry-echo-two",
+                "t": 8775,
+                "time": 155
+              }
+            ]
+          }
+        ],
+        "signals": [],
+        "releases": [
+          {
+            "delays": {
+              "title": 180,
+              "metadata": 250,
+              "controls": 380,
+              "description": 315
+            },
+            "t": 8581,
+            "attempt": 1
+          }
+        ],
+        "samples": [],
+        "transitions": [
+          {
+            "elapsedTime": 0,
+            "attempt": 1,
+            "startTime": 8769,
+            "stage": "title",
+            "t": 8774,
+            "type": "transitionrun",
+            "duration": 360,
+            "delay": 180
+          },
+          {
+            "elapsedTime": 0,
+            "attempt": 1,
+            "startTime": 8769,
+            "stage": "metadata",
+            "t": 8775,
+            "type": "transitionrun",
+            "duration": 360,
+            "delay": 250
+          },
+          {
+            "elapsedTime": 0,
+            "attempt": 1,
+            "startTime": 8769,
+            "stage": "description",
+            "t": 8775,
+            "type": "transitionrun",
+            "duration": 360,
+            "delay": 315
+          },
+          {
+            "elapsedTime": 0,
+            "attempt": 1,
+            "startTime": 8769,
+            "stage": "controls",
+            "t": 8775,
+            "type": "transitionrun",
+            "duration": 360,
+            "delay": 380
+          },
+          {
+            "elapsedTime": 0.36,
+            "attempt": 1,
+            "startTime": 8527,
+            "stage": "media",
+            "t": 9034,
+            "type": "transitionend",
+            "duration": 360,
+            "delay": 0
+          },
+          {
+            "elapsedTime": 0,
+            "attempt": 1,
+            "startTime": 8769,
+            "stage": "title",
+            "t": 9034,
+            "type": "transitionstart",
+            "duration": 360,
+            "delay": 180
+          },
+          {
+            "elapsedTime": 0,
+            "attempt": 1,
+            "startTime": 8769,
+            "stage": "metadata",
+            "t": 9034,
+            "type": "transitionstart",
+            "duration": 360,
+            "delay": 250
+          },
+          {
+            "elapsedTime": 0,
+            "attempt": 1,
+            "startTime": 8769,
+            "stage": "description",
+            "t": 9253,
+            "type": "transitionstart",
+            "duration": 360,
+            "delay": 315
+          },
+          {
+            "elapsedTime": 0,
+            "attempt": 1,
+            "startTime": 8769,
+            "stage": "controls",
+            "t": 9253,
+            "type": "transitionstart",
+            "duration": 360,
+            "delay": 380
+          },
+          {
+            "elapsedTime": 0.36,
+            "attempt": 1,
+            "startTime": 8769,
+            "stage": "title",
+            "t": 9560,
+            "type": "transitionend",
+            "duration": 360,
+            "delay": 180
+          },
+          {
+            "elapsedTime": 0.36,
+            "attempt": 1,
+            "startTime": 8769,
+            "stage": "metadata",
+            "t": 9560,
+            "type": "transitionend",
+            "duration": 360,
+            "delay": 250
+          },
+          {
+            "elapsedTime": 0.36,
+            "attempt": 1,
+            "startTime": 8769,
+            "stage": "description",
+            "t": 9561,
+            "type": "transitionend",
+            "duration": 360,
+            "delay": 315
+          },
+          {
+            "elapsedTime": 0.36,
+            "attempt": 1,
+            "startTime": 8769,
+            "stage": "controls",
+            "t": 9561,
+            "type": "transitionend",
+            "duration": 360,
+            "delay": 380
+          }
+        ]
+      },
+      "article": {
+        "observerErrors": [],
+        "textSamples": [],
+        "textStarts": [
+          {
+            "elapsedTime": 0,
+            "attempt": 1,
+            "startTime": 11701,
+            "stage": "title",
+            "t": 11974,
+            "type": "transitionstart",
+            "duration": 360,
+            "delay": 180
+          },
+          {
+            "elapsedTime": 0,
+            "attempt": 1,
+            "startTime": 11701,
+            "stage": "metadata",
+            "t": 11974,
+            "type": "transitionstart",
+            "duration": 360,
+            "delay": 250
+          }
+        ],
+        "locks": [
+          {
+            "attempt": 1,
+            "echoes": [
+              {
+                "name": "vanta-entry-echo-one",
+                "time": 0
+              },
+              {
+                "name": "vanta-entry-echo-two",
+                "time": 0
+              }
+            ],
+            "count": 1,
+            "active": true,
+            "t": 11554,
+            "scoped": true,
+            "global": null
+          },
+          {
+            "attempt": 1,
+            "echoes": [
+              {
+                "name": "none",
+                "time": null
+              },
+              {
+                "name": "none",
+                "time": null
+              }
+            ],
+            "count": 0,
+            "active": false,
+            "t": 11975,
+            "scoped": true,
+            "global": null
+          }
+        ],
+        "windows": [
+          {
+            "attempt": 1,
+            "echoes": [
+              {
+                "global": null,
+                "count": 1,
+                "keyframes": [
+                  {
+                    "opacity": "0",
+                    "offset": 0
+                  },
+                  {
+                    "opacity": "0.74",
+                    "offset": 0.18
+                  },
+                  {
+                    "opacity": "0.5",
+                    "offset": 0.42
+                  },
+                  {
+                    "opacity": "0.12",
+                    "offset": 0.7
+                  },
+                  {
+                    "opacity": "0",
+                    "offset": 1
+                  }
+                ],
+                "name": "vanta-entry-echo-one",
+                "duration": 155,
+                "initialTime": 0,
+                "playState": "paused",
+                "titleOpacity": 0,
+                "scoped": true
+              },
+              {
+                "global": null,
+                "count": 1,
+                "keyframes": [
+                  {
+                    "opacity": "0",
+                    "offset": 0
+                  },
+                  {
+                    "opacity": "0.58",
+                    "offset": 0.3
+                  },
+                  {
+                    "opacity": "0.32",
+                    "offset": 0.52
+                  },
+                  {
+                    "opacity": "0.08",
+                    "offset": 0.74
+                  },
+                  {
+                    "opacity": "0",
+                    "offset": 1
+                  }
+                ],
+                "name": "vanta-entry-echo-two",
+                "duration": 155,
+                "initialTime": 0,
+                "playState": "paused",
+                "titleOpacity": 0,
+                "scoped": true
+              }
+            ],
+            "closed": true,
+            "end": 11975,
+            "start": 11553,
+            "progress": [
+              {
+                "name": "vanta-entry-echo-one",
+                "t": 11553,
+                "time": 0
+              },
+              {
+                "name": "vanta-entry-echo-two",
+                "t": 11554,
+                "time": 0
+              },
+              {
+                "time": 150,
+                "ancestorOpacity": 1,
+                "name": "vanta-entry-echo-one",
+                "t": 11704,
+                "inViewport": true,
+                "opacity": 0.03
+              },
+              {
+                "time": 150,
+                "ancestorOpacity": 1,
+                "name": "vanta-entry-echo-two",
+                "t": 11738,
+                "inViewport": true,
+                "opacity": 0.02
+              },
+              {
+                "name": "vanta-entry-echo-one",
+                "t": 11975,
+                "time": 155
+              },
+              {
+                "name": "vanta-entry-echo-two",
+                "t": 11975,
+                "time": 155
+              }
+            ]
+          }
+        ],
+        "signals": [],
+        "releases": [
+          {
+            "delays": {
+              "title": 180,
+              "metadata": 250
+            },
+            "t": 11554,
+            "attempt": 1
+          }
+        ],
+        "samples": [],
+        "transitions": [
+          {
+            "elapsedTime": 0.36,
+            "attempt": 1,
+            "startTime": 11312,
+            "stage": "media",
+            "t": 11704,
+            "type": "transitionend",
+            "duration": 360,
+            "delay": 0
+          },
+          {
+            "elapsedTime": 0,
+            "attempt": 1,
+            "startTime": 11701,
+            "stage": "title",
+            "t": 11704,
+            "type": "transitionrun",
+            "duration": 360,
+            "delay": 180
+          },
+          {
+            "elapsedTime": 0,
+            "attempt": 1,
+            "startTime": 11701,
+            "stage": "metadata",
+            "t": 11704,
+            "type": "transitionrun",
+            "duration": 360,
+            "delay": 250
+          },
+          {
+            "elapsedTime": 0,
+            "attempt": 1,
+            "startTime": 11701,
+            "stage": "title",
+            "t": 11974,
+            "type": "transitionstart",
+            "duration": 360,
+            "delay": 180
+          },
+          {
+            "elapsedTime": 0,
+            "attempt": 1,
+            "startTime": 11701,
+            "stage": "metadata",
+            "t": 11974,
+            "type": "transitionstart",
+            "duration": 360,
+            "delay": 250
+          },
+          {
+            "elapsedTime": 0.36,
+            "attempt": 1,
+            "startTime": 11701,
+            "stage": "title",
+            "t": 12364,
+            "type": "transitionend",
+            "duration": 360,
+            "delay": 180
+          },
+          {
+            "elapsedTime": 0.36,
+            "attempt": 1,
+            "startTime": 11701,
+            "stage": "metadata",
+            "t": 12364,
+            "type": "transitionend",
+            "duration": 360,
+            "delay": 250
+          }
+        ]
+      },
+      "intermediateWrites": 0,
+      "visibleIntermediateWrites": 0,
+      "backForward": "passed",
+      "overflow": "passed"
+    },
+    {
+      "name": "phone-landscape-return-css-only",
+      "phone": {
+        "fine": true,
+        "reduced": false,
+        "width": 447,
+        "coarse": false,
+        "overflow": 447
+      },
+      "resources": [],
+      "passed": true
+    },
+    {
+      "name": "phone-transmission",
+      "ledger": {
+        "observerErrors": [],
+        "textSamples": [],
+        "textStarts": [
+          {
+            "elapsedTime": 0,
+            "attempt": 1,
+            "startTime": 4136,
+            "stage": "title",
+            "t": 4378,
+            "type": "transitionstart",
+            "duration": 220,
+            "delay": 170
+          },
+          {
+            "elapsedTime": 0,
+            "attempt": 1,
+            "startTime": 4136,
+            "stage": "metadata",
+            "t": 4378,
+            "type": "transitionstart",
+            "duration": 220,
+            "delay": 210
+          },
+          {
+            "elapsedTime": 0,
+            "attempt": 1,
+            "startTime": 4136,
+            "stage": "description",
+            "t": 4474,
+            "type": "transitionstart",
+            "duration": 220,
+            "delay": 250
+          },
+          {
+            "elapsedTime": 0,
+            "attempt": 1,
+            "startTime": 4136,
+            "stage": "controls",
+            "t": 4474,
+            "type": "transitionstart",
+            "duration": 220,
+            "delay": 290
+          }
+        ],
+        "locks": [
+          {
+            "attempt": 1,
+            "echoes": [
+              {
+                "name": "vanta-entry-echo-one",
+                "time": 0
+              },
+              {
+                "name": "vanta-entry-echo-two",
+                "time": 0
+              }
+            ],
+            "count": 1,
+            "active": true,
+            "t": 4084.0000000000005,
+            "scoped": true,
+            "global": null
+          },
+          {
+            "attempt": 1,
+            "echoes": [
+              {
+                "name": "none",
+                "time": null
+              },
+              {
+                "name": "none",
+                "time": null
+              }
+            ],
+            "count": 0,
+            "active": false,
+            "t": 4276,
+            "scoped": true,
+            "global": null
+          }
+        ],
+        "windows": [
+          {
+            "attempt": 1,
+            "echoes": [
+              {
+                "global": null,
+                "count": 1,
+                "keyframes": [
+                  {
+                    "opacity": "0",
+                    "offset": 0
+                  },
+                  {
+                    "opacity": "0.74",
+                    "offset": 0.18
+                  },
+                  {
+                    "opacity": "0.5",
+                    "offset": 0.42
+                  },
+                  {
+                    "opacity": "0.12",
+                    "offset": 0.7
+                  },
+                  {
+                    "opacity": "0",
+                    "offset": 1
+                  }
+                ],
+                "name": "vanta-entry-echo-one",
+                "duration": 155,
+                "initialTime": 0,
+                "playState": "paused",
+                "titleOpacity": 0,
+                "scoped": true
+              },
+              {
+                "global": null,
+                "count": 1,
+                "keyframes": [
+                  {
+                    "opacity": "0",
+                    "offset": 0
+                  },
+                  {
+                    "opacity": "0.58",
+                    "offset": 0.3
+                  },
+                  {
+                    "opacity": "0.32",
+                    "offset": 0.52
+                  },
+                  {
+                    "opacity": "0.08",
+                    "offset": 0.74
+                  },
+                  {
+                    "opacity": "0",
+                    "offset": 1
+                  }
+                ],
+                "name": "vanta-entry-echo-two",
+                "duration": 155,
+                "initialTime": 0,
+                "playState": "paused",
+                "titleOpacity": 0,
+                "scoped": true
+              }
+            ],
+            "closed": true,
+            "end": 4276,
+            "start": 4082,
+            "progress": [
+              {
+                "name": "vanta-entry-echo-one",
+                "t": 4083,
+                "time": 0
+              },
+              {
+                "name": "vanta-entry-echo-two",
+                "t": 4083,
+                "time": 0
+              },
+              {
+                "time": 59,
+                "ancestorOpacity": 1,
+                "name": "vanta-entry-echo-one",
+                "t": 4142,
+                "inViewport": true,
+                "opacity": 0.56
+              },
+              {
+                "time": 59,
+                "ancestorOpacity": 1,
+                "name": "vanta-entry-echo-two",
+                "t": 4208,
+                "inViewport": true,
+                "opacity": 0.515
+              },
+              {
+                "name": "vanta-entry-echo-one",
+                "t": 4276,
+                "time": 155
+              },
+              {
+                "name": "vanta-entry-echo-two",
+                "t": 4276,
+                "time": 155
+              }
+            ]
+          }
+        ],
+        "signals": [],
+        "releases": [
+          {
+            "delays": {
+              "title": 170,
+              "metadata": 210,
+              "controls": 290,
+              "description": 250
+            },
+            "t": 4084.0000000000005,
+            "attempt": 1
+          }
+        ],
+        "samples": [],
+        "transitions": [
+          {
+            "elapsedTime": 0.22,
+            "attempt": 1,
+            "startTime": 3908,
+            "stage": "media",
+            "t": 4141,
+            "type": "transitionend",
+            "duration": 220,
+            "delay": 0
+          },
+          {
+            "elapsedTime": 0,
+            "attempt": 1,
+            "startTime": 4136,
+            "stage": "title",
+            "t": 4141,
+            "type": "transitionrun",
+            "duration": 220,
+            "delay": 170
+          },
+          {
+            "elapsedTime": 0,
+            "attempt": 1,
+            "startTime": 4136,
+            "stage": "metadata",
+            "t": 4141,
+            "type": "transitionrun",
+            "duration": 220,
+            "delay": 210
+          },
+          {
+            "elapsedTime": 0,
+            "attempt": 1,
+            "startTime": 4136,
+            "stage": "description",
+            "t": 4141,
+            "type": "transitionrun",
+            "duration": 220,
+            "delay": 250
+          },
+          {
+            "elapsedTime": 0,
+            "attempt": 1,
+            "startTime": 4136,
+            "stage": "controls",
+            "t": 4141,
+            "type": "transitionrun",
+            "duration": 220,
+            "delay": 290
+          },
+          {
+            "elapsedTime": 0,
+            "attempt": 1,
+            "startTime": 4136,
+            "stage": "title",
+            "t": 4378,
+            "type": "transitionstart",
+            "duration": 220,
+            "delay": 170
+          },
+          {
+            "elapsedTime": 0,
+            "attempt": 1,
+            "startTime": 4136,
+            "stage": "metadata",
+            "t": 4378,
+            "type": "transitionstart",
+            "duration": 220,
+            "delay": 210
+          },
+          {
+            "elapsedTime": 0,
+            "attempt": 1,
+            "startTime": 4136,
+            "stage": "description",
+            "t": 4474,
+            "type": "transitionstart",
+            "duration": 220,
+            "delay": 250
+          },
+          {
+            "elapsedTime": 0,
+            "attempt": 1,
+            "startTime": 4136,
+            "stage": "controls",
+            "t": 4474,
+            "type": "transitionstart",
+            "duration": 220,
+            "delay": 290
+          },
+          {
+            "elapsedTime": 0.22,
+            "attempt": 1,
+            "startTime": 4136,
+            "stage": "title",
+            "t": 4572,
+            "type": "transitionend",
+            "duration": 220,
+            "delay": 170
+          },
+          {
+            "elapsedTime": 0.22,
+            "attempt": 1,
+            "startTime": 4136,
+            "stage": "metadata",
+            "t": 4573,
+            "type": "transitionend",
+            "duration": 220,
+            "delay": 210
+          },
+          {
+            "elapsedTime": 0.22,
+            "attempt": 1,
+            "startTime": 4136,
+            "stage": "description",
+            "t": 4668,
+            "type": "transitionend",
+            "duration": 220,
+            "delay": 250
+          },
+          {
+            "elapsedTime": 0.22,
+            "attempt": 1,
+            "startTime": 4136,
+            "stage": "controls",
+            "t": 4668,
+            "type": "transitionend",
+            "duration": 220,
+            "delay": 290
+          }
+        ]
+      },
+      "article": {
+        "observerErrors": [],
+        "textSamples": [],
+        "textStarts": [
+          {
+            "elapsedTime": 0,
+            "attempt": 1,
+            "startTime": 5541,
+            "stage": "title",
+            "t": 5760,
+            "type": "transitionstart",
+            "duration": 220,
+            "delay": 170
+          },
+          {
+            "elapsedTime": 0,
+            "attempt": 1,
+            "startTime": 5541,
+            "stage": "metadata",
+            "t": 5760,
+            "type": "transitionstart",
+            "duration": 220,
+            "delay": 210
+          }
+        ],
+        "locks": [
+          {
+            "attempt": 1,
+            "echoes": [
+              {
+                "name": "vanta-entry-echo-one",
+                "time": 0
+              },
+              {
+                "name": "vanta-entry-echo-two",
+                "time": 0
+              }
+            ],
+            "count": 1,
+            "active": true,
+            "t": 5479,
+            "scoped": true,
+            "global": null
+          },
+          {
+            "attempt": 1,
+            "echoes": [
+              {
+                "name": "none",
+                "time": null
+              },
+              {
+                "name": "none",
+                "time": null
+              }
+            ],
+            "count": 0,
+            "active": false,
+            "t": 5678,
+            "scoped": true,
+            "global": null
+          }
+        ],
+        "windows": [
+          {
+            "attempt": 1,
+            "echoes": [
+              {
+                "global": null,
+                "count": 1,
+                "keyframes": [
+                  {
+                    "opacity": "0",
+                    "offset": 0
+                  },
+                  {
+                    "opacity": "0.74",
+                    "offset": 0.18
+                  },
+                  {
+                    "opacity": "0.5",
+                    "offset": 0.42
+                  },
+                  {
+                    "opacity": "0.12",
+                    "offset": 0.7
+                  },
+                  {
+                    "opacity": "0",
+                    "offset": 1
+                  }
+                ],
+                "name": "vanta-entry-echo-one",
+                "duration": 155,
+                "initialTime": 0,
+                "playState": "paused",
+                "titleOpacity": 0,
+                "scoped": true
+              },
+              {
+                "global": null,
+                "count": 1,
+                "keyframes": [
+                  {
+                    "opacity": "0",
+                    "offset": 0
+                  },
+                  {
+                    "opacity": "0.58",
+                    "offset": 0.3
+                  },
+                  {
+                    "opacity": "0.32",
+                    "offset": 0.52
+                  },
+                  {
+                    "opacity": "0.08",
+                    "offset": 0.74
+                  },
+                  {
+                    "opacity": "0",
+                    "offset": 1
+                  }
+                ],
+                "name": "vanta-entry-echo-two",
+                "duration": 155,
+                "initialTime": 0,
+                "playState": "paused",
+                "titleOpacity": 0,
+                "scoped": true
+              }
+            ],
+            "closed": true,
+            "end": 5678,
+            "start": 5478,
+            "progress": [
+              {
+                "name": "vanta-entry-echo-one",
+                "t": 5479,
+                "time": 0
+              },
+              {
+                "name": "vanta-entry-echo-two",
+                "t": 5479,
+                "time": 0
+              },
+              {
+                "time": 65.00000000000091,
+                "ancestorOpacity": 1,
+                "name": "vanta-entry-echo-one",
+                "t": 5544.000000000001,
+                "inViewport": true,
+                "opacity": 0.56
+              },
+              {
+                "time": 65.00000000000091,
+                "ancestorOpacity": 1,
+                "name": "vanta-entry-echo-two",
+                "t": 5576.000000000001,
+                "inViewport": true,
+                "opacity": 0.45
+              },
+              {
+                "name": "vanta-entry-echo-one",
+                "t": 5678,
+                "time": 155
+              },
+              {
+                "name": "vanta-entry-echo-two",
+                "t": 5678,
+                "time": 155
+              }
+            ]
+          }
+        ],
+        "signals": [],
+        "releases": [
+          {
+            "delays": {
+              "title": 170,
+              "metadata": 210
+            },
+            "t": 5479,
+            "attempt": 1
+          }
+        ],
+        "samples": [],
+        "transitions": [
+          {
+            "elapsedTime": 0,
+            "attempt": 1,
+            "startTime": 5541,
+            "stage": "title",
+            "t": 5544.000000000001,
+            "type": "transitionrun",
+            "duration": 220,
+            "delay": 170
+          },
+          {
+            "elapsedTime": 0,
+            "attempt": 1,
+            "startTime": 5541,
+            "stage": "metadata",
+            "t": 5544.000000000001,
+            "type": "transitionrun",
+            "duration": 220,
+            "delay": 210
+          },
+          {
+            "elapsedTime": 0,
+            "attempt": 1,
+            "startTime": 5541,
+            "stage": "title",
+            "t": 5760,
+            "type": "transitionstart",
+            "duration": 220,
+            "delay": 170
+          },
+          {
+            "elapsedTime": 0,
+            "attempt": 1,
+            "startTime": 5541,
+            "stage": "metadata",
+            "t": 5760,
+            "type": "transitionstart",
+            "duration": 220,
+            "delay": 210
+          },
+          {
+            "elapsedTime": 0.22,
+            "attempt": 1,
+            "startTime": 5541,
+            "stage": "title",
+            "t": 5936,
+            "type": "transitionend",
+            "duration": 220,
+            "delay": 170
+          },
+          {
+            "elapsedTime": 0.22,
+            "attempt": 1,
+            "startTime": 5541,
+            "stage": "metadata",
+            "t": 6023,
+            "type": "transitionend",
+            "duration": 220,
+            "delay": 210
+          }
+        ]
+      },
+      "intermediateWrites": 2,
+      "visibleIntermediateWrites": 2,
+      "backForward": "passed",
+      "overflow": "passed"
+    }
+  ],
+  "exceptions": [],
+  "limitations": [
+    "WebKitGTK WebDriver has no native coarse-pointer or reduced-motion emulation; no application media-query shim was used.",
+    "Neither native Linux engine exposed a working WebGL2 context in this environment; enhanced GPU lifecycle is covered by Chromium, native engines cover fallback/CSS and Transmission."
+  ],
+  "assertions": "passed"
+}

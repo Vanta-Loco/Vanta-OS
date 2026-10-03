@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 
 // Observe native runtime timeline writes and CSS transition lifecycle events.
 // Never seek animations, drive their clocks, or infer a 155ms effect from polls.
-function observeHandoff() {
+export function observeHandoff() {
   window.__handoffObserver?.disconnect();
   cancelAnimationFrame(window.__handoffFrame);
   window.__handoffDispose?.();
@@ -42,7 +42,17 @@ function observeHandoff() {
         global: document.querySelector(".vanta-environment-root")?.dataset.vantaSignalActive });
       byAnimation.set(animation, w);
     }
-    w.progress.push({ t: performance.now(), name: animation.animationName, time: Number(value) });
+    const entry = { t: performance.now(), name: animation.animationName, time: Number(value) };
+    if (value > 0 && value < 155) {
+      const rect = target.getBoundingClientRect();
+      entry.opacity = Number(getComputedStyle(target).opacity);
+      entry.inViewport = rect.bottom > 0 && rect.top < innerHeight && rect.right > 0 && rect.left < innerWidth;
+      entry.ancestorOpacity = 1;
+      for (let parent = target.parentElement; parent; parent = parent.parentElement) {
+        entry.ancestorOpacity *= Number(getComputedStyle(parent).opacity);
+      }
+    }
+    w.progress.push(entry);
   };
   const lifecycle = event => {
     if (event.propertyName !== "opacity") return;
@@ -146,6 +156,11 @@ export async function verifyTransmissionHandoff({ send, evaluate, until, sleep, 
       assert.ok(start.echoes.every(e => e.time === 0), `Fresh zero timeline: ${JSON.stringify(start)}`);
       const w = h.windows[index];
       assert.equal(w.closed, true);
+      const deliveredMiddle = w.progress.filter(p => p.time >= 40 && p.time <= 120);
+      if (deliveredMiddle.length) {
+        assert.ok(deliveredMiddle.some(p => p.opacity > .03 && p.ancestorOpacity > .1 && p.inViewport),
+          "Delivered middle frames show a real visible, viewport-local echo");
+      }
       assert.deepEqual(w.echoes.map(e => e.name).sort(), ["vanta-entry-echo-one", "vanta-entry-echo-two"]);
       for (const echo of w.echoes) {
         assert.equal(echo.initialTime, 0);

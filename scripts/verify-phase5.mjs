@@ -179,6 +179,9 @@ try {
   assert.equal(await evaluate("getComputedStyle(document.querySelector('.vanta-release-artwork .vanta-signal-echo-one')).display"), "block");
   await sleep(650);
   assert.notEqual(await evaluate("getComputedStyle(document.querySelector('.vanta-release-artwork')).transform"), "none");
+  // A fixed sleep can precede native transition readiness in headless engines.
+  // Wait for the existing entrance to finish; never seek or drive its clock.
+  await until("getComputedStyle(document.querySelector('.vanta-release-artwork-entry')).transform === 'none'", 10000);
   assert.equal(await evaluate("getComputedStyle(document.querySelector('.vanta-release-artwork-entry')).transform"), "none");
   await screenshot("desktop-release-hover");
   // Sample the offscreen-to-visible entrance, not just its settled hover state.

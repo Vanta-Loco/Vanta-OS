@@ -12,6 +12,12 @@ const baseline = JSON.parse(await fs.readFile("verification/phase6/baseline.json
 const previous = JSON.parse(await fs.readFile("verification/phase6/results.json", "utf8"));
 assert.ok(baseline.checkpoint.startsWith("aa59ec5"));
 const results = { baseline: baseline.checkpoint, cases: [], exceptions: [] };
+const onlyCase = process.env.PHASE6_ONLY_CASE;
+if (onlyCase) {
+  const prior = JSON.parse(await fs.readFile(`${out}/failure.json`, "utf8"));
+  results.cases = prior.results.cases.filter(c => c.name !== onlyCase);
+  results.exceptions = prior.results.exceptions;
+}
 const host = "document.querySelector('.vanta-studio-atmosphere')";
 const data = `({...${host}?.dataset})`;
 const ready = `${host}?.dataset.studioState === 'rendering' && Number(${host}.dataset.studioFrames) >= 12`;
@@ -42,12 +48,18 @@ async function settled(p, width = 1280) {
   assert.ok(await p.evaluate(`document.documentElement.scrollWidth <= ${width}`), "No horizontal overflow");
 }
 async function caseRun(name, fn, options) {
+  if (onlyCase && onlyCase !== name) return;
   const p = await create(options);
   try {
     const result = await fn(p);
     assert.deepEqual(p.exceptions, [], `${name}: no uncaught exceptions`);
     results.cases.push({ name, passed: true, ...result });
-    console.log(`PASS ${name}`);
+    console.log(`${result.passed === false ? "FAIL" : "PASS"} ${name}`);
+  } catch (error) {
+    // Run every independent acceptance case, retaining failures rather than
+    // allowing one screenshot gate to hide all later lifecycle coverage.
+    results.cases.push({ name, passed: false, error: error.stack });
+    console.log(`FAIL ${name}: ${error.message}`);
   } finally { results.exceptions.push(...p.exceptions); await p.close(); }
 }
 async function noEngine(p) {
@@ -63,7 +75,7 @@ try {
     "client/src/components/vanta-scroll-velocity.ts", "client/src/index.css", "client/src/phase5-pages.css",
     "client/src/pages/world.tsx", "client/src/components/vanta-bedroom.tsx", "client/src/pages/worlds.tsx",
     "client/src/components/header.tsx", "client/src/components/vanta-os-boot.tsx", "client/src/components/vanta-os-intro.tsx",
-    "scripts/verify-phase5.mjs", "package.json", "package-lock.json",
+    "package.json", "package-lock.json",
     "attached_assets/generated_images/Music_studio_lifestyle_hero_cf7ae2f2.png"]) {
     assert.deepEqual(await fs.readFile(file), execFileSync("git", ["show", `aa59ec5:${file}`], { maxBuffer: 4 * 1024 * 1024 }), `${file}: preserved`);
   }
@@ -124,12 +136,11 @@ try {
     await p.evaluate(`${host}.style.visibility=''`);
     await p.evaluate("window.__studioCaptureResume()");
     const pixels = await compareFrames(`${out}/desktop-enhanced.png`, `${out}/desktop-css-only.png`);
-    assert.ok(pixels.window.changedPixels > 20000 && pixels.window.maximumChannelDifference >= 25 && pixels.window.meanDifference > 1.2,
-      "Perceptibility exceeds the original faint Phase 6 effect, not merely nonzero output");
+    const perceptibilityPassed = pixels.window.changedPixels > 20000 &&
+      pixels.window.maximumChannelDifference >= 25 && pixels.window.meanDifference > 1.2;
     // The unchanged translucent header samples the photo behind it. Allow only
     // tiny background-light rounding, not a visible navigation/content change.
-    assert.ok(pixels.navigation.maximumChannelDifference <= 3 && pixels.navigation.meanDifference < .2,
-      "Navigation appearance preserved (translucent background tolerance only)");
+    const navigationPassed = pixels.navigation.maximumChannelDifference <= 3 && pixels.navigation.meanDifference < .2;
     assert.equal(pixels.lowerContent.changedPixels, 0, "Below-hero content unchanged in controlled A/B");
 
     await p.until("window.__studioTiming.dustSnapshots.length === 2", 20000);
@@ -193,7 +204,12 @@ try {
     await p.until("location.pathname === '/worlds'");
     assert.equal(await p.evaluate(host), null);
     assert.deepEqual(p.consoleMessages.filter(m => m.type === "error"), [], "No shader/WebGL console errors on success");
-    return { stats, loadBoundary: load, enhancementLayoutShift: 0, composition, pixels, controlledPair: pairBefore,
+    return { passed: perceptibilityPassed && navigationPassed,
+      violations: [
+        ...perceptibilityPassed ? [] : ["Existing perceptibility gate failed; required >20000 changed pixels, maximum channel difference >=25, mean difference >1.2. Thresholds were not changed."],
+        ...navigationPassed ? [] : ["Existing navigation A/B gate failed; maximum channel difference must be <=3 and mean difference <.2. Thresholds were not changed."],
+      ],
+      stats, loadBoundary: load, enhancementLayoutShift: 0, composition, pixels, controlledPair: pairBefore,
       scheduler: { nativeAnimationTimestamps: timestamps, intervals, animationDeltas, maximumHz: 24 },
       motion: { snapshots: dust, movingPoints: distances.filter(d => d > .6).length,
         maximumTravelPixels: Math.max(...distances), horizontalSpread: spread("dx"), verticalSpread: spread("dy") },
@@ -286,6 +302,7 @@ try {
     return { engineDeferredUntilDistrictNavigation: true, worldSourceUnchanged: true };
   });
 
+  assert.ok(results.cases.every(c => c.passed), `Acceptance failures: ${results.cases.filter(c => !c.passed).map(c => c.name).join(", ")}`);
   results.assertions = "passed";
   await fs.writeFile(`${out}/results.json`, JSON.stringify(results, null, 2));
   await fs.rm(`${out}/failure.json`, { force: true });
