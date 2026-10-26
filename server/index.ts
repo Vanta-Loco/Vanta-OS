@@ -4,6 +4,7 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { getSessionSecret, validateRuntimeConfig } from "./runtime-config";
 import path from "path";
+import { getLegacyVaultUploadPolicy } from "./vault-media";
 
 validateRuntimeConfig();
 
@@ -23,7 +24,35 @@ function redactSensitiveLogFields(value: unknown): unknown {
   );
 }
 
-app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+app.use("/uploads", async (req, res, next) => {
+  try {
+    const encodedName = req.path.replace(/^\/+/, "");
+    let filename: string;
+    try {
+      filename = decodeURIComponent(encodedName);
+    } catch {
+      return res.status(404).end();
+    }
+    if (!filename || filename.includes("/") || filename.includes("\\") || filename === "." || filename === "..") {
+      return res.status(404).end();
+    }
+    const policy = await getLegacyVaultUploadPolicy(`/uploads/${filename}`);
+    if (
+      policy.isVaultMedia
+      && !policy.isPublicReleaseMedia
+      && !policy.isStartupRadioMedia
+    ) {
+      return res.status(404).end();
+    }
+    return next();
+  } catch (error) {
+    console.error("[uploads:visibility-check-failed]");
+    return res.status(503).end();
+  }
+}, express.static(path.join(process.cwd(), "uploads"), {
+  index: false,
+  dotfiles: "deny",
+}));
 
 // Public generated artwork referenced by existing post/release records. Keep
 // this mount limited to image files so other attached assets aren't exposed.

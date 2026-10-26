@@ -229,6 +229,25 @@ function VaultItemCard({
           />
         </div>
       )}
+      {item.type === "video" && item.fileUrl && (
+        <video
+          src={item.fileUrl}
+          controls
+          preload="metadata"
+          className="w-full rounded-t-md bg-black"
+          data-testid={`video-vault-${item.id}`}
+        />
+      )}
+      {item.type === "image" && item.fileUrl && (
+        <div className="overflow-hidden rounded-t-md bg-muted/60">
+          <img
+            src={item.fileUrl}
+            alt={item.title}
+            className="w-full max-h-[28rem] object-contain"
+            data-testid={`image-file-vault-${item.id}`}
+          />
+        </div>
+      )}
 
       <div className="p-5 space-y-4">
 
@@ -307,6 +326,17 @@ function VaultItemCard({
             <VaultAudioPlayer item={item} isAdmin={canDelete} />
           </div>
         )}
+        {item.type === "text" && item.fileUrl && (
+          <a
+            href={item.fileUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex text-xs font-mono text-muted-foreground/60 hover:text-foreground underline underline-offset-4"
+            data-testid={`link-vault-file-${item.id}`}
+          >
+            Open attachment
+          </a>
+        )}
 
         {/* ── Internal notes — dim annotation at the bottom ── */}
         {item.notes && (
@@ -353,7 +383,7 @@ function FileUploadField({
     body.append("file", file);
     try {
       const token = getAdminToken();
-      const res = await fetch("/api/upload", {
+      const res = await fetch("/api/vault/upload", {
         method: "POST",
         body,
         credentials: "include",
@@ -922,7 +952,11 @@ function VaultUnlocked() {
   const { data: items, isLoading } = useQuery<VaultItem[]>({
     queryKey: ["/api/vault/items"],
     queryFn: async () => {
-      const res = await fetch("/api/vault/items");
+      const token = getAdminToken();
+      const res = await fetch("/api/vault/items", {
+        credentials: "include",
+        headers: token ? { "X-Admin-Token": token } : undefined,
+      });
       if (!res.ok) throw new Error("Failed to fetch vault items");
       return res.json();
     },
@@ -934,7 +968,7 @@ function VaultUnlocked() {
       const hasPending = data.some(
         (item) =>
           (item.type === "audio" || item.type === "demo") &&
-          item.fileUrl?.startsWith("/uploads/") &&
+          (item.fileUrl?.startsWith("/uploads/") || item.fileUrl?.startsWith("/api/vault/media/")) &&
           !item.compressedUrl,
       );
       return hasPending ? 3000 : false;

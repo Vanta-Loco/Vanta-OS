@@ -1,18 +1,23 @@
-import { exec } from "child_process";
+import { execFile } from "child_process";
 import { promisify } from "util";
 import path from "path";
 import fs from "fs";
+import os from "os";
+import {
+  deleteVaultCompressedMediaAssets,
+  readVaultMediaSource,
+  storeVaultMediaAsset,
+} from "./vault-media";
 
-const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 const uploadsDir = path.join(process.cwd(), "uploads");
 
 /**
  * Converts a full audio file (WAV, M4A, AAC, etc.) to a compressed
  * 128kbps VBR MP3 suitable for smooth full-track streaming.
  *
- * Unlike generateAudioPreview there is no -t (duration) limit —
- * the entire source is converted. Output is saved as
- * /uploads/vault-{vaultItemId}.mp3 and the public URL is returned.
+ * Unlike generateAudioPreview there is no -t (duration) limit — the entire
+ * source is converted. The compressed copy is stored as a private media asset.
  *
  * Encoding notes:
  *   -q:a 3  → libmp3lame VBR quality 3 (~165kbps average, excellent quality)
@@ -24,50 +29,55 @@ export async function compressAudioFile(
   audioFileUrl: string,
   vaultItemId: string,
 ): Promise<string | null> {
-  if (!audioFileUrl || !audioFileUrl.startsWith("/uploads/")) return null;
-
-  const inputPath = path.join(process.cwd(), audioFileUrl);
-  if (!fs.existsSync(inputPath)) {
-    console.warn(`[compress] source file not found: ${inputPath}`);
+  const source = await readVaultMediaSource(audioFileUrl);
+  if (!source) {
+    console.warn(`[compress] source file unavailable for vault item ${vaultItemId}`);
     return null;
   }
-
-  const outputFilename = `vault-${vaultItemId}.mp3`;
-  const outputPath = path.join(uploadsDir, outputFilename);
-
-  const cmd = [
-    "ffmpeg",
-    `-i "${inputPath}"`,
-    `-acodec libmp3lame`,
-    `-q:a 3`,
-    `-map_metadata -1`,
-    `"${outputPath}"`,
-    `-y`,
-  ].join(" ");
-
+  const tempDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "vault-audio-"));
+  const inputPath = path.join(tempDir, "source");
+  const outputPath = path.join(tempDir, "compressed.mp3");
   try {
-    await execAsync(cmd);
-    const inBytes  = fs.statSync(inputPath).size;
-    const outBytes = fs.statSync(outputPath).size;
-    const ratio    = ((1 - outBytes / inBytes) * 100).toFixed(0);
+    await fs.promises.writeFile(inputPath, source.bytes);
+    await execFileAsync("ffmpeg", [
+      "-i", inputPath,
+      "-acodec", "libmp3lame",
+      "-q:a", "3",
+      "-map_metadata", "-1",
+      outputPath,
+      "-y",
+    ]);
+    const output = await fs.promises.readFile(outputPath);
+    const outputUrl = await storeVaultMediaAsset({
+      bytes: output,
+      mimeType: "audio/mpeg",
+      originalFilename: `vault-${vaultItemId}.mp3`,
+      ownerType: "vault_item",
+      ownerId: vaultItemId,
+      purpose: "vault_audio_compressed",
+    });
+    const ratio = ((1 - output.length / source.bytes.length) * 100).toFixed(0);
     console.log(
-      `[compress] ${outputFilename} — ${(inBytes / 1e6).toFixed(1)} MB → ` +
-      `${(outBytes / 1e6).toFixed(1)} MB (${ratio}% reduction)`,
+      `[compress] vault item ${vaultItemId} — ${(source.bytes.length / 1e6).toFixed(1)} MB → ` +
+      `${(output.length / 1e6).toFixed(1)} MB (${ratio}% reduction)`,
     );
-    return `/uploads/${outputFilename}`;
+    return outputUrl;
   } catch (err: any) {
     console.error(`[compress] ffmpeg failed for vault item ${vaultItemId}:`, err.stderr ?? err.message);
     return null;
+  } finally {
+    await fs.promises.rm(tempDir, { recursive: true, force: true });
   }
 }
 
 /**
  * Deletes the compressed file for a vault item if it exists.
  */
-export function deleteCompressedAudio(vaultItemId: string): void {
+export async function deleteCompressedAudio(vaultItemId: string): Promise<void> {
   const filePath = path.join(uploadsDir, `vault-${vaultItemId}.mp3`);
   if (fs.existsSync(filePath)) {
     fs.unlinkSync(filePath);
     console.log(`[compress] deleted vault-${vaultItemId}.mp3`);
   }
+  await deleteVaultCompressedMediaAssets(vaultItemId);
 }

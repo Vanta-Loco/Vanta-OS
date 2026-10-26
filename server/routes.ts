@@ -34,6 +34,18 @@ import fs from "fs";
 import sharp from "sharp";
 import crypto from "crypto";
 import { mediaStorage, MediaStorageError } from "./media-storage";
+import {
+  createVaultMediaAccessUrl,
+  getSafeLegacyUploadPath,
+  isVaultAssetReferenced,
+  isVaultMediaAuthorized,
+  normalizeVaultMediaUrl,
+  protectVaultItemMedia,
+  readVaultMediaSource,
+  requiresVaultMediaAccess,
+  sendVaultMediaBytes,
+  storeVaultMediaAsset,
+} from "./vault-media";
 
 const uploadsDir = path.join(process.cwd(), "uploads");
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
@@ -60,6 +72,26 @@ const upload = multer({
   },
 });
 
+const vaultUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 100 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const allowed = new Set([
+      "application/pdf",
+      "text/plain",
+      "text/markdown",
+    ]);
+    cb(
+      null,
+      file.mimetype.startsWith("image/")
+        || file.mimetype.startsWith("audio/")
+        || file.mimetype.startsWith("video/")
+        || file.mimetype === "application/octet-stream"
+        || allowed.has(file.mimetype),
+    );
+  },
+});
+
 const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
 const MAX_IMAGE_PIXELS = 40_000_000;
 const SUPPORTED_DECODED_IMAGE_FORMATS = new Set([
@@ -67,6 +99,21 @@ const SUPPORTED_DECODED_IMAGE_FORMATS = new Set([
 ]);
 
 class ImageValidationError extends Error {}
+
+function normalizeVaultItemUrls<T extends {
+  fileUrl?: string;
+  compressedUrl?: string;
+  coverImage?: string;
+}>(item: T): T {
+  return {
+    ...item,
+    ...(item.fileUrl !== undefined ? { fileUrl: normalizeVaultMediaUrl(item.fileUrl) } : {}),
+    ...(item.compressedUrl !== undefined
+      ? { compressedUrl: normalizeVaultMediaUrl(item.compressedUrl) }
+      : {}),
+    ...(item.coverImage !== undefined ? { coverImage: normalizeVaultMediaUrl(item.coverImage) } : {}),
+  };
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   if (process.env.NODE_ENV === "production") {
@@ -117,10 +164,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     try {
       const result = await pool.query(
-        `SELECT storage_key, mime_type, byte_size, checksum_sha256
+        `SELECT storage_key, mime_type, byte_size, checksum_sha256, visibility
          FROM media_assets
          WHERE id=$1
-           AND visibility='public'
            AND processing_status='ready'
            AND deleted_at IS NULL
          LIMIT 1`,
@@ -128,6 +174,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
       const asset = result.rows[0];
       if (!asset) return res.status(404).end();
+      const privateAsset = await requiresVaultMediaAccess(req.params.id, asset.visibility);
+      if (
+        privateAsset
+        && !(await isVaultMediaAuthorized(req, `asset:${req.params.id.toLowerCase()}`))
+      ) {
+        return res.status(404).end();
+      }
 
       const etag = `"${asset.checksum_sha256}"`;
       if (req.headers["if-none-match"] === etag) {
@@ -138,17 +191,107 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error("[media:missing-object]", JSON.stringify({ assetId: req.params.id }));
         return res.status(404).end();
       }
-      res.set({
-        "Content-Type": asset.mime_type,
-        "Content-Length": String(bytes.length),
-        "Cache-Control": "public, max-age=31536000, immutable",
-        "ETag": etag,
-        "X-Content-Type-Options": "nosniff",
+      return sendVaultMediaBytes(req, res, bytes, asset.mime_type, {
+        cacheControl: privateAsset ? "private, no-store" : "public, max-age=31536000, immutable",
+        etag,
       });
-      return res.send(bytes);
     } catch {
       console.error("[media:read-failed]", JSON.stringify({ assetId: req.params.id }));
       return res.status(503).json({ error: "Media is temporarily unavailable." });
+    }
+  });
+
+  app.get("/api/vault/media/:id", async (req, res) => {
+    const assetId = req.params.id.toLowerCase();
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(assetId)) {
+      return res.status(404).end();
+    }
+    try {
+      if (!(await isVaultMediaAuthorized(req, `asset:${assetId}`))) {
+        return res.status(404).end();
+      }
+      if (!(await isVaultAssetReferenced(assetId))) return res.status(404).end();
+      const result = await pool.query(
+        `SELECT storage_key, mime_type
+         FROM media_assets
+         WHERE id=$1 AND processing_status='ready' AND deleted_at IS NULL
+         LIMIT 1`,
+        [assetId],
+      );
+      const asset = result.rows[0];
+      if (!asset) return res.status(404).end();
+      const bytes = await mediaStorage.read(asset.storage_key);
+      if (!bytes) return res.status(404).end();
+      return sendVaultMediaBytes(req, res, bytes, asset.mime_type);
+    } catch {
+      console.error("[vault-media:read-failed]", JSON.stringify({ assetId }));
+      return res.status(503).json({ error: "Vault media is temporarily unavailable." });
+    }
+  });
+
+  app.get("/api/vault/media/legacy/:filename", async (req, res) => {
+    const filename = req.params.filename;
+    const filePath = getSafeLegacyUploadPath(filename);
+    if (!filePath) return res.status(404).end();
+    const legacyUrl = `/uploads/${filename}`;
+    try {
+      if (!(await isVaultMediaAuthorized(req, `legacy:${filename}`))) {
+        return res.status(404).end();
+      }
+      const reference = await pool.query(
+        `SELECT EXISTS (
+           SELECT 1 FROM vault_items
+           WHERE file_url=$1 OR compressed_url=$1 OR cover_image=$1
+         ) AS referenced`,
+        [legacyUrl],
+      );
+      if (reference.rows[0]?.referenced !== true || !fs.existsSync(filePath)) {
+        return res.status(404).end();
+      }
+      const bytes = await fs.promises.readFile(filePath);
+      const ext = path.extname(filename).toLowerCase();
+      const mimeTypes: Record<string, string> = {
+        ".aac": "audio/aac", ".flac": "audio/flac", ".m4a": "audio/mp4",
+        ".mp3": "audio/mpeg", ".ogg": "audio/ogg", ".wav": "audio/wav",
+        ".mp4": "video/mp4", ".webm": "video/webm", ".mov": "video/quicktime",
+        ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png",
+        ".webp": "image/webp", ".gif": "image/gif", ".pdf": "application/pdf",
+        ".txt": "text/plain", ".md": "text/markdown",
+      };
+      return sendVaultMediaBytes(
+        req,
+        res,
+        bytes,
+        mimeTypes[ext] ?? "application/octet-stream",
+      );
+    } catch {
+      console.error("[vault-media:legacy-read-failed]");
+      return res.status(503).json({ error: "Vault media is temporarily unavailable." });
+    }
+  });
+
+  // Explicit public exception: this endpoint resolves only the designated
+  // "Degauser" startup-radio item and never exposes the rest of the Vault.
+  app.get("/api/vault/radio/media", async (req, res) => {
+    try {
+      const items = await storage.getVaultItems();
+      const track = items.find((item) => {
+        const url = item.compressedUrl || item.fileUrl;
+        return item.title.trim().toLowerCase() === "degausser"
+          && (item.type === "audio" || item.type === "demo")
+          && !!url;
+      });
+      const source = track?.compressedUrl || track?.fileUrl;
+      if (!source) return res.status(404).end();
+      if (/^https?:\/\//i.test(source)) return res.redirect(302, source);
+      const media = await readVaultMediaSource(source);
+      if (!media) return res.status(404).end();
+      return sendVaultMediaBytes(req, res, media.bytes, media.mimeType, {
+        cacheControl: "public, max-age=60",
+      });
+    } catch {
+      console.error("[vault-radio:media-read-failed]");
+      return res.status(503).end();
     }
   });
 
@@ -299,6 +442,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(error instanceof ImageValidationError ? 413 : 415).json({
           error: "This image format could not be processed. Try exporting it as JPEG, PNG, or WebP.",
         });
+      }
+    });
+  });
+
+  // Vault uploads go directly to private object storage; they never enter the
+  // publicly served /uploads directory or the public-image upload namespace.
+  app.post("/api/vault/upload", requireAdmin, (req, res, next) => {
+    vaultUpload.single("file")(req, res, async (error) => {
+      if (error) {
+        if (error instanceof multer.MulterError && error.code === "LIMIT_FILE_SIZE") {
+          return res.status(413).json({ error: "File is too large. Maximum size is 100MB." });
+        }
+        return res.status(415).json({ error: "This file type is not supported for Vault uploads." });
+      }
+
+      try {
+        const file = req.file;
+        if (!file) return res.status(400).json({ error: "No file uploaded." });
+        const admin = (req as Request & {
+          currentAdmin?: { adminUserId: string };
+        }).currentAdmin;
+        if (!admin) return res.status(401).json({ error: "Unauthorized" });
+
+        const url = await storeVaultMediaAsset({
+          bytes: file.buffer,
+          mimeType: file.mimetype || "application/octet-stream",
+          originalFilename: file.originalname,
+          ownerType: "admin_user",
+          ownerId: admin.adminUserId,
+        });
+        return res.json({ url: createVaultMediaAccessUrl(url) });
+      } catch (error) {
+        if (error instanceof MediaStorageError) {
+          return res.status(503).json({ error: "Durable media storage is temporarily unavailable." });
+        }
+        console.error("[vault-upload:failed]");
+        return res.status(500).json({ error: "Vault upload failed." });
       }
     });
   });
@@ -565,8 +745,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         id: track.id,
         title: track.title.trim(),
-        fileUrl: track.fileUrl,
-        compressedUrl: track.compressedUrl,
+        fileUrl: "/api/vault/radio/media",
+        compressedUrl: "/api/vault/radio/media",
       });
     } catch (error) {
       console.error("Error fetching startup radio track:", error);
@@ -582,7 +762,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     try {
       const items = await storage.getVaultItems();
-      res.json(items);
+      res.json(items.map(protectVaultItemMedia));
     } catch (error) {
       console.error("Error fetching vault items:", error);
       res.status(500).json({ error: "Failed to fetch vault items" });
@@ -593,12 +773,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const parsed = insertVaultItemSchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
-      const item = await storage.createVaultItem(parsed.data);
-      res.status(201).json(item);
+      const normalizedData = normalizeVaultItemUrls(parsed.data);
+      const item = await storage.createVaultItem(normalizedData);
+      res.status(201).json(protectVaultItemMedia(item));
 
       // Background: compress audio if the file URL points to an uploaded audio file
       const isAudioType = item.type === "audio" || item.type === "demo";
-      if (isAudioType && item.fileUrl?.startsWith("/uploads/")) {
+      if (isAudioType && (item.fileUrl?.startsWith("/uploads/") || item.fileUrl?.startsWith("/media/assets/"))) {
         compressAudioFile(item.fileUrl, item.id).then(async (compressedUrl) => {
           if (compressedUrl) {
             await storage.updateVaultItem(item.id, { compressedUrl });
@@ -618,7 +799,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const items = await storage.getVaultItems();
       const item = items.find(i => i.id === req.params.id);
       if (!item) return res.status(404).json({ error: "Item not found" });
-      if (!item.fileUrl?.startsWith("/uploads/")) {
+      if (!item.fileUrl?.startsWith("/uploads/") && !item.fileUrl?.startsWith("/media/assets/")) {
         return res.status(400).json({ error: "Item has no uploaded audio file to compress" });
       }
       res.json({ status: "compression started" });
@@ -639,9 +820,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const parsed = insertVaultItemSchema.partial().safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
-      const updated = await storage.updateVaultItem(req.params.id, parsed.data);
+      const updated = await storage.updateVaultItem(
+        req.params.id,
+        normalizeVaultItemUrls(parsed.data),
+      );
       if (!updated) return res.status(404).json({ error: "Item not found" });
-      res.json(updated);
+      res.json(protectVaultItemMedia(updated));
     } catch (error) {
       console.error("Error updating vault item:", error);
       res.status(500).json({ error: "Failed to update vault item" });
@@ -652,7 +836,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const deleted = await storage.deleteVaultItem(req.params.id);
       if (!deleted) return res.status(404).json({ error: "Item not found" });
-      deleteCompressedAudio(req.params.id);
+      await deleteCompressedAudio(req.params.id);
       res.status(204).send();
     } catch (error) {
       console.error("Error deleting vault item:", error);
@@ -689,7 +873,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ── Admin: Vault items (all, no vault-session gate) ──────────────
   app.get("/api/admin/vault/items", requireAdmin, async (_req, res) => {
-    try { res.json(await storage.getVaultItems()); }
+    try { res.json((await storage.getVaultItems()).map(protectVaultItemMedia)); }
     catch { res.status(500).json({ error: "Failed to fetch vault items" }); }
   });
 
