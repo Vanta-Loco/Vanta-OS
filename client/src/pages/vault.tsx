@@ -4,7 +4,7 @@ import { Link } from "wouter";
 import { ReturnToCity } from "@/components/return-to-city";
 import { useVault } from "@/hooks/use-vault";
 import { useAdmin } from "@/hooks/use-admin";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest, getAdminToken, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -352,7 +352,13 @@ function FileUploadField({
     const body = new FormData();
     body.append("file", file);
     try {
-      const res = await fetch("/api/upload", { method: "POST", body, credentials: "include" });
+      const token = getAdminToken();
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body,
+        credentials: "include",
+        headers: token ? { "X-Admin-Token": token } : undefined,
+      });
       if (!res.ok) throw new Error("upload failed");
       const { url } = await res.json();
       onChange(url);

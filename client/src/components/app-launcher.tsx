@@ -52,16 +52,51 @@ export function AppLauncher({ open, onClose }: Props) {
   // Escape to close
   useEffect(() => {
     if (!open) return;
-    const h = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    const previouslyFocused = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
+    const closeButton = panelRef.current?.querySelector<HTMLButtonElement>(
+      'button[aria-label="Close launcher"]',
+    );
+    closeButton?.focus();
+
+    const h = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+        return;
+      }
+      if (e.key !== "Tab" || !panelRef.current) return;
+
+      const focusable = Array.from(
+        panelRef.current.querySelectorAll<HTMLElement>(
+          'a[href], button:not(:disabled), [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter(element => element.getAttribute("aria-hidden") !== "true");
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const focusOutsidePanel = !panelRef.current.contains(document.activeElement);
+
+      if (e.shiftKey && (document.activeElement === first || focusOutsidePanel)) {
+        e.preventDefault();
+        last?.focus();
+      } else if (!e.shiftKey && (document.activeElement === last || focusOutsidePanel)) {
+        e.preventDefault();
+        first?.focus();
+      }
+    };
     document.addEventListener("keydown", h);
-    return () => document.removeEventListener("keydown", h);
+    return () => {
+      document.removeEventListener("keydown", h);
+      if (previouslyFocused?.isConnected) previouslyFocused.focus();
+    };
   }, [open, onClose]);
 
   // Body scroll lock on mobile
   useEffect(() => {
     if (open) {
+      const previous = document.body.style.overflow;
       document.body.style.overflow = "hidden";
-      return () => { document.body.style.overflow = ""; };
+      return () => { document.body.style.overflow = previous; };
     }
   }, [open]);
 

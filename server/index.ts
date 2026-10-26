@@ -25,6 +25,17 @@ function redactSensitiveLogFields(value: unknown): unknown {
 
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
+// Public generated artwork referenced by existing post/release records. Keep
+// this mount limited to image files so other attached assets aren't exposed.
+app.use(
+  "/attached_assets/generated_images",
+  express.static(path.join(process.cwd(), "attached_assets", "generated_images"), {
+    fallthrough: false,
+    index: false,
+    dotfiles: "deny",
+  }),
+);
+
 // Session middleware — MemoryStore (built into express-session).
 // The previous connect-pg-simple store used @neondatabase/serverless's WebSocket
 // pool which is incompatible with pg-based session stores; sessions were saved

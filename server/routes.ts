@@ -343,7 +343,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { id } = req.params;
       const post = await storage.getPost(id);
-      if (!post) return res.status(404).json({ error: "Post not found" });
+      if (!post || (post.published !== "true" && !(await hasValidAdminToken(req)))) {
+        return res.status(404).json({ error: "Post not found" });
+      }
       res.json(post);
     } catch (error) {
       console.error("Error fetching post:", error);

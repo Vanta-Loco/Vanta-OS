@@ -67,11 +67,15 @@ export class DatabaseStorage implements IStorage {
       return await db
         .select()
         .from(posts)
-        .where(and(eq(posts.category, category), or(...conditions)))
+        .where(and(eq(posts.published, "true"), eq(posts.category, category), or(...conditions)))
         .orderBy(desc(posts.createdAt));
     }
 
-    return await db.select().from(posts).where(or(...conditions)).orderBy(desc(posts.createdAt));
+    return await db
+      .select()
+      .from(posts)
+      .where(and(eq(posts.published, "true"), or(...conditions)))
+      .orderBy(desc(posts.createdAt));
   }
 
   async getReleases(): Promise<Release[]> {

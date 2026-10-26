@@ -15,7 +15,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { insertReleaseSchema, type InsertRelease } from "@shared/schema";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest, getAdminToken, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import {
   Upload, ImageIcon, Music, Play, Square, CheckCircle, Loader2, X,
@@ -27,7 +27,13 @@ type UploadState = "idle" | "uploading" | "done" | "error";
 async function uploadFile(file: File): Promise<string> {
   const fd = new FormData();
   fd.append("file", file);
-  const res = await fetch("/api/upload", { method: "POST", body: fd });
+  const token = getAdminToken();
+  const res = await fetch("/api/upload", {
+    method: "POST",
+    body: fd,
+    credentials: "include",
+    headers: token ? { "X-Admin-Token": token } : undefined,
+  });
   if (!res.ok) throw new Error("Upload failed");
   const data = await res.json();
   return data.url as string;
