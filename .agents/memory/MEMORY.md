@@ -10,4 +10,5 @@
 - [Headless CSS animation timing](headless-css-animation-timing.md) — use native lifecycle/timeline boundaries, not short polling; screenshots can undo hidden state during paired captures.
 - [Headless device capabilities](headless-device-capabilities.md) — desktop size does not imply a fine pointer; configure actual capabilities and distinguish software WebGL from GPU benchmarks.
 - [Native browser render clocks](native-browser-render-clock.md) — failed GTK EGL can stop all render-clock callbacks while scripting works; diagnose the browser before changing reveal logic.
+- [Package firewall blocks](package-firewall.md) — when a vulnerable transitive npm package is blocked, update its direct parent and lockfile to a patched resolution; never bypass the firewall.
 - [Vault media privacy](vault-media-privacy.md) — Keep unreleased media off public upload paths; require access-checked delivery except for the startup-radio track.
