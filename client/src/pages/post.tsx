@@ -23,6 +23,7 @@ import { format } from "date-fns";
 import { getImageLayout } from "@/components/image-layout-picker";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { getTransmissionImageSources } from "@shared/transmission-image-sources";
 import { useAdmin } from "@/hooks/use-admin";
 import { MusicPlayer } from "@/components/music-player";
 import { TransmissionFrame } from "@/components/vanta-signal";
@@ -205,6 +206,8 @@ export default function PostPage() {
     );
   }
 
+  const imageSources = getTransmissionImageSources(post);
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
@@ -214,7 +217,7 @@ export default function PostPage() {
         <TransmissionFrame label="VANTA TRANSMISSION // FEED" metadata="SIGNAL LOCKED" intensity="medium">
           <div className={`relative ${getImageLayout(post.imageLayout).value === "original" ? "max-h-[70vh]" : getImageLayout(post.imageLayout).className} overflow-hidden`}>
             <img
-              src={post.coverImage}
+              src={imageSources.cover}
               alt={post.title}
               className={`w-full ${getImageLayout(post.imageLayout).value === "original" ? "h-auto max-h-[70vh] object-contain" : "h-full object-cover"}`}
               style={{ objectPosition: post.coverImagePosition || "50% 50%" }}
@@ -326,18 +329,18 @@ export default function PostPage() {
             </div>
           )}
 
-          {post.images && post.images.length > 0 && (
+          {imageSources.gallery.length > 0 && (
             <div className="mb-16 vanta-scene-stage" data-scene-stage="foreground">
               <div
                 className={`grid gap-4 ${
-                  post.images.length === 1
+                  imageSources.gallery.length === 1
                     ? "grid-cols-1"
-                    : post.images.length === 2
+                    : imageSources.gallery.length === 2
                     ? "grid-cols-2"
                     : "grid-cols-2 md:grid-cols-3"
                 }`}
               >
-                {post.images.map((img, idx) => {
+                {imageSources.gallery.map((img, idx) => {
                   const layout = getImageLayout(post.imageLayouts?.[idx]);
                   return (
                   <div

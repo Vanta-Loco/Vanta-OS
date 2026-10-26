@@ -25,7 +25,8 @@ import { insertPostSchema, type InsertPost } from "@shared/schema";
 import { CoverImagePositionPicker } from "@/components/cover-image-position-picker";
 import { ImageLayoutPicker, type ImageLayout, getImageLayout } from "@/components/image-layout-picker";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { publishTransmission, readImageFile } from "@/lib/transmission-image-upload";
+import { queryClient } from "@/lib/queryClient";
 
 const categories = [
   "Music Production",
@@ -41,9 +42,12 @@ export default function CreatePost() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading: authLoading } = useAdmin();
   const [coverImagePreview, setCoverImagePreview] = useState<string>("");
+  const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
   const [galleryPreviews, setGalleryPreviews] = useState<string[]>([]);
+  const [galleryImageFiles, setGalleryImageFiles] = useState<File[]>([]);
   const [galleryLayouts, setGalleryLayouts] = useState<ImageLayout[]>([]);
   const [isFeatured, setIsFeatured] = useState(false);
+  const [isPreparingImages, setIsPreparingImages] = useState(false);
 
   // Guard: redirect to login if not authenticated
   useEffect(() => {
@@ -72,7 +76,8 @@ export default function CreatePost() {
 
   const createPost = useMutation({
     mutationFn: async (data: InsertPost) => {
-      return await apiRequest("POST", "/api/posts", data);
+      if (!coverImageFile) throw new Error("Please select a cover image.");
+      return await publishTransmission(data, coverImageFile, galleryImageFiles);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
@@ -82,51 +87,69 @@ export default function CreatePost() {
       });
       navigate("/");
     },
-    onError: () => {
+    onError: (error) => {
       toast({
         title: "Error",
-        description: "Failed to publish transmission. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to publish transmission. Please try again.",
         variant: "destructive",
       });
     },
   });
 
-  const handleCoverImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const dataUrl = reader.result as string;
-        setCoverImagePreview(dataUrl);
-        form.setValue("coverImage", dataUrl);
-      };
-      reader.readAsDataURL(file);
+  const handleCoverImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const input = e.currentTarget;
+    const file = input.files?.[0];
+    if (!file) return;
+    setIsPreparingImages(true);
+    try {
+      const preview = await readImageFile(file);
+      setCoverImagePreview(preview);
+      setCoverImageFile(file);
+      form.setValue("coverImage", preview, { shouldValidate: true });
+    } catch (error) {
+      toast({
+        title: "Image could not be read.",
+        description: error instanceof Error ? error.message : "Choose another image and try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsPreparingImages(false);
+      input.value = "";
     }
   };
 
-  const handleGalleryImagesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    const readers = files.map((file) => {
-      return new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.readAsDataURL(file);
-      });
-    });
-
-    Promise.all(readers).then((dataUrls) => {
-      setGalleryPreviews((prev) => [...prev, ...dataUrls]);
-      form.setValue("images", [...(form.getValues("images") || []), ...dataUrls]);
-      const nextLayouts = [...(form.getValues("imageLayouts") || []), ...dataUrls.map(() => "original" as ImageLayout)];
+  const handleGalleryImagesChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const input = e.currentTarget;
+    const files = Array.from(input.files || []);
+    if (files.length === 0) return;
+    setIsPreparingImages(true);
+    try {
+      const previews = await Promise.all(files.map(readImageFile));
+      const nextPreviews = [...galleryPreviews, ...previews];
+      const nextFiles = [...galleryImageFiles, ...files];
+      const nextLayouts = [...galleryLayouts, ...files.map(() => "original" as ImageLayout)];
+      setGalleryPreviews(nextPreviews);
+      setGalleryImageFiles(nextFiles);
       setGalleryLayouts(nextLayouts);
+      form.setValue("images", nextPreviews);
       form.setValue("imageLayouts", nextLayouts);
-    });
+    } catch (error) {
+      toast({
+        title: "Gallery images could not be read.",
+        description: error instanceof Error ? error.message : "Choose different images and try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsPreparingImages(false);
+      input.value = "";
+    }
   };
 
   const removeGalleryImage = (index: number) => {
     const newPreviews = galleryPreviews.filter((_, i) => i !== index);
     const newLayouts = galleryLayouts.filter((_, i) => i !== index);
     setGalleryPreviews(newPreviews);
+    setGalleryImageFiles(galleryImageFiles.filter((_, i) => i !== index));
     setGalleryLayouts(newLayouts);
     form.setValue("images", newPreviews);
     form.setValue("imageLayouts", newLayouts);
@@ -309,6 +332,7 @@ export default function CreatePost() {
                         className="hidden"
                         accept="image/*"
                         onChange={handleCoverImageChange}
+                        disabled={createPost.isPending || isPreparingImages}
                         data-testid="input-cover-image"
                       />
                     </label>
@@ -329,6 +353,7 @@ export default function CreatePost() {
                           className="absolute top-2 right-2"
                           onClick={() => {
                             setCoverImagePreview("");
+                            setCoverImageFile(null);
                             form.setValue("coverImage", "");
                             form.setValue("coverImagePosition", "50% 50%");
                           }}
@@ -380,6 +405,7 @@ export default function CreatePost() {
                       accept="image/*"
                       multiple
                       onChange={handleGalleryImagesChange}
+                      disabled={createPost.isPending || isPreparingImages}
                       data-testid="input-gallery-images"
                     />
                   </label>
@@ -452,13 +478,13 @@ export default function CreatePost() {
               </Link>
               <Button
                 type="submit"
-                disabled={createPost.isPending}
+                disabled={createPost.isPending || isPreparingImages}
                 data-testid="button-publish"
               >
-                {createPost.isPending ? (
+                {createPost.isPending || isPreparingImages ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Publishing...
+                    {isPreparingImages ? "Preparing images..." : "Publishing..."}
                   </>
                 ) : (
                   "Publish Transmission"

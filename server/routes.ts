@@ -34,6 +34,7 @@ import fs from "fs";
 import sharp from "sharp";
 import crypto from "crypto";
 import { mediaStorage, MediaStorageError } from "./media-storage";
+import { isSupportedImageUploadSize, MAX_IMAGE_BYTES } from "./image-upload-policy";
 import {
   createVaultMediaAccessUrl,
   getSafeLegacyUploadPath,
@@ -92,7 +93,6 @@ const vaultUpload = multer({
   },
 });
 
-const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
 const MAX_IMAGE_PIXELS = 40_000_000;
 const SUPPORTED_DECODED_IMAGE_FORMATS = new Set([
   "jpeg", "png", "webp", "heif", "avif", "tiff", "gif",
@@ -328,7 +328,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.json({ url: `/uploads/${file.filename}` });
         }
 
-        if (file.size > MAX_IMAGE_BYTES) {
+        if (!isSupportedImageUploadSize(file.size)) {
           throw new ImageValidationError("Image exceeds the decoded-image input limit.");
         }
         const metadata = await sharp(file.path, {
