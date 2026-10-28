@@ -87,6 +87,19 @@ const DISTRICT_TYPES: BuildingType[][] = [
   ],
 ];
 
+function supportsWorldWebGL(): boolean {
+  if (typeof document === "undefined") return false;
+  try {
+    const probe = document.createElement("canvas");
+    const context = probe.getContext("webgl2") || probe.getContext("webgl");
+    if (!context) return false;
+    context.getExtension("WEBGL_lose_context")?.loseContext();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 // ─── Toon gradient map (3-step: shadow / mid / highlight) ─────────────────────
 function makeToonMap(): THREE.DataTexture {
   // Steps: dark-shadow floor (#151a12 ≈ 21), mid-tone, highlight
@@ -553,14 +566,15 @@ function buildLandmarks(): { objects: THREE.Object3D[]; disposables: Disposable[
 }
 
 // ─── Error boundary ────────────────────────────────────────────────────────────
-class CanvasBoundary extends Component<{ children: ReactNode; fallback: ReactNode }, { error: string | null }> {
+class CanvasBoundary extends Component<{ children: ReactNode; onError: () => void }, { error: string | null }> {
   state = { error: null as string | null };
   static getDerivedStateFromError(e: Error) { return { error: e.message ?? String(e) }; }
-  componentDidCatch(e: Error) { console.error("[Vanta City] Canvas error:", e.message, e.stack); }
+  componentDidCatch(e: Error) {
+    console.warn("[Vanta City] WebGL scene unavailable; switching to the district map.", e.message);
+    this.props.onError();
+  }
   render() {
-    if (this.state.error) {
-      return this.props.fallback;
-    }
+    if (this.state.error) return null;
     return this.props.children;
   }
 }
@@ -965,6 +979,8 @@ export default function World() {
   const [, navigate]  = useLocation();
   const [near, setNear] = useState<NearState>({ lm: null, canEnter: false });
   const [mapOpen, setMapOpen] = useState(false);
+  const [webglAvailable] = useState(() => supportsWorldWebGL());
+  const [canvasFailed, setCanvasFailed] = useState(false);
   const [selectedMapId, setSelectedMapId] = useState("black-index");
 
   // Scene mode: city world or bedroom interior
@@ -1004,11 +1020,15 @@ export default function World() {
     if (!destination || destination.action === "locked") return;
     setMapOpen(false);
     if (destination.action === "music-hub") {
+      if (!webglAvailable || canvasFailed) {
+        handleEnter("/releases");
+        return;
+      }
       handleOpenHubMenu();
       return;
     }
     if (destination.route) handleEnter(destination.route);
-  }, [handleEnter, handleOpenHubMenu]);
+  }, [canvasFailed, handleEnter, handleOpenHubMenu, webglAvailable]);
 
   const handleHubSelect = useCallback((choice: number) => {
     setHubMenuOpen(false);
@@ -1066,7 +1086,8 @@ export default function World() {
     locked: landmark.action === "locked",
   }));
 
-  if (mapOpen) {
+  const mapFallbackActive = !webglAvailable || canvasFailed;
+  if (mapOpen || mapFallbackActive) {
     return (
       <DistrictMapView
         locations={mapLocations}
@@ -1074,7 +1095,7 @@ export default function World() {
         selectedId={selectedMapId}
         onSelect={setSelectedMapId}
         onEnter={handleMapEnter}
-        onClose={() => setMapOpen(false)}
+        onClose={() => mapFallbackActive ? navigate("/worlds") : setMapOpen(false)}
       />
     );
   }
@@ -1249,18 +1270,7 @@ export default function World() {
       {/* ── Vault Radio HUD (always visible) ───────────────────────────────── */}
       <VaultRadio />
 
-      <CanvasBoundary
-        fallback={
-          <DistrictMapView
-            locations={mapLocations}
-            playerPosition={playerPosRef.current}
-            selectedId={selectedMapId}
-            onSelect={setSelectedMapId}
-            onEnter={handleMapEnter}
-            onClose={() => navigate("/worlds")}
-          />
-        }
-      >
+      <CanvasBoundary onError={() => setCanvasFailed(true)}>
         <Canvas
           style={{ width: "100%", height: "100%" }}
           camera={{ position: [0, 6, 10], fov: 60, near: 0.1, far: 2000 }}

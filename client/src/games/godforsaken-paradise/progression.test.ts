@@ -87,5 +87,31 @@ test("cabin upgrades reject insufficient funds and cannot be bought twice", () =
   const purchased = purchaseCabinUpgrade({ ...initial, credits: 120 }, "tool-rack");
   assert.equal(purchased.credits, 0);
   assert.deepEqual(purchased.upgrades, ["tool-rack"]);
-  assert.equal(purchaseCabinUpgrade({ ...purchased, credits: 500 }, "tool-rack"), purchased);
+  const duplicate = purchaseCabinUpgrade({ ...purchased, credits: 500 }, "tool-rack");
+  assert.equal(duplicate.credits, 500);
+  assert.deepEqual(duplicate.upgrades, ["tool-rack"]);
+});
+
+test("finishing all three mission types unlocks the first-shift order exactly once", () => {
+  let state = missionForNextShift(createInitialProgress(), "supply");
+  for (const objective of ["filter", "coupler", "parcel", "terminal-report"]) {
+    state = recordMissionObjective(state, objective);
+  }
+  state = completeActiveMission(state);
+  assert.equal(state.firstShiftEndingUnlocked, false);
+
+  state = missionForNextShift(state, "repair");
+  state = recordMissionObjective(state, "relay-repaired");
+  state = recordMissionObjective(state, "terminal-report");
+  state = completeActiveMission(state);
+  assert.equal(state.firstShiftEndingUnlocked, false);
+
+  state = missionForNextShift(state, "delivery");
+  state = recordMissionObjective(state, "dispatch-picked");
+  state = recordMissionObjective(state, `delivered-to-${state.activeMission!.employeeTarget}`);
+  state = completeActiveMission(state);
+  assert.equal(state.firstShiftEndingUnlocked, true);
+  assert.equal(state.completedMissionIds.length, 3);
+  assert.equal(state.rank, 3);
+  assert.equal(completeActiveMission(state), state);
 });
