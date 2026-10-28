@@ -1,20 +1,18 @@
 import { useRef, useEffect } from "react";
+import { DISTRICT_LANDMARKS } from "@/data/district-landmarks";
 
 const MAP_SIZE   = 148;   // canvas pixels
 const WORLD_VIEW = 240;   // world units visible per side (radius)
 const SCALE      = MAP_SIZE / (WORLD_VIEW * 2);  // px per world unit
 const CHUNK      = 80;    // chunk boundary spacing
 
-// Mirror of world.tsx LANDMARKS
-const MAP_LMS = [
-  { name: "BLACK INDEX",      x:  40, z:  -40, color: "#7c3aed", short: "IDX" },
-  { name: "MUSIC HUB",        x: -60, z:  -60, color: "#ec4899", short: "MUS" },
-  { name: "VAULT GATE",       x:  90, z:   20, color: "#22c55e", short: "VLT" },
-  { name: "WIRELINE",         x: -90, z:   50, color: "#3b82f6", short: "WRL" },
-  { name: "FRACT",            x:  10, z: -110, color: "#f59e0b", short: "FRX" },
-  { name: "VANTA METRO",      x: -20, z:   70, color: "#6b7280", short: "MET" },
-  { name: "VANTA OS CORE",    x: 110, z:  -90, color: "#a855f7", short: "VOS" },
-];
+const MAP_LMS = DISTRICT_LANDMARKS.map((landmark) => ({
+  name: landmark.name,
+  x: landmark.x,
+  z: landmark.z,
+  color: landmark.mapColor,
+  short: landmark.shortName,
+}));
 
 function toMap(wx: number, wz: number, px: number, pz: number) {
   return {

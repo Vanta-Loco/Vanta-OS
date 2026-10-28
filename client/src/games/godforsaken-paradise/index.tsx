@@ -1,69 +1,140 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import "./game.css";
+import {
+  clearProgress,
+  completeActiveMission,
+  createInitialProgress,
+  loadProgress,
+  missionForNextShift,
+  missionReadyForReport,
+  missionRankLabel,
+  persistProgress,
+  purchaseCabinUpgrade,
+  recordMissionObjective,
+  type MissionType,
+  type ProgressSave,
+  type UpgradeId,
+} from "./progression";
 
 type Point = { x: number; y: number };
 type Dialogue = { name: string; text: string } | null;
-type Interaction = { id: string; label: string; kind: "npc" | "terminal" | "item"; x: number; y: number };
+type InteractionKind = "npc" | "terminal" | "item" | "repair" | "dispatch" | "cabin" | "canteen" | "operations" | "lift";
+type Interaction = { id: string; label: string; kind: InteractionKind; x: number; y: number };
 type GameState = {
   player: Point;
   camera: Point;
-  collected: boolean[];
-  missionStarted: boolean;
-  completed: boolean;
-  credits: number;
-  rank: number;
+  progress: ProgressSave;
   nearby: Interaction | null;
   dialogue: Dialogue;
   feedback: string;
   feedbackUntil: number;
 };
 
-const INITIAL: GameState = {
-  player: { x: 0, y: 0 },
-  camera: { x: 0, y: 0 },
-  collected: [false, false, false],
-  missionStarted: false,
-  completed: false,
-  credits: 0,
-  rank: 1,
-  nearby: null,
-  dialogue: null,
-  feedback: "Shift log open. Check the terminal to begin your first assignment.",
-  feedbackUntil: 0,
-};
 const ITEMS = [
   { id: "filter", name: "Air filter", x: -5.2, y: -2.8, color: "#b9d37d" },
   { id: "coupler", name: "Power coupler", x: 4.9, y: -1.5, color: "#df9a56" },
   { id: "parcel", name: "Sealed parcel", x: 2.7, y: 5.2, color: "#d6c293" },
 ];
 const NPCS = [
-  { id: "mara", name: "Mara Venn", x: -5.4, y: 3.4, coat: "#a55f4b", line: "Mara: The Brizz General wants clean manifests, not heroics. Three supplies, back to the terminal. Quiet shift, if we do it right." },
-  { id: "tovin", name: "Tovin Rusk", x: 5.4, y: 3.8, coat: "#527e86", line: "Tovin: General Brizz signed off on this station personally. Keep the old coupler dry and the air filter seated. That is a good day's work." },
+  { id: "mara", name: "Mara Venn", x: -5.4, y: 3.4, coat: "#a55f4b", patrol: 0.38, phase: 0 },
+  { id: "tovin", name: "Tovin Rusk", x: 5.4, y: 3.8, coat: "#527e86", patrol: 0.48, phase: Math.PI },
 ];
 const WALLS = [
   { x: -4.6, y: -5.3, w: 4.1, h: 2.1, label: "CABIN 04" },
   { x: 2.8, y: -5.5, w: 2.6, h: 2.0, label: "SUPPLY LOCKER" },
   { x: -1.0, y: 4.6, w: 3.0, h: 1.35, label: "CABLE RUN" },
-  { x: -7.1, y: -.5, w: 1.0, h: 2.7, label: "" },
-  { x: 6.2, y: -.8, w: 1.0, h: 2.6, label: "" },
+  { x: -12.0, y: -1.8, w: 3.0, h: 1.1, label: "CANTEEN COUNTER" },
+  { x: -11.0, y: 2.1, w: 2.0, h: 1.3, label: "TABLES" },
+  { x: 8.0, y: -5.7, w: 3.4, h: 1.3, label: "OPS CONSOLE" },
+  { x: 8.1, y: -1.6, w: 3.4, h: 1.2, label: "SHIFT BOARD" },
+  { x: -1.2, y: 9.0, w: 2.4, h: 1.2, label: "REPAIR RELAY" },
+  { x: 8.2, y: 7.8, w: 4.0, h: 4.6, label: "COMMAND LIFT" },
 ];
+const ROOM_LABELS = [
+  { name: "CANTEEN", x: -10.2, y: -4.0, color: "#d8b572" },
+  { name: "OPERATIONS DECK", x: 9.6, y: -3.4, color: "#8ab8bd" },
+  { name: "MAINTENANCE CORRIDOR", x: 1.0, y: 12.1, color: "#91b181" },
+  { name: "COMMAND LIFT · LOCKED", x: 10.2, y: 12.0, color: "#dc7b70" },
+];
+const MISSION_NAMES: Record<MissionType, string> = {
+  supply: "SUPPLY COLLECTION",
+  repair: "EQUIPMENT REPAIR",
+  delivery: "EMPLOYEE DELIVERY",
+};
+const MISSION_DESCRIPTIONS: Record<MissionType, string> = {
+  supply: "Collect the air filter, power coupler, and sealed parcel; report back to the shift terminal.",
+  repair: "Reach the maintenance corridor, restore the relay, and report back to the shift terminal.",
+  delivery: "Pick up the dispatch packet in operations and hand it to the assigned crew member.",
+};
 const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
 const distance = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y);
+const cloneProgress = (progress: ProgressSave): ProgressSave => ({
+  ...progress,
+  completedMissionIds: [...progress.completedMissionIds],
+  completedMissionTypes: [...progress.completedMissionTypes],
+  upgrades: [...progress.upgrades],
+  activeMission: progress.activeMission
+    ? { ...progress.activeMission, objectives: [...progress.activeMission.objectives] }
+    : null,
+});
 
 export function GodforsakenParadiseGame() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const frameRef = useRef<number | null>(null);
   const heldRef = useRef<Set<string>>(new Set());
-  const gameRef = useRef<GameState>({ ...INITIAL, player: { ...INITIAL.player }, camera: { ...INITIAL.camera }, collected: [...INITIAL.collected] });
+  const [initialProgress] = useState(() => loadProgress());
+  const createInitialGame = (): GameState => ({
+    player: { x: 0, y: 0 },
+    camera: { x: 0, y: 0 },
+    progress: cloneProgress(initialProgress),
+    nearby: null,
+    dialogue: null,
+    feedback: initialProgress.activeMission ? "Saved assignment restored. Continue your shift." : "Shift log open. Check the terminal to begin your first assignment.",
+    feedbackUntil: 0,
+  });
+  const gameRef = useRef<GameState>(createInitialGame());
   const reducedRef = useRef(false);
-  const [view, setView] = useState(() => ({ ...gameRef.current }));
+  const [view, setView] = useState(() => ({ ...gameRef.current, progress: cloneProgress(gameRef.current.progress) }));
+  const [arrivalOpen, setArrivalOpen] = useState(!initialProgress.arrivalSeen);
+  const [missionMenuOpen, setMissionMenuOpen] = useState(false);
+  const [upgradeMenuOpen, setUpgradeMenuOpen] = useState(false);
+  const [confirmFullReset, setConfirmFullReset] = useState(false);
 
-  const publish = useCallback(() => setView({ ...gameRef.current, player: { ...gameRef.current.player }, collected: [...gameRef.current.collected] }), []);
+  const publish = useCallback(() => setView({
+    ...gameRef.current,
+    player: { ...gameRef.current.player },
+    progress: cloneProgress(gameRef.current.progress),
+  }), []);
   const report = useCallback((message: string) => {
     gameRef.current.feedback = message;
     gameRef.current.feedbackUntil = performance.now() + 3600;
     publish();
   }, [publish]);
+  const commitProgress = useCallback((next: ProgressSave) => {
+    gameRef.current.progress = next;
+    persistProgress(next);
+    publish();
+  }, [publish]);
+
+  const acceptMission = useCallback((type: MissionType) => {
+    const next = missionForNextShift(gameRef.current.progress, type);
+    if (next === gameRef.current.progress) return;
+    gameRef.current.progress = next;
+    persistProgress(next);
+    setMissionMenuOpen(false);
+    report(`${MISSION_NAMES[type]} accepted. ${MISSION_DESCRIPTIONS[type]}`);
+  }, [report]);
+
+  const completeMission = useCallback((next: ProgressSave, type: MissionType) => {
+    const paid = completeActiveMission(next);
+    if (paid === next) return false;
+    const reward = paid.credits - next.credits;
+    gameRef.current.progress = paid;
+    persistProgress(paid);
+    publish();
+    report(`${MISSION_NAMES[type]} filed. +${reward} credits. Rank: ${missionRankLabel(paid.rank)}.`);
+    return true;
+  }, [publish, report]);
 
   const interact = useCallback(() => {
     const g = gameRef.current;
@@ -71,35 +142,105 @@ export function GodforsakenParadiseGame() {
     if (!target) return;
     if (target.kind === "npc") {
       const npc = NPCS.find((person) => person.id === target.id);
+      const active = g.progress.activeMission;
+      if (active?.type === "delivery" && active.objectives.includes("dispatch-picked") && active.employeeTarget === target.id) {
+        let next = recordMissionObjective(g.progress, `delivered-to-${target.id}`);
+        const delivered = completeActiveMission(next);
+        if (delivered !== next) {
+          const reward = delivered.credits - next.credits;
+          g.progress = delivered;
+          persistProgress(delivered);
+          report(`Dispatch delivered. +${reward} credits. Rank: ${missionRankLabel(delivered.rank)}.`);
+          return;
+        }
+        g.progress = next;
+        persistProgress(next);
+        report(`Dispatch delivered to ${npc?.name ?? "crew"}.`);
+        return;
+      }
       if (npc) {
-        g.dialogue = { name: npc.name, text: npc.line };
+        const line = npc.id === "mara"
+          ? "Mara: The Brizz General wants clean manifests, not heroics. Three supplies, back to the terminal. Quiet shift, if we do it right."
+          : g.progress.firstShiftEndingUnlocked
+            ? "Tovin: That order came through the command lift. No sender tag. The Brizz General does not usually leave the sender blank."
+            : "Tovin: General Brizz signed off on this station personally. Keep the old coupler dry and the air filter seated. That is a good day's work.";
+        g.dialogue = { name: npc.name, text: line };
         publish();
       }
       return;
     }
     if (target.kind === "item") {
-      const itemIndex = ITEMS.findIndex((item) => item.id === target.id);
-      if (itemIndex >= 0 && !g.collected[itemIndex]) {
-        g.collected[itemIndex] = true;
-        report(`${ITEMS[itemIndex].name} secured. Return it to the station terminal.`);
+      const item = ITEMS.find((entry) => entry.id === target.id);
+      if (item && g.progress.activeMission?.type === "supply") {
+        const next = recordMissionObjective(g.progress, item.id);
+        if (next !== g.progress) {
+          g.progress = next;
+          persistProgress(next);
+          report(`${item.name} secured. Return it to the station terminal.`);
+        }
       }
       return;
     }
-    if (!g.missionStarted) {
-      g.missionStarted = true;
-      report("Assignment accepted: recover the air filter, power coupler, and sealed parcel.");
-    } else if (g.collected.every(Boolean) && !g.completed) {
-      g.completed = true;
-      g.credits += 125;
-      g.rank = 2;
-      report("Shift assignment complete. +125 credits. Rank advanced to Station Hand.");
-    } else if (g.completed) {
-      report("Terminal: shift record filed. No further assignments are queued.");
-    } else {
-        report(`Terminal: ${g.collected.filter(Boolean).length} of 3 supplies recovered. Keep moving.`);
+    if (target.kind === "terminal") {
+      const active = g.progress.activeMission;
+      if (!active) {
+        setMissionMenuOpen(true);
+        return;
+      }
+      if (active.type === "delivery") {
+        report(active.objectives.includes("dispatch-picked")
+          ? `Take the dispatch packet to ${active.employeeTarget === "mara" ? "Mara Venn" : "Tovin Rusk"}.`
+          : "Pick up the dispatch packet from the operations deck.");
+        return;
+      }
+      if (!missionReadyForReport(g.progress)) {
+        report(active.type === "supply"
+          ? `Supply run: ${active.objectives.filter((id) => ["filter", "coupler", "parcel"].includes(id)).length} of 3 items secured.`
+          : "The maintenance relay still needs repair.");
+        return;
+      }
+      const next = recordMissionObjective(g.progress, "terminal-report");
+      completeMission(next, active.type);
+      return;
     }
-    publish();
-  }, [publish, report]);
+    if (target.kind === "repair" && g.progress.activeMission?.type === "repair") {
+      const next = recordMissionObjective(g.progress, "relay-repaired");
+      g.progress = next;
+      persistProgress(next);
+      report("Maintenance relay restored. Return to the shift terminal.");
+      return;
+    }
+    if (target.kind === "dispatch" && g.progress.activeMission?.type === "delivery") {
+      const next = recordMissionObjective(g.progress, "dispatch-picked");
+      g.progress = next;
+      persistProgress(next);
+      report(`Packet secured. Deliver it to ${g.progress.activeMission.employeeTarget === "mara" ? "Mara Venn" : "Tovin Rusk"}.`);
+      return;
+    }
+    if (target.kind === "cabin") {
+      setUpgradeMenuOpen(true);
+      return;
+    }
+    if (target.kind === "lift") {
+      if (g.progress.upgrades.includes("signal-receiver") && g.progress.firstShiftEndingUnlocked) {
+        g.dialogue = {
+          name: "COMMAND LIFT / SIGNAL RECEIVER",
+          text: "A recording resolves through the static: “Seal the lower berth. Log its voice as a supply fault. No crew is to ride the lift.” The sender is listed as B.G.",
+        };
+        publish();
+      } else {
+        report(g.progress.rank >= 3
+          ? "Command lift remains sealed under direct authority of the Brizz General."
+          : "Command lift locked. Deck Specialist clearance required.");
+      }
+      return;
+    }
+    if (target.kind === "canteen") {
+      report(g.progress.rank >= 2 ? "Canteen ration logged. Mara says the General's order arrived without a sender tag." : "Canteen is open to station crew. Check in with Mara.");
+      return;
+    }
+    if (target.kind === "operations") report("Operations deck: dispatches route through the shift board.");
+  }, [completeMission, publish, report]);
 
   useEffect(() => {
     const media = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -119,19 +260,28 @@ export function GodforsakenParadiseGame() {
       return null;
     };
     const down = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement;
+      if (target.closest("button, input, [role='dialog'], .gp-modal, .gp-panel")) return;
+      if (gameRef.current.dialogue) {
+        if (event.key === "Escape") {
+          gameRef.current.dialogue = null;
+          publish();
+        }
+        return;
+      }
       const dir = mapKey(event.key);
       if (dir && !event.repeat) {
         heldRef.current.add(dir);
         event.preventDefault();
       }
       if ((event.key === "e" || event.key === "E" || event.key === "Enter") && !event.repeat) {
-        if (document.activeElement?.tagName === "BUTTON" && event.key === "Enter") return;
         event.preventDefault();
         interact();
       }
       if (event.key === "Escape") {
-        gameRef.current.dialogue = null;
-        publish();
+        setMissionMenuOpen(false);
+        setUpgradeMenuOpen(false);
+        setConfirmFullReset(false);
       }
     };
     const up = (event: KeyboardEvent) => {

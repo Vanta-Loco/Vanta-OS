@@ -18,7 +18,9 @@ import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 import { VignetteShader } from "three/examples/jsm/shaders/VignetteShader.js";
 import { VaultRadio } from "@/components/vault-radio";
 import { WorldMinimap } from "@/components/world-minimap";
+import { DistrictMapView } from "@/components/vanta-district-map/DistrictMapView";
 import { VantaBedroomScene } from "@/components/vanta-bedroom";
+import { DISTRICT_LANDMARKS } from "@/data/district-landmarks";
 import {
   saveWorldState, loadWorldState, DEFAULT_WORLD_SAVE,
   type WorldSave,
@@ -47,13 +49,17 @@ interface NearState    { lm: LandmarkDef | null; canEnter: boolean }
 
 // ─── Landmarks (fixed world positions) ────────────────────────────────────────
 const LANDMARKS: LandmarkDef[] = [
-  { id: "black-index", name: "BLACK INDEX",      x:  40, z:  -40, h: 36, color: 0x0a0014, cap: 0x7c3aed, route: "/search",   msg: null },
-  { id: "music-hub",   name: "MUSIC HUB",        x: -60, z:  -60, h: 28, color: 0x14000a, cap: 0xec4899, route: "/releases", msg: null },
-  { id: "vault-gate",  name: "VAULT GATE",        x:  90, z:   20, h: 20, color: 0x001400, cap: 0x22c55e, route: "/vault",    msg: null },
-  { id: "wireline",    name: "WIRELINE TERMINAL", x: -90, z:   50, h: 24, color: 0x000a14, cap: 0x3b82f6, route: "/wireline", msg: null },
-  { id: "fract",       name: "FRACT EXCHANGE",    x:  10, z: -110, h: 30, color: 0x100014, cap: 0xf59e0b, route: "/fract",    msg: null },
-  { id: "subway",      name: "VANTA METRO",       x: -20, z:   70, h:  5, color: 0x0a0a14, cap: 0x6b7280, route: null,        msg: "Metro access locked" },
-  { id: "vanta-os",    name: "VANTA OS CORE",     x: 110, z:  -90, h: 32, color: 0x0a0010, cap: 0xa855f7, route: "/enter",   msg: null },
+  ...DISTRICT_LANDMARKS.map((landmark) => ({
+    id: landmark.id,
+    name: landmark.name,
+    x: landmark.x,
+    z: landmark.z,
+    h: landmark.height,
+    color: landmark.buildingColor,
+    cap: landmark.beaconColor,
+    route: landmark.action === "route" ? landmark.route : null,
+    msg: landmark.action === "locked" ? "Metro access locked" : null,
+  })),
 ];
 
 // ─── Building types by district ────────────────────────────────────────────────
@@ -547,20 +553,13 @@ function buildLandmarks(): { objects: THREE.Object3D[]; disposables: Disposable[
 }
 
 // ─── Error boundary ────────────────────────────────────────────────────────────
-class CanvasBoundary extends Component<{ children: ReactNode }, { error: string | null }> {
+class CanvasBoundary extends Component<{ children: ReactNode; fallback: ReactNode }, { error: string | null }> {
   state = { error: null as string | null };
   static getDerivedStateFromError(e: Error) { return { error: e.message ?? String(e) }; }
   componentDidCatch(e: Error) { console.error("[Vanta City] Canvas error:", e.message, e.stack); }
   render() {
     if (this.state.error) {
-      return (
-        <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 12, background: "#05030c", fontFamily: "monospace" }}>
-          <div style={{ fontSize: 11, color: "#6b7280" }}>VANTA CITY — RENDER ERROR</div>
-          <div style={{ fontSize: 10, color: "#f87171", background: "#1f0a0a", border: "1px solid #7f1d1d", padding: "6px 14px", borderRadius: 4, maxWidth: 500, textAlign: "center", wordBreak: "break-all" }}>
-            {this.state.error}
-          </div>
-        </div>
-      );
+      return this.props.fallback;
     }
     return this.props.children;
   }
@@ -965,6 +964,8 @@ function PostFX() {
 export default function World() {
   const [, navigate]  = useLocation();
   const [near, setNear] = useState<NearState>({ lm: null, canEnter: false });
+  const [mapOpen, setMapOpen] = useState(false);
+  const [selectedMapId, setSelectedMapId] = useState("black-index");
 
   // Scene mode: city world or bedroom interior
   const [activeScene,   setActiveScene]   = useState<"city" | "bedroom">("city");
@@ -991,6 +992,23 @@ export default function World() {
     setHubMenuOpen(true);
     setHubSelected(0);
   }, []);
+
+  const openDistrictMap = useCallback(() => {
+    saveWorldState({ ...worldSaveRef.current });
+    setSelectedMapId(worldSaveRef.current.nearId ?? "black-index");
+    setMapOpen(true);
+  }, []);
+
+  const handleMapEnter = useCallback((id: string) => {
+    const destination = DISTRICT_LANDMARKS.find((landmark) => landmark.id === id);
+    if (!destination || destination.action === "locked") return;
+    setMapOpen(false);
+    if (destination.action === "music-hub") {
+      handleOpenHubMenu();
+      return;
+    }
+    if (destination.route) handleEnter(destination.route);
+  }, [handleEnter, handleOpenHubMenu]);
 
   const handleHubSelect = useCallback((choice: number) => {
     setHubMenuOpen(false);
@@ -1033,6 +1051,33 @@ export default function World() {
 
   const { lm, canEnter } = near;
   const inBedroom = activeScene === "bedroom";
+  const mapLocations = DISTRICT_LANDMARKS.map((landmark) => ({
+    id: landmark.id,
+    name: landmark.name,
+    shortName: landmark.shortName,
+    category: landmark.category,
+    district: landmark.district,
+    x: landmark.x,
+    z: landmark.z,
+    color: landmark.mapColor,
+    description: landmark.description,
+    status: landmark.status,
+    actionLabel: landmark.actionLabel,
+    locked: landmark.action === "locked",
+  }));
+
+  if (mapOpen) {
+    return (
+      <DistrictMapView
+        locations={mapLocations}
+        playerPosition={playerPosRef.current}
+        selectedId={selectedMapId}
+        onSelect={setSelectedMapId}
+        onEnter={handleMapEnter}
+        onClose={() => setMapOpen(false)}
+      />
+    );
+  }
 
   return (
     <div style={{ position: "fixed", inset: 0, width: "100vw", height: "100vh", background: "#060412" }}>
@@ -1068,6 +1113,21 @@ export default function World() {
           </>
         )}
       </div>
+
+      <button
+        type="button"
+        data-testid="button-open-district-map"
+        onClick={openDistrictMap}
+        style={{
+          position: "absolute", top: 16, right: 16, zIndex: 999,
+          padding: "8px 12px", border: "1px solid rgba(168,85,247,.55)",
+          borderRadius: 4, color: "#d8b4fe", background: "rgba(5,3,12,.88)",
+          font: "10px ui-monospace, monospace", letterSpacing: ".12em",
+          cursor: "pointer",
+        }}
+      >
+        OPEN CITY MAP
+      </button>
 
       {/* ── City: landmark name label (broad range) ────────────────────────── */}
       {!inBedroom && lm && !canEnter && (
@@ -1189,7 +1249,18 @@ export default function World() {
       {/* ── Vault Radio HUD (always visible) ───────────────────────────────── */}
       <VaultRadio />
 
-      <CanvasBoundary>
+      <CanvasBoundary
+        fallback={
+          <DistrictMapView
+            locations={mapLocations}
+            playerPosition={playerPosRef.current}
+            selectedId={selectedMapId}
+            onSelect={setSelectedMapId}
+            onEnter={handleMapEnter}
+            onClose={() => navigate("/worlds")}
+          />
+        }
+      >
         <Canvas
           style={{ width: "100%", height: "100%" }}
           camera={{ position: [0, 6, 10], fov: 60, near: 0.1, far: 2000 }}
