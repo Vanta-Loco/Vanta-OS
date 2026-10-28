@@ -212,9 +212,9 @@ export function GodforsakenParadiseGame() {
         g.camera.x += (g.player.x - g.camera.x) * Math.min(1, dt * 5);
         g.camera.y += (g.player.y - g.camera.y) * Math.min(1, dt * 5);
       } else { g.camera.x = g.player.x; g.camera.y = g.player.y; }
-       const scale = Math.max(11, Math.min(32, width / 31));
-      const cameraCenter = iso(g.camera.x, g.camera.y, width / 2, height * .48, scale);
-      const project = (x: number, y: number) => iso(x, y, cameraCenter.x - (g.camera.x - g.camera.y) * scale, cameraCenter.y - (g.camera.x + g.camera.y) * scale * .48, scale);
+      const scale = Math.max(11, Math.min(32, width / 31));
+      const project = (x: number, y: number) =>
+        iso(x - g.camera.x, y - g.camera.y, width / 2, height * .48, scale);
 
       ctx.clearRect(0, 0, width, height);
       ctx.fillStyle = "#10191d"; ctx.fillRect(0, 0, width, height);
