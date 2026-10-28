@@ -45,6 +45,14 @@ const worlds = [
     href: "/worlds",
   },
   {
+    id: "godforsaken-paradise",
+    name: "GODFORSAKEN PARADISE",
+    tagline: "The Brizz General's Station",
+    description: "A standalone station minigame within the Fractured Godhead universe.",
+    status: "In Development",
+    href: "/godforsaken-paradise",
+  },
+  {
     id: "solo-mission",
     name: "Solo Mission",
     tagline: "The Solo Project",

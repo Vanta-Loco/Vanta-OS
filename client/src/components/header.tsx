@@ -43,6 +43,7 @@ const osLinks = [
   { href: "/fract",      label: "FRACT",             desc: "Reputation economy",   Icon: Coins     },
   { href: "/himalayas",  label: "Hidden Himalayas",  desc: "Cold expansion",       Icon: Mountain  },
   { href: "/fgh",        label: "Fractured Godhead", desc: "Lore archive",         Icon: Skull     },
+  { href: "/godforsaken-paradise", label: "GODFORSAKEN PARADISE", desc: "The Brizz General's Station", Icon: Radio },
   { href: "/devlogs",    label: "Dev Logs",          desc: "Build journal",        Icon: BookOpen  },
   { href: "/early-access", label: "Early Access",   desc: "Upcoming apps",        Icon: Clock     },
 ];

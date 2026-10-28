@@ -82,7 +82,7 @@ const SKIP_BOOT_KEY     = "vanta-skip-os-boot"; // localStorage: user opted to s
 
 // ── Paths that bypass all startup phases ───────────────────────────────────
 const SKIP_STARTUP_PATHS = [
-  "/world", "/vault", "/admin", "/stonerism", "/enter",
+  "/world", "/vault", "/admin", "/stonerism", "/enter", "/godforsaken-paradise",
 ];
 function shouldSkipStartup(path: string): boolean {
   return SKIP_STARTUP_PATHS.some(p => path === p || path.startsWith(p + "/"));
@@ -121,6 +121,15 @@ function WorldRoute() {
   );
 }
 
+const GodforsakenParadisePage = lazy(() => import("@/pages/godforsaken-paradise"));
+function GodforsakenParadiseRoute() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-background" aria-busy="true"><span className="sr-only">Loading station assignment</span></div>}>
+      <GodforsakenParadisePage />
+    </Suspense>
+  );
+}
+
 function Router() {
   return (
     <Switch>
@@ -135,6 +144,7 @@ function Router() {
       <Route path="/releases/new" component={ReleasesNew} />
       <Route path="/releases/edit/:id" component={ReleasesEdit} />
       <Route path="/worlds" component={Worlds} />
+      <Route path="/godforsaken-paradise" component={GodforsakenParadiseRoute} />
       <Route path="/enter" component={Enter} />
       <Route path="/vault" component={Vault} />
       <Route path="/world" component={WorldRoute} />

@@ -49,6 +49,18 @@ export const worlds: WorldEntry[] = [
     cta: "Enter Archive",
   },
   {
+    id: "godforsaken-paradise",
+    name: "GODFORSAKEN PARADISE",
+    tagline: "The Brizz General's Station",
+    status: "In Development",
+    description:
+      "A standalone station minigame within the Fractured Godhead universe, with its own route, cast, and gameplay state.",
+    detail:
+      "Walk the station, meet its employees, and complete a starter mission.",
+    href: "/godforsaken-paradise",
+    cta: "Play Prototype",
+  },
+  {
     id: "solo-mission",
     name: "Solo Mission",
     tagline: "The Solo Project",

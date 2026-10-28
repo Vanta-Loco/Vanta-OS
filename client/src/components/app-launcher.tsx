@@ -22,6 +22,7 @@ const LIVE_APPS: AppEntry[] = [
   { label: "Releases",     href: "/releases",    icon: Disc3,    desc: "Discography"         },
   { label: "Vault",        href: "/vault",       icon: Package,  desc: "Restricted archive"  },
   { label: "World",        href: "/world",       icon: Globe2,   desc: "City alpha"          },
+  { label: "Godforsaken",  href: "/godforsaken-paradise", icon: Radio, desc: "Brizz General's Station" },
   { label: "Rooms",        href: "/rooms",       icon: Users,    desc: "Creative spaces"     },
   { label: "Creators",     href: "/creators",    icon: Sparkles, desc: "Creative network"   },
   { label: "Marketplace", href: "/marketplace", icon: ShoppingBag, desc: "Creative services & collaboration" },
