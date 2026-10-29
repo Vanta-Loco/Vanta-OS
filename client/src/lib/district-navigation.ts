@@ -21,6 +21,10 @@ export type DistrictRoute = {
 };
 
 const STORAGE_KEY = "vanta.district-navigation.v1";
+export const DISTRICT_METRO_UNLOCK_REQUIREMENT =
+  "Visit BLACK INDEX and WIRELINE TERMINAL on foot to clear Metro access.";
+const METRO_PREREQUISITE_IDS = ["black-index", "wireline"] as const;
+const METRO_DESTINATION_ID = "subway";
 export const DISTRICT_SAFE_POSITION_LIMIT = 500;
 const ROAD_XS = [155, 365, 652, 856] as const;
 const ROAD_YS = [116, 365, 450] as const;
@@ -34,6 +38,23 @@ export const DEFAULT_DISTRICT_NAVIGATION: DistrictNavigationSave = {
 };
 
 const landmarkById = new Map(DISTRICT_LANDMARKS.map((landmark) => [landmark.id, landmark]));
+
+export function hasDistrictMetroPrerequisites(unlockedDestinationIds: string[]): boolean {
+  return METRO_PREREQUISITE_IDS.every((id) => unlockedDestinationIds.includes(id));
+}
+
+export function isDistrictDestinationAvailable(
+  destinationId: string,
+  unlockedDestinationIds: string[],
+): boolean {
+  const destination = landmarkById.get(destinationId);
+  if (!destination) return false;
+  if (destinationId === METRO_DESTINATION_ID) {
+    return unlockedDestinationIds.includes(METRO_DESTINATION_ID) &&
+      hasDistrictMetroPrerequisites(unlockedDestinationIds);
+  }
+  return destination.action !== "locked";
+}
 
 export function isSafeDistrictPosition(value: unknown): value is DistrictWorldPoint {
   if (!value || typeof value !== "object") return false;
@@ -56,16 +77,26 @@ export function parseDistrictNavigationSave(value: unknown): DistrictNavigationS
     !Array.isArray(record.unlockedDestinationIds)
   ) return null;
 
-  const validUnlockedIds = record.unlockedDestinationIds.filter(
+  const candidateUnlockedIds = record.unlockedDestinationIds.filter(
     (id): id is string => typeof id === "string" &&
-      landmarkById.has(id) && landmarkById.get(id)!.action !== "locked",
+      landmarkById.has(id) &&
+      (landmarkById.get(id)!.action !== "locked" || id === METRO_DESTINATION_ID),
   );
-  const unlockedDestinationIds = validUnlockedIds.filter((id, index) => validUnlockedIds.indexOf(id) === index);
+  const uniqueUnlockedIds = candidateUnlockedIds.filter(
+    (id, index) => candidateUnlockedIds.indexOf(id) === index,
+  );
+  const unlockedDestinationIds = uniqueUnlockedIds.filter((id) =>
+    id !== METRO_DESTINATION_ID || hasDistrictMetroPrerequisites(uniqueUnlockedIds),
+  );
+  const selectedDestinationId = record.selectedDestinationId as string | null;
   return {
     version: 1,
     coordinateSpace: "district-world-xz",
     position: { x: record.position.x, z: record.position.z },
-    selectedDestinationId: record.selectedDestinationId as string | null,
+    selectedDestinationId: selectedDestinationId &&
+      !isDistrictDestinationAvailable(selectedDestinationId, unlockedDestinationIds)
+      ? null
+      : selectedDestinationId,
     unlockedDestinationIds,
   };
 }
@@ -108,21 +139,29 @@ export function unlockDistrictDestination(
   };
 }
 
+export function unlockDistrictMetro(save: DistrictNavigationSave): DistrictNavigationSave {
+  if (!hasDistrictMetroPrerequisites(save.unlockedDestinationIds) ||
+    save.unlockedDestinationIds.includes(METRO_DESTINATION_ID)) return save;
+  return {
+    ...save,
+    unlockedDestinationIds: [...save.unlockedDestinationIds, METRO_DESTINATION_ID],
+  };
+}
+
 export function isFastTravelEligible(
   destinationId: string,
   unlockedDestinationIds: string[],
 ): boolean {
-  const destination = landmarkById.get(destinationId);
-  return Boolean(destination && destination.action !== "locked" &&
+  return Boolean(isDistrictDestinationAvailable(destinationId, unlockedDestinationIds) &&
     unlockedDestinationIds.includes(destinationId));
 }
 
-export function getDistrictFastTravelSpawn(destinationId: string): {
-  position: DistrictWorldPoint;
-  angle: number;
-} | null {
+export function getDistrictFastTravelSpawn(
+  destinationId: string,
+  unlockedDestinationIds: string[] = [],
+): { position: DistrictWorldPoint; angle: number } | null {
   const destination = landmarkById.get(destinationId);
-  if (!destination || destination.action === "locked") return null;
+  if (!destination || !isDistrictDestinationAvailable(destinationId, unlockedDestinationIds)) return null;
   const position = { x: destination.x - 8, z: destination.z + 12 };
   return {
     position,
@@ -202,9 +241,11 @@ export function buildDistrictRoute(
   start: DistrictWorldPoint,
   destinationId: string,
   bounds = getDistrictMapBounds(DISTRICT_LANDMARKS),
+  unlockedDestinationIds: string[] = [],
 ): DistrictRoute | null {
   const destination = landmarkById.get(destinationId);
-  if (!destination || destination.action === "locked" || !isSafeDistrictPosition(start)) return null;
+  if (!destination || !isDistrictDestinationAvailable(destinationId, unlockedDestinationIds) ||
+    !isSafeDistrictPosition(start)) return null;
   const goal = { x: destination.x, z: destination.z };
   const directDistance = distance(start, goal);
   if (directDistance <= 18) {
@@ -267,10 +308,14 @@ export function trimDistrictRoute(
   route: DistrictWorldPoint[],
   position: DistrictWorldPoint,
   destinationId: string,
+  unlockedDestinationIds: string[] = [],
 ): DistrictRoute | null {
   const destination = landmarkById.get(destinationId);
-  if (!route.length || !destination) return null;
-  if (route.length === 1) return buildDistrictRoute(position, destinationId);
+  if (!route.length || !destination ||
+    !isDistrictDestinationAvailable(destinationId, unlockedDestinationIds)) return null;
+  if (route.length === 1) {
+    return buildDistrictRoute(position, destinationId, undefined, unlockedDestinationIds);
+  }
 
   let nearestIndex = 1;
   let nearestDistance = Number.POSITIVE_INFINITY;

@@ -5,12 +5,15 @@ import {
   DEFAULT_DISTRICT_NAVIGATION,
   distanceToDistrictRoute,
   getDistrictFastTravelSpawn,
+  hasDistrictMetroPrerequisites,
   isFastTravelEligible,
+  isDistrictDestinationAvailable,
   parseDistrictNavigationSave,
   projectDistrictRouteToMap,
   shouldRecalculateDistrictRoute,
   trimDistrictRoute,
   unlockDistrictDestination,
+  unlockDistrictMetro,
 } from "./district-navigation";
 import { DISTRICT_LANDMARKS } from "../data/district-landmarks";
 import { getDistrictMapBounds, projectDistrictWorldPoint } from "../components/vanta-district-map/district-map-geometry";
@@ -72,4 +75,33 @@ test("first physical arrival unlocks fast travel; route eligibility rejects lock
   const spawn = getDistrictFastTravelSpawn(portal.id)!;
   assert.ok(Math.hypot(spawn.position.x - portal.x, spawn.position.z - portal.z) < 18);
   assert.equal(getDistrictFastTravelSpawn("subway"), null);
+});
+
+test("Metro unlock requires visiting Black Index and Wireline, then persists for route and fast travel", () => {
+  const blackIndexVisited = unlockDistrictDestination(DEFAULT_DISTRICT_NAVIGATION, "black-index");
+  assert.equal(hasDistrictMetroPrerequisites(blackIndexVisited.unlockedDestinationIds), false);
+  assert.equal(unlockDistrictMetro(blackIndexVisited), blackIndexVisited);
+  assert.equal(isDistrictDestinationAvailable("subway", blackIndexVisited.unlockedDestinationIds), false);
+  assert.equal(isFastTravelEligible("subway", ["subway"]), false);
+  assert.equal(buildDistrictRoute({ x: 0, z: 0 }, "subway", undefined, ["subway"]), null);
+
+  const bothVisited = unlockDistrictDestination(blackIndexVisited, "wireline");
+  assert.equal(hasDistrictMetroPrerequisites(bothVisited.unlockedDestinationIds), true);
+  const metroSave = unlockDistrictMetro(bothVisited);
+  assert.ok(metroSave.unlockedDestinationIds.includes("subway"));
+  assert.equal(isDistrictDestinationAvailable("subway", metroSave.unlockedDestinationIds), true);
+  assert.equal(isFastTravelEligible("subway", metroSave.unlockedDestinationIds), true);
+  assert.ok(buildDistrictRoute({ x: 0, z: 0 }, "subway", undefined, metroSave.unlockedDestinationIds));
+  assert.ok(getDistrictFastTravelSpawn("subway", metroSave.unlockedDestinationIds));
+
+  const restored = parseDistrictNavigationSave(JSON.parse(JSON.stringify(metroSave)));
+  assert.deepEqual(restored?.unlockedDestinationIds, metroSave.unlockedDestinationIds);
+  assert.deepEqual(
+    parseDistrictNavigationSave({
+      ...DEFAULT_DISTRICT_NAVIGATION,
+      unlockedDestinationIds: ["subway"],
+      selectedDestinationId: "subway",
+    }),
+    { ...DEFAULT_DISTRICT_NAVIGATION, selectedDestinationId: null, unlockedDestinationIds: [] },
+  );
 });

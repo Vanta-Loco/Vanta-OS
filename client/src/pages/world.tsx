@@ -44,6 +44,10 @@ import {
   type DistrictNavigationSave,
   type DistrictRoute,
   type DistrictWorldPoint,
+  DISTRICT_METRO_UNLOCK_REQUIREMENT,
+  hasDistrictMetroPrerequisites,
+  isDistrictDestinationAvailable,
+  unlockDistrictMetro,
 } from "@/lib/district-navigation";
 import "./vanta-district-touch-controls.css";
 
@@ -61,11 +65,38 @@ const CAM_DRAG_S  = 0.004; // mouse/touch drag sensitivity (rad/px)
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 interface Disposable   { geo: THREE.BufferGeometry; mat: THREE.Material }
+interface Disposable   { geo: THREE.BufferGeometry; mat: THREE.Material }
+interface Disposable   { geo: THREE.BufferGeometry; mat: THREE.Material }
 // Phase 2: flicker window entry tracked per-chunk for useFrame animation
 type FlickerEntry = { mesh: THREE.Mesh; phase: number; speed: number };
 interface ChunkData    { key: string; cx: number; cz: number; objects: THREE.Object3D[]; disposables: Disposable[]; flickerMeshes: FlickerEntry[] }
+interface ChunkData    { key: string; cx: number; cz: number; objects: THREE.Object3D[]; disposables: Disposable[]; flickerMeshes: FlickerEntry[] }
+interface ChunkData    { key: string; cx: number; cz: number; objects: THREE.Object3D[]; disposables: Disposable[]; flickerMeshes: FlickerEntry[] }
+interface ChunkData    { key: string; cx: number; cz: number; objects: THREE.Object3D[]; disposables: Disposable[]; flickerMeshes: FlickerEntry[] }
+interface ChunkData    { key: string; cx: number; cz: number; objects: THREE.Object3D[]; disposables: Disposable[]; flickerMeshes: FlickerEntry[] }
+interface ChunkData    { key: string; cx: number; cz: number; objects: THREE.Object3D[]; disposables: Disposable[]; flickerMeshes: FlickerEntry[] }
+interface ChunkData    { key: string; cx: number; cz: number; objects: THREE.Object3D[]; disposables: Disposable[]; flickerMeshes: FlickerEntry[] }
+interface LandmarkDef  { id: string; name: string; x: number; z: number; h: number; color: number; cap: number; route: string | null; msg: string | null }
+interface LandmarkDef  { id: string; name: string; x: number; z: number; h: number; color: number; cap: number; route: string | null; msg: string | null }
+interface LandmarkDef  { id: string; name: string; x: number; z: number; h: number; color: number; cap: number; route: string | null; msg: string | null }
+interface LandmarkDef  { id: string; name: string; x: number; z: number; h: number; color: number; cap: number; route: string | null; msg: string | null }
+interface LandmarkDef  { id: string; name: string; x: number; z: number; h: number; color: number; cap: number; route: string | null; msg: string | null }
+interface LandmarkDef  { id: string; name: string; x: number; z: number; h: number; color: number; cap: number; route: string | null; msg: string | null }
+interface LandmarkDef  { id: string; name: string; x: number; z: number; h: number; color: number; cap: number; route: string | null; msg: string | null }
+interface LandmarkDef  { id: string; name: string; x: number; z: number; h: number; color: number; cap: number; route: string | null; msg: string | null }
+interface LandmarkDef  { id: string; name: string; x: number; z: number; h: number; color: number; cap: number; route: string | null; msg: string | null }
 interface LandmarkDef  { id: string; name: string; x: number; z: number; h: number; color: number; cap: number; route: string | null; msg: string | null }
 interface BuildingType { color: number; roofColor: number; minH: number; maxH: number; minW: number; maxW: number; minD: number; maxD: number }
+interface BuildingType { color: number; roofColor: number; minH: number; maxH: number; minW: number; maxW: number; minD: number; maxD: number }
+interface BuildingType { color: number; roofColor: number; minH: number; maxH: number; minW: number; maxW: number; minD: number; maxD: number }
+interface BuildingType { color: number; roofColor: number; minH: number; maxH: number; minW: number; maxW: number; minD: number; maxD: number }
+interface BuildingType { color: number; roofColor: number; minH: number; maxH: number; minW: number; maxW: number; minD: number; maxD: number }
+interface BuildingType { color: number; roofColor: number; minH: number; maxH: number; minW: number; maxW: number; minD: number; maxD: number }
+interface BuildingType { color: number; roofColor: number; minH: number; maxH: number; minW: number; maxW: number; minD: number; maxD: number }
+interface BuildingType { color: number; roofColor: number; minH: number; maxH: number; minW: number; maxW: number; minD: number; maxD: number }
+interface BuildingType { color: number; roofColor: number; minH: number; maxH: number; minW: number; maxW: number; minD: number; maxD: number }
+interface NearState    { lm: LandmarkDef | null; canEnter: boolean }
+interface NearState    { lm: LandmarkDef | null; canEnter: boolean }
 interface NearState    { lm: LandmarkDef | null; canEnter: boolean }
 const NEUTRAL_JOYSTICK: DistrictJoystickInput = { x: 0, y: 0, magnitude: 0 };
 
@@ -660,6 +691,7 @@ class CanvasBoundary extends Component<{ children: ReactNode; onError: () => voi
 interface CitySceneProps {
   onNear:          (s: NearState) => void;
   onEnter:         (route: string) => void;
+  onMetroUnlock:   () => void;
   onOpenHubMenu:   () => void;
   playerPosRef:    React.MutableRefObject<{ x: number; z: number; angle: number }>;
   touchAxesRef:    React.MutableRefObject<DistrictJoystickInput>;
@@ -671,6 +703,7 @@ interface CitySceneProps {
 function CityScene({
   onNear,
   onEnter,
+  onMetroUnlock,
   onOpenHubMenu,
   playerPosRef,
   touchAxesRef,
@@ -708,9 +741,11 @@ function CityScene({
   // Stable callback refs (prevent stale closures in event handlers)
   const onNearRef          = useRef(onNear);
   const onEnterRef         = useRef(onEnter);
+  const onMetroUnlockRef   = useRef(onMetroUnlock);
   const onOpenHubMenuRef   = useRef(onOpenHubMenu);
   useEffect(() => { onNearRef.current        = onNear;         }, [onNear]);
   useEffect(() => { onEnterRef.current       = onEnter;        }, [onEnter]);
+  useEffect(() => { onMetroUnlockRef.current = onMetroUnlock;  }, [onMetroUnlock]);
   useEffect(() => { onOpenHubMenuRef.current = onOpenHubMenu;  }, [onOpenHubMenu]);
 
   // ── One-time scene setup ────────────────────────────────────────────────────
@@ -797,6 +832,7 @@ function CityScene({
         const lm = LANDMARKS.find(l => l.id === enterIdRef.current);
         // Music Hub → open the destination menu (bedroom or releases)
         if (lm?.id === "music-hub") { onOpenHubMenuRef.current(); return; }
+        if (lm?.id === "subway") { onMetroUnlockRef.current(); return; }
         if (lm?.route) onEnterRef.current(lm.route);
       }
     };
@@ -1124,7 +1160,12 @@ export default function World() {
   const chatRef = useRef<DistrictChatHandle | null>(null);
   const [liveRoute, setLiveRoute] = useState<DistrictRoute | null>(() =>
     initialNavigationSave.selectedDestinationId
-      ? buildDistrictRoute(initialNavigationSave.position, initialNavigationSave.selectedDestinationId)
+      ? buildDistrictRoute(
+        initialNavigationSave.position,
+        initialNavigationSave.selectedDestinationId,
+        undefined,
+        initialNavigationSave.unlockedDestinationIds,
+      )
       : null,
   );
   const baseRouteRef = useRef<DistrictWorldPoint[] | null>(liveRoute?.points ?? null);
@@ -1164,6 +1205,12 @@ export default function World() {
       }
       chatRef.current?.system(`Arrived at ${s.lm.name}.`);
     }
+  }, [persistNavigation]);
+
+  const handleMetroUnlock = useCallback(() => {
+    if (worldSaveRef.current.nearId !== "subway") return;
+    const unlocked = unlockDistrictMetro(navigationSaveRef.current);
+    if (unlocked !== navigationSaveRef.current) persistNavigation(unlocked);
   }, [persistNavigation]);
 
   const handleEnter = useCallback((route: string) => {
@@ -1234,11 +1281,16 @@ export default function World() {
 
   const handleSetDestination = useCallback((id: string) => {
     const destination = DISTRICT_LANDMARKS.find((landmark) => landmark.id === id);
-    if (!destination || destination.action === "locked") return;
+    if (!destination || !isDistrictDestinationAvailable(id, navigationSaveRef.current.unlockedDestinationIds)) return;
     const next = { ...navigationSaveRef.current, selectedDestinationId: destination.id };
     persistNavigation(next);
     setSelectedMapId(destination.id);
-    const route = buildDistrictRoute(playerPosRef.current, destination.id);
+    const route = buildDistrictRoute(
+      playerPosRef.current,
+      destination.id,
+      undefined,
+      navigationSaveRef.current.unlockedDestinationIds,
+    );
     baseRouteRef.current = route?.points ?? null;
     setLiveRoute(route);
       chatRef.current?.system(`Objective set: ${destination.name}. Follow the route on your District map.`);
@@ -1246,7 +1298,7 @@ export default function World() {
 
   const handleFastTravel = useCallback((id: string) => {
     if (!isFastTravelEligible(id, navigationSaveRef.current.unlockedDestinationIds)) return;
-    const spawn = getDistrictFastTravelSpawn(id);
+    const spawn = getDistrictFastTravelSpawn(id, navigationSaveRef.current.unlockedDestinationIds);
     if (!spawn) return;
     worldSaveRef.current = {
       ...worldSaveRef.current,
@@ -1262,7 +1314,12 @@ export default function World() {
       selectedDestinationId: id,
     };
     persistNavigation(next);
-    const route = buildDistrictRoute(spawn.position, id);
+    const route = buildDistrictRoute(
+      spawn.position,
+      id,
+      undefined,
+      navigationSaveRef.current.unlockedDestinationIds,
+    );
     baseRouteRef.current = route?.points ?? null;
     setLiveRoute(route);
     setSelectedMapId(id);
@@ -1330,11 +1387,18 @@ export default function World() {
       if (destinationId) {
         let baseRoute = baseRouteRef.current;
         if (!baseRoute || shouldRecalculateDistrictRoute(position, baseRoute)) {
-          const recalculated = buildDistrictRoute(position, destinationId);
+          const recalculated = buildDistrictRoute(
+            position,
+            destinationId,
+            undefined,
+            navigationSaveRef.current.unlockedDestinationIds,
+          );
           baseRoute = recalculated?.points ?? null;
           baseRouteRef.current = baseRoute;
         }
-        setLiveRoute(baseRoute ? trimDistrictRoute(baseRoute, position, destinationId) : null);
+        setLiveRoute(baseRoute
+          ? trimDistrictRoute(baseRoute, position, destinationId, navigationSaveRef.current.unlockedDestinationIds)
+          : null);
       }
       const now = Date.now();
       if (now - lastStoredAt >= 1000 && isSafeDistrictPosition(position)) {
@@ -1368,16 +1432,25 @@ export default function World() {
   const { lm, canEnter } = near;
   const inBedroom = activeScene === "bedroom";
   const contextLandmark = lm ? DISTRICT_LANDMARKS.find((landmark) => landmark.id === lm.id) ?? null : null;
+  const metroAvailable = isDistrictDestinationAvailable("subway", navigationSave.unlockedDestinationIds);
+  const metroPrerequisitesMet = hasDistrictMetroPrerequisites(navigationSave.unlockedDestinationIds);
   const contextActionLabel = inBedroom && bedroomPrompt
     ? bedroomPrompt.toLowerCase().includes("return")
       ? "RETURN TO VANTA CITY"
       : "TOGGLE RADIO"
+    : !inBedroom && canEnter && contextLandmark?.id === "subway"
+      ? metroAvailable
+        ? null
+        : metroPrerequisitesMet
+          ? "CLEAR METRO ACCESS"
+          : "METRO ACCESS LOCKED"
     : !inBedroom && lm && canEnter
       ? contextLandmark?.action === "locked"
         ? `LOCKED · ${lm.name}`
         : contextLandmark?.actionLabel ?? `ENTER ${lm.name}`
       : null;
-  const contextActionDisabled = !inBedroom && contextLandmark?.action === "locked";
+  const contextActionDisabled = !inBedroom &&
+    (contextLandmark?.id === "subway" ? !metroPrerequisitesMet : contextLandmark?.action === "locked");
   const handlePrimaryAction = () => {
     if (inBedroom && bedroomPrompt) {
       if (bedroomPrompt.toLowerCase().includes("return")) {
@@ -1388,6 +1461,10 @@ export default function World() {
       return;
     }
     if (!lm || !canEnter || !contextLandmark) return;
+    if (contextLandmark.id === "subway") {
+      handleMetroUnlock();
+      return;
+    }
     if (contextLandmark.action === "locked") {
       chatRef.current?.system(`${contextLandmark.name} remains locked.`);
       return;
@@ -1405,7 +1482,6 @@ export default function World() {
     chatInputFocusedRef.current = focused;
     if (focused) touchAxesRef.current = { ...NEUTRAL_JOYSTICK };
   }, []);
-
   const mapLocations = DISTRICT_LANDMARKS.map((landmark) => ({
     id: landmark.id,
     name: landmark.name,
@@ -1415,10 +1491,15 @@ export default function World() {
     x: landmark.x,
     z: landmark.z,
     color: landmark.mapColor,
-    description: landmark.description,
-    status: landmark.status,
+    description: landmark.id === "subway" && metroAvailable
+      ? "Metro access is cleared. Set it as an objective or fast travel here from the District map."
+      : landmark.description,
+    status: landmark.id === "subway" && metroAvailable ? "ACCESS GRANTED" : landmark.status,
     actionLabel: landmark.actionLabel,
-    locked: landmark.action === "locked",
+    locked: landmark.action === "locked" && !metroAvailable,
+    unlockRequirement: landmark.id === "subway" && !metroAvailable
+      ? DISTRICT_METRO_UNLOCK_REQUIREMENT
+      : undefined,
   }));
 
   const mapFallbackActive = !webglAvailable || canvasFailed;
@@ -1560,10 +1641,16 @@ export default function World() {
       {/* ── City: proximity prompt (enter range) ────────────────────────────── */}
       {!inBedroom && lm && canEnter && (
         <div
-          className={`vanta-city-arrival${lm.id === "fractured-godhead-portal" ? " is-portal" : ""}${chatOpen ? " is-chat-open" : ""}`}
+          className={`vanta-city-arrival${lm.id === "fractured-godhead-portal" ? " is-portal" : ""}${lm.id === "subway" ? " is-metro" : ""}${chatOpen ? " is-chat-open" : ""}`}
           style={{ borderColor: `#${lm.cap.toString(16).padStart(6, "0")}` }}
         >
-          {lm.id === "fractured-godhead-portal" ? (
+          {lm.id === "subway" ? (
+            <div style={{ display: "grid", gap: 8, maxWidth: 360 }}>
+              <strong>{metroAvailable ? "METRO ACCESS CLEARED" : "METRO ACCESS LOCKED"}</strong>
+              {!metroAvailable && <span>{DISTRICT_METRO_UNLOCK_REQUIREMENT}</span>}
+              {metroAvailable && <span>FAST TRAVEL AVAILABLE FROM THE DISTRICT MAP</span>}
+            </div>
+          ) : lm.id === "fractured-godhead-portal" ? (
             <>
               <strong>PORTAL ARRIVAL · E ENTER FRACTURED GODHEAD</strong>
               <button type="button" onClick={() => handleEnter("/godforsaken-paradise")}>
@@ -1684,6 +1771,7 @@ export default function World() {
             <CityScene
               onNear={handleNear}
               onEnter={handleEnter}
+              onMetroUnlock={handleMetroUnlock}
               onOpenHubMenu={handleOpenHubMenu}
               playerPosRef={playerPosRef}
               touchAxesRef={touchAxesRef}

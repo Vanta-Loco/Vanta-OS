@@ -23,6 +23,7 @@ export type DistrictMapLocation = {
   status: string;
   actionLabel: string;
   locked?: boolean;
+  unlockRequirement?: string;
 };
 
 export type DistrictMapPlayerPosition = { x: number; z: number } | null;
@@ -351,9 +352,7 @@ export function DistrictMapView({
               {selectedIsLocked ? (
                 <div className="vdm-locked-guidance" role="status">
                   <strong>ROUTE LOCKED</strong>
-                  <span>{selected.id === "subway"
-                    ? "Metro access has no unlock condition yet. Visit an open landmark to unlock its fast travel; the metro remains locked."
-                    : "This location has no active access route yet."}</span>
+                  <span>{selected.unlockRequirement || "This location has no active access route yet."}</span>
                 </div>
               ) : (
                 <>
