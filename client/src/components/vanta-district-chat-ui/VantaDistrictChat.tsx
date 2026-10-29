@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type PointerEvent as ReactPointerEvent } from "react";
 import "./VantaDistrictChat.css";
+import { DISTRICT_CHAT_INPUT_LIMIT } from "@/lib/district-chat-commands";
 
 export type DistrictChatChannel = "system" | "local" | "world" | "party" | "private";
 export type DistrictChatConnectionStatus = "connected" | "connecting" | "disconnected" | "error" | (string & {});
@@ -242,13 +243,14 @@ export function VantaDistrictChat({
                   key={id}
                   className={`vdc-chat__channel vdc-chat__channel--${id} ${activeChannel === id ? "is-active" : ""} ${mutedChannels.includes(id) ? "is-muted" : ""}`}
                   aria-current={activeChannel === id ? "page" : undefined}
-                  aria-label={`${label}${unavailable ? ", unavailable" : ""}${count > 0 ? `, ${count} unread` : ""}${mutedChannels.includes(id) ? ", muted" : ""}`}
+                  aria-label={`${label}${unavailable ? ", unavailable. Join a party to chat." : ""}${count > 0 ? `, ${count} unread` : ""}${mutedChannels.includes(id) ? ", muted" : ""}`}
+                  title={unavailable ? "Party is unavailable. Join a party to chat." : label}
                   aria-disabled={unavailable || undefined}
                   disabled={unavailable}
                   onClick={() => onSelectChannel(id)}
                 >
                   <span className="vdc-chat__channel-name">{label}</span>
-                  {unavailable ? <span className="vdc-chat__unavailable">OFFLINE</span> : count > 0 && (
+                  {unavailable ? <span className="vdc-chat__unavailable">NO PARTY</span> : count > 0 && (
                     <span className="vdc-chat__unread" aria-hidden="true">{count > 99 ? "99+" : count}</span>
                   )}
                   {mutedChannels.includes(id) && <span className="vdc-chat__mute-mark" aria-hidden="true">M</span>}
@@ -343,7 +345,7 @@ export function VantaDistrictChat({
                 id="vdc-chat-message"
                 data-vanta-chat-input=""
                 value={draft}
-                maxLength={500}
+                maxLength={DISTRICT_CHAT_INPUT_LIMIT}
                 autoComplete="off"
                 placeholder="Type a message"
                 aria-label={`Message for ${activeLabel} channel`}
@@ -357,7 +359,7 @@ export function VantaDistrictChat({
             </div>
             <div className="vdc-chat__composer-foot">
               <span>ENTER TO SEND</span>
-              <span>{draft.length}/500</span>
+              <span>{draft.length}/{DISTRICT_CHAT_INPUT_LIMIT}</span>
             </div>
           </form>
           <button

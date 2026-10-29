@@ -1,0 +1,133 @@
+.vanta-radio {
+  position: fixed;
+  z-index: 24;
+  top: max(9px, env(safe-area-inset-top, 0px));
+  left: 50%;
+  width: min(258px, calc(100vw - 24px));
+  transform: translateX(-50%);
+  overflow: hidden;
+  border: 1px solid rgba(168, 85, 247, .48);
+  border-radius: 3px;
+  background: rgba(5, 3, 12, .94);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .32), 0 0 16px rgba(168, 85, 247, .08);
+  color: #c4b5fd;
+  font: 8px/1.35 ui-monospace, "Courier New", monospace;
+  letter-spacing: .06em;
+  pointer-events: auto;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.vanta-radio__header {
+  display: grid;
+  grid-template-columns: auto minmax(28px, 1fr) 25px 25px;
+  align-items: center;
+  gap: 5px;
+  min-height: 36px;
+  padding: 4px 6px 4px 9px;
+}
+
+.vanta-radio__station {
+  color: #c99cf0;
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  white-space: nowrap;
+}
+
+.vanta-radio__track {
+  overflow: hidden;
+  color: #83788e;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vanta-radio__track.is-live { color: #d8c6e6; }
+
+.vanta-radio__play,
+.vanta-radio__collapse {
+  display: grid;
+  width: 25px;
+  height: 25px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgba(190, 149, 222, .36);
+  border-radius: 2px;
+  background: rgba(37, 23, 48, .7);
+  color: #e7d3f5;
+  font: 10px ui-monospace, monospace;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.vanta-radio__play:disabled {
+  color: #655b6b;
+  cursor: not-allowed;
+}
+
+.vanta-radio button:focus-visible,
+.vanta-radio a:focus-visible,
+.vanta-radio input:focus-visible {
+  outline: 2px solid #f0d9ff;
+  outline-offset: 2px;
+}
+
+.vanta-radio__body {
+  display: grid;
+  gap: 9px;
+  padding: 8px 10px 10px;
+  border-top: 1px solid rgba(168, 85, 247, .25);
+}
+
+.vanta-radio__notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 7px;
+  color: #84788d;
+  font-size: 7px;
+}
+
+.vanta-radio__notice a {
+  color: #c99cf0;
+  text-decoration: underline;
+}
+
+.vanta-radio__now-playing {
+  overflow: hidden;
+  color: #ded0e7;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vanta-radio__volume {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #8f829a;
+  font-size: 7px;
+}
+
+.vanta-radio__volume input {
+  flex: 1;
+  min-width: 44px;
+  accent-color: #a855f7;
+  cursor: pointer;
+}
+
+.vanta-radio.is-chat-open .vanta-radio__body { display: none; }
+
+@media (orientation: landscape) and (pointer: coarse) and (max-height: 560px) {
+  .vanta-radio { top: max(8px, env(safe-area-inset-top, 0px)); width: min(240px, calc(100vw - 280px)); }
+  .vanta-radio__header { min-height: 34px; grid-template-columns: auto minmax(24px, 1fr) 23px 23px; gap: 4px; }
+  .vanta-radio__play,
+  .vanta-radio__collapse { width: 23px; height: 23px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vanta-radio,
+  .vanta-radio * {
+    transition-duration: .01ms !important;
+  }
+}

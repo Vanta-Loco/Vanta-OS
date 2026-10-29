@@ -179,6 +179,10 @@
   white-space: nowrap;
   pointer-events: none;
 }
+.vanta-bedroom-prompt.is-chat-open {
+  top: calc(max(12px, env(safe-area-inset-top, 0px)) + 54px);
+  bottom: auto;
+}
 
 .vanta-city-joystick {
   display: none;
@@ -333,6 +337,8 @@
 }
 
 @media (orientation: landscape) and (pointer: coarse) and (max-height: 560px) {
+  .vanta-city-hud__hints { display: none; }
+  .vanta-city-hud { top: max(9px, env(safe-area-inset-top, 0px)) !important; left: max(10px, env(safe-area-inset-left, 0px)) !important; }
   .vanta-city-joystick {
     width: 122px;
     height: 122px;
@@ -359,6 +365,7 @@
   .vanta-city-arrival.is-portal.is-chat-open { top: calc(max(9px, env(safe-area-inset-top, 0px)) + 50px); width: min(310px, calc(100vw - 300px)); }
   .vanta-city-arrival.is-portal button { min-height: 34px; font-size: 7px; }
   .vanta-bedroom-prompt { bottom: calc(24% + env(safe-area-inset-bottom, 0px)); }
+  .vanta-bedroom-prompt.is-chat-open { top: calc(max(9px, env(safe-area-inset-top, 0px)) + 50px); }
 }
 
 @media (orientation: landscape) and (pointer: coarse) and (max-height: 560px) and (max-width: 780px) {

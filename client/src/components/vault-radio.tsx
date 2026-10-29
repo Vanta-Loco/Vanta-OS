@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useVault } from "@/hooks/use-vault";
 import { useQuery } from "@tanstack/react-query";
 import type { VaultItem } from "@shared/schema";
@@ -40,7 +40,7 @@ export function VaultRadio({ chatOpen = false }: { chatOpen?: boolean }) {
     enabled: isAuthorized,
   });
 
-  const tracks = items.filter(isPlayable);
+  const tracks = useMemo(() => items.filter(isPlayable), [items]);
 
   const [on, setOn]         = useState(false);
   const [volume, setVolume] = useState(() => loadRadioVol() ?? 0.7);
@@ -169,7 +169,10 @@ export function VaultRadio({ chatOpen = false }: { chatOpen?: boolean }) {
           className="vanta-radio__collapse"
           type="button"
           onClick={() => setCollapsed((value) => !value)}
-          aria-label={effectivelyCollapsed ? "Expand Vanta Radio controls" : "Collapse Vanta Radio controls"}
+          disabled={chatOpen}
+          aria-label={chatOpen
+            ? "Radio controls are compact while chat is open"
+            : effectivelyCollapsed ? "Expand Vanta Radio controls" : "Collapse Vanta Radio controls"}
           aria-expanded={!effectivelyCollapsed}
         >{effectivelyCollapsed ? "+" : "−"}</button>
       </div>

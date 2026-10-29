@@ -28,7 +28,7 @@ import {
   type WorldSave,
 } from "@/lib/world-state";
 import { clearDistrictPlayerLocation, loadDistrictPlayerLocation, saveDistrictPlayerLocation } from "@/lib/district-player-location";
-import { drainDistrictChatSystemMessages, queueDistrictChatSystemMessage } from "@/lib/district-chat-events";
+import { queueDistrictChatSystemMessage } from "@/lib/district-chat-events";
 import {
   buildDistrictRoute,
   DEFAULT_DISTRICT_NAVIGATION,
@@ -1201,6 +1201,13 @@ export default function World() {
     }
   }, [rotateDevice, hubMenuOpen, mapOpen]);
 
+  useEffect(() => {
+    if (!chatOpen) {
+      chatInputFocusedRef.current = false;
+      touchAxesRef.current = { ...NEUTRAL_JOYSTICK };
+    }
+  }, [chatOpen]);
+
   const handleOpenHubMenu = useCallback(() => {
     setHubMenuOpen(true);
     setHubSelected(0);
@@ -1234,7 +1241,7 @@ export default function World() {
     const route = buildDistrictRoute(playerPosRef.current, destination.id);
     baseRouteRef.current = route?.points ?? null;
     setLiveRoute(route);
-    queueDistrictChatSystemMessage(`Objective set: ${destination.name}. Follow the route on your District map.`);
+      chatRef.current?.system(`Objective set: ${destination.name}. Follow the route on your District map.`);
   }, [persistNavigation]);
 
   const handleFastTravel = useCallback((id: string) => {
@@ -1261,7 +1268,7 @@ export default function World() {
     setSelectedMapId(id);
     saveWorldState({ ...worldSaveRef.current });
     const destination = DISTRICT_LANDMARKS.find((landmark) => landmark.id === id);
-    queueDistrictChatSystemMessage(`Fast traveled to ${destination?.name ?? "District destination"}.`);
+    chatRef.current?.system(`Fast traveled to ${destination?.name ?? "District destination"}.`);
   }, [persistNavigation]);
 
   const handleResetNavigation = useCallback(() => {
@@ -1274,7 +1281,7 @@ export default function World() {
     worldSaveRef.current = { ...DEFAULT_WORLD_SAVE };
     saveWorldState({ ...DEFAULT_WORLD_SAVE });
     setSelectedMapId("black-index");
-    queueDistrictChatSystemMessage("District navigation was reset to its default spawn.");
+    chatRef.current?.system("District navigation was reset to its default spawn.");
   }, [persistNavigation]);
 
   const handleHubSelect = useCallback((choice: number) => {
@@ -1447,7 +1454,7 @@ export default function World() {
 
   return (
     <>
-    <div className="vanta-world-surface">
+    <div className="vanta-world-surface" data-testid="vanta-world-surface">
 
       {/* ── HUD — top-left badge + controls ────────────────────────────────── */}
       <div className="vanta-city-hud" style={{
@@ -1569,13 +1576,7 @@ export default function World() {
 
       {/* ── Bedroom: interaction prompt (door / iPod) ─────────────────────── */}
       {inBedroom && bedroomPrompt && (
-        <div className="vanta-bedroom-prompt" style={{
-          position: "absolute", bottom: "28%", left: "50%", transform: "translateX(-50%)",
-          background: "rgba(5,3,12,0.93)", border: "1px solid #9cff66",
-          color: "#c4b5fd", fontFamily: "monospace", fontSize: 13,
-          padding: "10px 26px", borderRadius: 4,
-          letterSpacing: "0.1em", zIndex: 999, pointerEvents: "none", whiteSpace: "nowrap",
-        }}>
+        <div className={`vanta-bedroom-prompt${chatOpen ? " is-chat-open" : ""}`}>
           {bedroomPrompt}
         </div>
       )}
@@ -1668,7 +1669,7 @@ export default function World() {
       )}
 
       {/* ── Vault Radio HUD (always visible) ───────────────────────────────── */}
-      <VaultRadio />
+      <VaultRadio chatOpen={chatOpen} />
 
       <CanvasBoundary onError={() => setCanvasFailed(true)}>
         <Canvas
@@ -1685,18 +1686,43 @@ export default function World() {
               onEnter={handleEnter}
               onOpenHubMenu={handleOpenHubMenu}
               playerPosRef={playerPosRef}
-              touchKeysRef={touchKeysRef}
+              touchAxesRef={touchAxesRef}
+              gamePausedRef={gamePausedRef}
+              chatInputFocusedRef={chatInputFocusedRef}
               worldSaveRef={worldSaveRef}
             />
           ) : (
             <VantaBedroomScene
               onExitBedroom={handleExitBedroom}
               onPromptChange={setBedroomPrompt}
+              touchAxesRef={touchAxesRef}
+              gamePausedRef={gamePausedRef}
+              chatInputFocusedRef={chatInputFocusedRef}
             />
           )}
           <PostFX />
         </Canvas>
       </CanvasBoundary>
     </div>
+    <div hidden={mapOpen || mapFallbackActive} data-district-chat-layer="">
+      <DistrictChat
+        ref={chatRef}
+        open={chatOpen}
+        onToggle={setChatOpen}
+        onInputFocus={handleChatFocus}
+        onUnreadCountChange={setChatUnreadCount}
+      />
+    </div>
+    {rotateDevice && (
+      <div className="vanta-city-rotate-overlay" role="status" aria-live="assertive" data-testid="rotate-device-overlay">
+        <div className="vanta-city-rotate-card">
+          <div className="vanta-city-rotate-mark" aria-hidden="true">↻</div>
+          <span>VANTA DISTRICT // MOBILE MODE</span>
+          <h1>Rotate to landscape</h1>
+          <p>Vanta District is designed for landscape play. Rotate your phone to continue; movement pauses until then.</p>
+        </div>
+      </div>
+    )}
+    </>
   );
 }

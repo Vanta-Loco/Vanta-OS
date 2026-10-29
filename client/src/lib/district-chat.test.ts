@@ -42,5 +42,9 @@ test("chat parser provides help and rejects malformed, empty, and overlong messa
   assert.equal(parseDistrictChatInput("/reply hello", "world", null).kind, "error");
   assert.equal(parseDistrictChatInput("   ", "world", null).kind, "error");
   assert.equal(parseDistrictChatInput("x".repeat(501), "world", null).kind, "error");
+  const maximumMessage = parseDistrictChatInput("x".repeat(500), "world", null);
+  assert.equal(maximumMessage.kind, "send");
+  if (maximumMessage.kind === "send") assert.equal(maximumMessage.text.length, 500);
+  assert.equal(parseDistrictChatInput(`/world ${"x".repeat(501)}`, "world", null).kind, "error");
   assert.equal(DISTRICT_CHAT_HISTORY_LIMIT, 120);
 });

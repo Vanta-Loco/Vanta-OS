@@ -463,8 +463,8 @@
 
 @media (max-width: 760px) and (orientation: landscape), (pointer: coarse) and (max-height: 520px) {
   .vdc-chat {
-    right: 10px;
-    bottom: 8px;
+    right: max(10px, env(safe-area-inset-right, 0px));
+    bottom: max(8px, env(safe-area-inset-bottom, 0px));
     width: min(450px, calc(100vw - 20px)) !important;
     height: min(238px, calc(100dvh - 16px)) !important;
   }
@@ -486,7 +486,11 @@
 }
 
 @media (max-width: 430px) and (orientation: landscape) {
-  .vdc-chat { right: 6px; bottom: 6px; width: calc(100vw - 12px) !important; }
+  .vdc-chat {
+    right: max(6px, env(safe-area-inset-right, 0px));
+    bottom: max(6px, env(safe-area-inset-bottom, 0px));
+    width: calc(100vw - 12px) !important;
+  }
   .vdc-chat__connection { max-width: 76px; }
   .vdc-chat__header { padding-right: 6px; padding-left: 8px; }
   .vdc-chat__identity { gap: 6px; }
