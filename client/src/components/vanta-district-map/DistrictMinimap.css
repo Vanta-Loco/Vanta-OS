@@ -9,7 +9,7 @@
   border: 1px solid rgba(190, 149, 222, .52);
   background: linear-gradient(145deg, rgba(18, 14, 25, .97), rgba(7, 8, 14, .98));
   box-shadow: 0 12px 34px rgba(0, 0, 0, .48), 0 0 20px rgba(168, 85, 247, .1);
-  pointer-events: none;
+  pointer-events: auto;
   font-family: "Space Mono", "SFMono-Regular", Consolas, monospace;
 }
 .vdm-minimap__header {
@@ -56,6 +56,15 @@
   background: #0b0a12;
 }
 .vdm-minimap__art { pointer-events: none; }
+.vdm-minimap__route-shadow, .vdm-minimap__route {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+}
+.vdm-minimap__route-shadow { stroke: rgba(7, 6, 13, .98); stroke-width: 8; }
+.vdm-minimap__route { stroke: #e0c3ff; stroke-width: 3.5; filter: drop-shadow(0 0 3px rgba(191, 137, 255, .9)); }
 .vdm-minimap__destination {
   fill: #160f20;
   font: 700 9px "Space Mono", monospace;
@@ -112,7 +121,22 @@
 .vdm-minimap__legend i.is-destination { background: #f0bb78; }
 .vdm-minimap__legend i.is-road { width: 10px; height: 2px; border-radius: 0; background: #c3a8d7; }
 .vdm-minimap__legend i.is-locked { background: #a76e68; border: 1px dashed #f2b2a3; }
-.vdm-minimap__destination-note { margin-left: auto; color: #e7cba0; }
+.vdm-minimap__route-status { width: 100%; color: #e4d0f4; font-size: 6px; letter-spacing: .08em; }
+.vdm-minimap__destination-note {
+  margin-left: auto;
+  min-height: 25px;
+  padding: 3px 7px;
+  color: #e7cba0;
+  border: 1px solid rgba(240, 187, 120, .46);
+  background: rgba(27, 21, 17, .92);
+  font: inherit;
+  font-size: 6px;
+  letter-spacing: .06em;
+  cursor: pointer;
+  pointer-events: auto;
+}
+.vdm-minimap__destination-note:hover { color: #fff0d5; border-color: #f0bb78; }
+.vdm-minimap__destination-note:focus-visible { outline: 2px solid #f2d7ff; outline-offset: 2px; }
 
 @media (max-width: 700px) {
   .vdm-minimap { left: 10px; bottom: 10px; width: min(202px, calc(100vw - 20px)); }

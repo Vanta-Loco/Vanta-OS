@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, PointerEvent, WheelEvent } from "react";
 import "./DistrictMapView.css";
 import { DistrictMapArtwork } from "./DistrictMapArtwork";
@@ -8,6 +8,7 @@ import {
   getDistrictMapBounds,
   projectDistrictWorldPoint,
 } from "./district-map-geometry";
+import type { DistrictRoute, DistrictWorldPoint } from "@/lib/district-navigation";
 
 export type DistrictMapLocation = {
   id: string;
@@ -30,10 +31,14 @@ export interface DistrictMapViewProps {
   locations: DistrictMapLocation[];
   playerPosition: DistrictMapPlayerPosition;
   playerDestinationId?: string | null;
+  route?: DistrictRoute | null;
+  unlockedDestinationIds?: string[];
   gameplayPaused?: boolean;
   selectedId: string;
   onSelect: (id: string) => void;
-  onEnter: (id: string) => void;
+  onSetDestination: (id: string) => void;
+  onFastTravel: (id: string) => void;
+  onResetNavigation: () => void;
   onClose: () => void;
 }
 
@@ -61,10 +66,14 @@ export function DistrictMapView({
   locations,
   playerPosition,
   playerDestinationId = null,
+  route = null,
+  unlockedDestinationIds = [],
   gameplayPaused = false,
   selectedId,
   onSelect,
-  onEnter,
+  onSetDestination,
+  onFastTravel,
+  onResetNavigation,
   onClose,
 }: DistrictMapViewProps) {
   const mapFrameRef = useRef<HTMLDivElement>(null);
@@ -72,6 +81,8 @@ export function DistrictMapView({
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState<Point>({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
+  const [confirmingTravel, setConfirmingTravel] = useState(false);
+  const [confirmingReset, setConfirmingReset] = useState(false);
   const bounds = useMemo(() => getDistrictMapBounds(locations), [locations]);
 
   const toPoint = useCallback((x: number, z: number): Point => ({
@@ -79,7 +90,14 @@ export function DistrictMapView({
   }), [bounds]);
 
   const selected = locations.find((location) => location.id === selectedId);
+  const selectedIsLocked = Boolean(selected?.locked);
+  const selectedIsUnlocked = Boolean(selected && unlockedDestinationIds.includes(selected.id));
+  const selectedIsObjective = selected?.id === playerDestinationId;
   const districtNames = Array.from(new Set(locations.map((location) => location.district).filter(Boolean)));
+
+  useEffect(() => {
+    setConfirmingTravel(false);
+  }, [selectedId]);
 
   const changeZoom = (nextZoom: number, anchor?: Point) => {
     const frame = mapFrameRef.current;
@@ -204,6 +222,25 @@ export function DistrictMapView({
             <div className="vdm-map-viewport" style={mapStyle}>
               <DistrictMapArtwork />
 
+              {route?.points.length ? (
+                <svg className="vdm-route-overlay" viewBox={`0 0 ${DISTRICT_MAP_WIDTH} ${DISTRICT_MAP_HEIGHT}`} aria-hidden="true">
+                  <path
+                    className="vdm-route-shadow"
+                    d={route.points.map((point, index) => {
+                      const projected = toPoint(point.x, point.z);
+                      return `${index === 0 ? "M" : "L"}${projected.x} ${projected.y}`;
+                    }).join(" ")}
+                  />
+                  <path
+                    className="vdm-route-line"
+                    d={route.points.map((point, index) => {
+                      const projected = toPoint(point.x, point.z);
+                      return `${index === 0 ? "M" : "L"}${projected.x} ${projected.y}`;
+                    }).join(" ")}
+                  />
+                </svg>
+              ) : null}
+
               {locations.map((location, index) => {
                 const point = toPoint(location.x, location.z);
                 const isSelected = selectedId === location.id;
@@ -237,6 +274,8 @@ export function DistrictMapView({
                       <span className="vdm-marker-number">{String(index + 1).padStart(2, "0")}</span>
                       <span>{location.shortName || location.name}</span>
                     </span>
+                    {location.id === playerDestinationId && <span className="vdm-marker-state">OBJECTIVE</span>}
+                    {unlockedDestinationIds.includes(location.id) && <span className="vdm-marker-unlocked">FAST TRAVEL</span>}
                   </button>
                 );
               })}
@@ -276,6 +315,8 @@ export function DistrictMapView({
               <span><i className="legend-road" /> ARTERIAL</span>
               <span><i className="legend-water" /> WATERFRONT</span>
               {playerPosition && <span><i className="legend-player" /> YOUR POSITION · CITY GRID</span>}
+              {route && <span><i className="legend-route" /> ACTIVE ROUTE</span>}
+              {selectedIsLocked && <span><i className="legend-locked" /> LOCKED</span>}
             </div>
             <span className="vdm-footnote">MAP DATA // VANTA CITY TRANSIT AUTHORITY</span>
           </div>
@@ -301,16 +342,53 @@ export function DistrictMapView({
                 <span><small>GRID Z</small>{selected.z.toFixed(1)}</span>
                 <span><small>ACCESS</small>{selected.locked ? "RESTRICTED" : "OPEN"}</span>
               </div>
-              {selected.locked ? (
-                <button className="vdm-enter-button is-disabled" type="button" disabled aria-disabled="true">
-                  <span>{selected.actionLabel || "ACCESS RESTRICTED"}</span><i>×</i>
-                </button>
-              ) : (
-                <button className="vdm-enter-button" type="button" onClick={() => onEnter(selected.id)}>
-                  <span>{selected.actionLabel || "ENTER DESTINATION"}</span><i>↗</i>
-                </button>
+              {selectedIsObjective && route && (
+                <div className="vdm-route-summary" aria-live="polite">
+                  <span>ACTIVE OBJECTIVE</span>
+                  <strong>{Math.max(0, Math.round(route.distance))} m · {route.direction}</strong>
+                </div>
               )}
-              <p className="vdm-entry-note"><span>↳</span> SELECT TO PLOT A DIRECT ENTRY</p>
+              {selectedIsLocked ? (
+                <div className="vdm-locked-guidance" role="status">
+                  <strong>ROUTE LOCKED</strong>
+                  <span>{selected.id === "subway"
+                    ? "Metro access has no unlock condition yet. Visit an open landmark to unlock its fast travel; the metro remains locked."
+                    : "This location has no active access route yet."}</span>
+                </div>
+              ) : (
+                <>
+                  <button
+                    className="vdm-enter-button"
+                    type="button"
+                    onClick={() => {
+                      setConfirmingTravel(false);
+                      onSetDestination(selected.id);
+                    }}
+                    aria-pressed={selectedIsObjective}
+                  >
+                    <span>{selectedIsObjective ? "OBJECTIVE SELECTED" : "SET AS OBJECTIVE"}</span><i>{selectedIsObjective ? "✓" : "⌖"}</i>
+                  </button>
+                  {selectedIsUnlocked ? (
+                    confirmingTravel ? (
+                      <div className="vdm-confirm-card" role="group" aria-label={`Confirm fast travel to ${selected.name}`}>
+                        <strong>FAST TRAVEL TO {selected.shortName}?</strong>
+                        <span>You will arrive at a safe point near this location. Progress is unchanged.</span>
+                        <div>
+                          <button type="button" onClick={() => { onFastTravel(selected.id); setConfirmingTravel(false); }}>CONFIRM TRAVEL</button>
+                          <button type="button" onClick={() => setConfirmingTravel(false)}>STAY HERE</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button className="vdm-fast-travel" type="button" onClick={() => setConfirmingTravel(true)}>
+                        FAST TRAVEL · UNLOCKED
+                      </button>
+                    )
+                  ) : (
+                    <p className="vdm-entry-note"><span>↳</span> ARRIVE ON FOOT TO UNLOCK FAST TRAVEL</p>
+                  )}
+                  <p className="vdm-entry-note"><span>↳</span> MAP SELECTION PLOTS A ROUTE; IT DOES NOT TELEPORT YOU</p>
+                </>
+              )}
             </div>
           ) : (
             <div className="vdm-empty-detail">
@@ -326,6 +404,22 @@ export function DistrictMapView({
               const count = locations.filter((location) => location.district === district).length;
               return <div className="vdm-district-row" key={district}><i>{String(index + 1).padStart(2, "0")}</i><span>{district}</span><b>{String(count).padStart(2, "0")}</b></div>;
             }) : <p className="vdm-no-districts">District data unavailable.</p>}
+          </div>
+          <div className="vdm-reset-area">
+            {confirmingReset ? (
+              <div className="vdm-confirm-card" role="group" aria-label="Confirm District navigation reset">
+                <strong>RESET DISTRICT NAVIGATION?</strong>
+                <span>This clears the saved route, fast-travel unlocks, and safe District position. Station progress is untouched.</span>
+                <div>
+                  <button type="button" onClick={() => { onResetNavigation(); setConfirmingReset(false); }}>RESET DISTRICT</button>
+                  <button type="button" onClick={() => setConfirmingReset(false)}>CANCEL</button>
+                </div>
+              </div>
+            ) : (
+              <button type="button" className="vdm-reset-button" onClick={() => setConfirmingReset(true)}>
+                RESET DISTRICT NAVIGATION
+              </button>
+            )}
           </div>
         </aside>
       </div>

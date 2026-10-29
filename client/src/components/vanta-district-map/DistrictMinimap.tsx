@@ -6,6 +6,7 @@ import {
   getDistrictMapBounds,
   projectDistrictWorldPoint,
 } from "./district-map-geometry";
+import type { DistrictRoute, DistrictWorldPoint } from "@/lib/district-navigation";
 import "./DistrictMinimap.css";
 
 export type DistrictPlayerPosition = { x: number; z: number; angle: number };
@@ -14,6 +15,9 @@ type Props = {
   locations: DistrictMapLocation[];
   playerPosRef: MutableRefObject<DistrictPlayerPosition>;
   playerDestinationId?: string | null;
+  route?: DistrictRoute | null;
+  routePoints?: DistrictWorldPoint[] | null;
+  onOpenMap?: () => void;
 };
 
 const VIEW_WIDTH = 340;
@@ -29,7 +33,14 @@ function markerIcon(category: string) {
   return "◆";
 }
 
-export function DistrictMinimap({ locations, playerPosRef, playerDestinationId = null }: Props) {
+export function DistrictMinimap({
+  locations,
+  playerPosRef,
+  playerDestinationId = null,
+  route = null,
+  routePoints = null,
+  onOpenMap,
+}: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
   const playerMarkerRef = useRef<SVGGElement>(null);
   const coordinatesRef = useRef<HTMLElement>(null);
@@ -106,6 +117,10 @@ export function DistrictMinimap({ locations, playerPosRef, playerDestinationId =
   const startView = followCenterRef.current ?? startPoint;
   const viewBox = `${startView.x - VIEW_WIDTH / 2} ${startView.y - VIEW_HEIGHT / 2} ${VIEW_WIDTH} ${VIEW_HEIGHT}`;
   const locationsById = new Map(locations.map((location) => [location.id, location]));
+  const routePath = (routePoints ?? route?.points ?? []).map((point, index) => {
+    const projected = projectDistrictWorldPoint(point.x, point.z, bounds);
+    return `${index === 0 ? "M" : "L"}${projected.x.toFixed(2)} ${projected.y.toFixed(2)}`;
+  }).join(" ");
   mapDestinationNodesRef.current = [];
 
   return (
@@ -127,8 +142,17 @@ export function DistrictMinimap({ locations, playerPosRef, playerDestinationId =
         data-map-y={startPoint.y.toFixed(2)}
         data-player-map-x={startPoint.x.toFixed(2)}
         data-player-map-y={startPoint.y.toFixed(2)}
+        data-route-distance={route?.distance.toFixed(1) ?? ""}
       >
         <DistrictMapArtwork className="vdm-map-art vdm-minimap__art" viewBox={viewBox} />
+        {routePath && (
+          <path
+            className="vdm-minimap__route-shadow"
+            d={routePath}
+            aria-label={`Route to ${locationsById.get(playerDestinationId ?? "")?.name ?? "destination"}`}
+          />
+        )}
+        {routePath && <path className="vdm-minimap__route" d={routePath} />}
         {locations.map((location) => {
           const point = projectDistrictWorldPoint(location.x, location.z, bounds);
           const important = IMPORTANT_DESTINATIONS.has(location.id);
@@ -168,11 +192,25 @@ export function DistrictMinimap({ locations, playerPosRef, playerDestinationId =
         <span><i className="is-destination" /> DESTINATION</span>
         <span><i className="is-road" /> ROAD</span>
         <span><i className="is-locked" /> LOCKED</span>
-        <span className="vdm-minimap__destination-note" title={locationsById.get(playerDestinationId ?? "")?.name}>
-          {locationsById.get(playerDestinationId ?? "")?.shortName
-            ? `TARGET · ${locationsById.get(playerDestinationId ?? "")!.shortName}`
-            : "DISTRICT GRID"}
-        </span>
+          <span className="vdm-minimap__route-status" aria-live="polite">
+            {route
+              ? `${Math.max(0, Math.round(route.distance))} m · ${route.direction}`
+              : playerDestinationId ? "OBJECTIVE ROUTE" : "OPEN MAP TO SET A ROUTE"}
+          </span>
+          {onOpenMap && (
+            <button
+              type="button"
+              className="vdm-minimap__destination-note"
+              onClick={onOpenMap}
+              aria-label={playerDestinationId
+                ? `Change route to ${locationsById.get(playerDestinationId)?.name ?? "destination"}`
+                : "Choose a District route"}
+            >
+              {locationsById.get(playerDestinationId ?? "")?.shortName
+                ? `ROUTE · ${locationsById.get(playerDestinationId ?? "")!.shortName}`
+                : "SET ROUTE"}
+            </button>
+          )}
       </footer>
     </section>
   );

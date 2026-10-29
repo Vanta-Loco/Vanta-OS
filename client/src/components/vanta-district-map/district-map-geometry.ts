@@ -43,6 +43,20 @@ export function projectDistrictWorldPoint(
   };
 }
 
+/** Inverse of projectDistrictWorldPoint for route-network nodes authored in map space. */
+export function unprojectDistrictMapPoint(
+  x: number,
+  y: number,
+  bounds: DistrictMapBounds,
+): { x: number; z: number } {
+  return {
+    x: bounds.minX + ((x - DISTRICT_MAP_PADDING) / (DISTRICT_MAP_WIDTH - DISTRICT_MAP_PADDING * 2)) *
+      (bounds.maxX - bounds.minX),
+    z: bounds.minZ + ((y - DISTRICT_MAP_PADDING) / (DISTRICT_MAP_HEIGHT - DISTRICT_MAP_PADDING * 2)) *
+      (bounds.maxZ - bounds.minZ),
+  };
+}
+
 export const DISTRICT_ZONES = [
   { name: "INDUSTRIAL", points: "42,35 488,35 454,223 270,278 42,234", tint: "amber", labelX: 166, labelY: 67 },
   { name: "TECH", points: "488,35 958,35 958,255 704,293 454,223", tint: "violet", labelX: 743, labelY: 67 },

@@ -25,7 +25,23 @@ import {
   saveWorldState, loadWorldState, DEFAULT_WORLD_SAVE,
   type WorldSave,
 } from "@/lib/world-state";
-import { loadDistrictPlayerLocation, saveDistrictPlayerLocation } from "@/lib/district-player-location";
+import { clearDistrictPlayerLocation, loadDistrictPlayerLocation, saveDistrictPlayerLocation } from "@/lib/district-player-location";
+import {
+  buildDistrictRoute,
+  DEFAULT_DISTRICT_NAVIGATION,
+  getDistrictFastTravelSpawn,
+  isFastTravelEligible,
+  isSafeDistrictPosition,
+  loadDistrictNavigationSave,
+  resetDistrictNavigationSave,
+  saveDistrictNavigationSave,
+  shouldRecalculateDistrictRoute,
+  trimDistrictRoute,
+  unlockDistrictDestination,
+  type DistrictNavigationSave,
+  type DistrictRoute,
+  type DistrictWorldPoint,
+} from "@/lib/district-navigation";
 import "./vanta-district-touch-controls.css";
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
@@ -100,6 +116,28 @@ function supportsWorldWebGL(): boolean {
   } catch {
     return false;
   }
+}
+
+function initialWorldSave(navigation: DistrictNavigationSave): WorldSave {
+  const stored = loadWorldState();
+  const position = isSafeDistrictPosition({ x: stored?.playerX, z: stored?.playerZ })
+    ? { x: stored!.playerX, z: stored!.playerZ }
+    : DEFAULT_DISTRICT_NAVIGATION.position;
+  const validStoredCamera = stored &&
+    [stored.angle, stored.camYaw, stored.camPitch, stored.camDist].every(Number.isFinite);
+  return {
+    ...DEFAULT_WORLD_SAVE,
+    ...(validStoredCamera ? stored : {}),
+    playerX: navigation.position.x ?? position.x,
+    playerZ: navigation.position.z ?? position.z,
+    angle: validStoredCamera ? stored!.angle : DEFAULT_WORLD_SAVE.angle,
+    camYaw: validStoredCamera ? stored!.camYaw : DEFAULT_WORLD_SAVE.camYaw,
+    camPitch: validStoredCamera ? Math.max(-0.4, Math.min(1, stored!.camPitch)) : DEFAULT_WORLD_SAVE.camPitch,
+    camDist: validStoredCamera ? Math.max(4, Math.min(22, stored!.camDist)) : DEFAULT_WORLD_SAVE.camDist,
+    nearId: typeof stored?.nearId === "string" && DISTRICT_LANDMARKS.some((landmark) => landmark.id === stored.nearId)
+      ? stored.nearId
+      : null,
+  };
 }
 
 // ─── Toon gradient map (3-step: shadow / mid / highlight) ─────────────────────
@@ -562,6 +600,30 @@ function buildLandmarks(): { objects: THREE.Object3D[]; disposables: Disposable[
     disposables.push({ geo: bGeo, mat: bMat });
     objects.push(beacon);
     beacons.push(beacon);
+
+    if (lm.id === "fractured-godhead-portal") {
+      const arrivalPad = mk(
+        new THREE.CylinderGeometry(13, 13, 0.08, 40),
+        new THREE.MeshBasicMaterial({ color: 0x6e3aa0, transparent: true, opacity: 0.24 }),
+      );
+      arrivalPad.position.set(lm.x, 0.06, lm.z);
+      const padRing = mk(
+        new THREE.TorusGeometry(12.5, 0.18, 6, 48),
+        new THREE.MeshBasicMaterial({ color: 0xc09aff, transparent: true, opacity: 0.8 }),
+      );
+      padRing.rotation.x = Math.PI / 2;
+      padRing.position.set(lm.x, 0.18, lm.z);
+      const portalFace = mk(
+        new THREE.CircleGeometry(4.25, 40),
+        new THREE.MeshBasicMaterial({ color: 0x7e45b2, transparent: true, opacity: 0.38, side: THREE.DoubleSide }),
+      );
+      portalFace.position.set(lm.x, 6, lm.z + 3.9);
+      const portalRim = mk(
+        new THREE.TorusGeometry(4.55, 0.42, 10, 40),
+        new THREE.MeshBasicMaterial({ color: 0xc19aff, transparent: true, opacity: 0.95 }),
+      );
+      portalRim.position.set(lm.x, 6, lm.z + 4.05);
+    }
   }
 
   return { objects, disposables, beacons };
@@ -997,19 +1059,53 @@ export default function World() {
   const [activeScene,   setActiveScene]   = useState<"city" | "bedroom">("city");
   const [bedroomPrompt, setBedroomPrompt] = useState<string | null>(null);
 
-  // Populated from sessionStorage so returning from a building restores exactly where the user left
-  const worldSaveRef = useRef<WorldSave>(loadWorldState() ?? { ...DEFAULT_WORLD_SAVE });
-  const [playerDestinationId, setPlayerDestinationId] = useState(
-    () => loadDistrictPlayerLocation()?.landmarkId ?? null,
+  const sessionWorldSave = loadWorldState();
+  const legacyDestinationId = loadDistrictPlayerLocation()?.landmarkId ?? null;
+  const storedNavigationSave = loadDistrictNavigationSave();
+  const initialNavigationSave = storedNavigationSave ?? {
+    ...DEFAULT_DISTRICT_NAVIGATION,
+    position: isSafeDistrictPosition({ x: sessionWorldSave?.playerX, z: sessionWorldSave?.playerZ })
+      ? { x: sessionWorldSave!.playerX, z: sessionWorldSave!.playerZ }
+      : DEFAULT_DISTRICT_NAVIGATION.position,
+    selectedDestinationId: legacyDestinationId,
+  };
+  const worldSaveRef = useRef<WorldSave>(initialWorldSave(initialNavigationSave));
+  const navigationSaveRef = useRef<DistrictNavigationSave>(initialNavigationSave);
+  const [navigationSave, setNavigationSave] = useState(initialNavigationSave);
+  const playerPosRef = useRef<{ x: number; z: number; angle: number }>({
+    x: worldSaveRef.current.playerX,
+    z: worldSaveRef.current.playerZ,
+    angle: worldSaveRef.current.angle,
+  });
+  const touchKeysRef = useRef(new Set<string>());
+  const [liveRoute, setLiveRoute] = useState<DistrictRoute | null>(() =>
+    initialNavigationSave.selectedDestinationId
+      ? buildDistrictRoute(initialNavigationSave.position, initialNavigationSave.selectedDestinationId)
+      : null,
   );
+  const baseRouteRef = useRef<DistrictWorldPoint[] | null>(liveRoute?.points ?? null);
+
+  const persistNavigation = useCallback((next: DistrictNavigationSave) => {
+    navigationSaveRef.current = next;
+    setNavigationSave(next);
+    saveDistrictNavigationSave(next);
+  }, []);
+
   const rememberDestination = useCallback((landmarkId: string) => {
-    if (saveDistrictPlayerLocation(landmarkId)) setPlayerDestinationId(landmarkId);
+    saveDistrictPlayerLocation(landmarkId);
   }, []);
 
   const handleNear = useCallback((s: NearState) => {
     setNear(s);
     worldSaveRef.current.nearId = s.lm?.id ?? null;
-  }, []);
+    if (s.canEnter && s.lm) {
+      const unlocked = unlockDistrictDestination(navigationSaveRef.current, s.lm.id);
+      if (unlocked !== navigationSaveRef.current &&
+        unlocked.unlockedDestinationIds.length !== navigationSaveRef.current.unlockedDestinationIds.length) {
+        persistNavigation(unlocked);
+      }
+    }
+  }, [persistNavigation]);
 
   const handleEnter = useCallback((route: string) => {
     const nearby = DISTRICT_LANDMARKS.find((landmark) =>
@@ -1019,6 +1115,12 @@ export default function World() {
       landmark.route === route && landmark.action !== "locked"
     );
     if (nearby ?? routeMatch) rememberDestination((nearby ?? routeMatch)!.id);
+    const position = { x: playerPosRef.current.x, z: playerPosRef.current.z };
+    if (isSafeDistrictPosition(position)) {
+      const next = { ...navigationSaveRef.current, position };
+      navigationSaveRef.current = next;
+      saveDistrictNavigationSave(next);
+    }
     saveWorldState({ ...worldSaveRef.current });
     navigate(route);
   }, [navigate, rememberDestination]);
@@ -1034,25 +1136,67 @@ export default function World() {
 
   const openDistrictMap = useCallback(() => {
     saveWorldState({ ...worldSaveRef.current });
-    setSelectedMapId(worldSaveRef.current.nearId ?? "black-index");
+    const position = { x: playerPosRef.current.x, z: playerPosRef.current.z };
+    if (isSafeDistrictPosition(position)) {
+      const next = { ...navigationSaveRef.current, position };
+      navigationSaveRef.current = next;
+      saveDistrictNavigationSave(next);
+    }
+    setSelectedMapId(
+      navigationSaveRef.current.selectedDestinationId ??
+      worldSaveRef.current.nearId ??
+      "black-index",
+    );
     setMapOpen(true);
   }, []);
 
-  const handleMapEnter = useCallback((id: string) => {
+  const handleSetDestination = useCallback((id: string) => {
     const destination = DISTRICT_LANDMARKS.find((landmark) => landmark.id === id);
     if (!destination || destination.action === "locked") return;
-    rememberDestination(destination.id);
-    setMapOpen(false);
-    if (destination.action === "music-hub") {
-      if (!webglAvailable || canvasFailed) {
-        handleEnter("/releases");
-        return;
-      }
-      handleOpenHubMenu();
-      return;
-    }
-    if (destination.route) handleEnter(destination.route);
-  }, [canvasFailed, handleEnter, handleOpenHubMenu, rememberDestination, webglAvailable]);
+    const next = { ...navigationSaveRef.current, selectedDestinationId: destination.id };
+    persistNavigation(next);
+    setSelectedMapId(destination.id);
+    const route = buildDistrictRoute(playerPosRef.current, destination.id);
+    baseRouteRef.current = route?.points ?? null;
+    setLiveRoute(route);
+  }, [persistNavigation]);
+
+  const handleFastTravel = useCallback((id: string) => {
+    if (!isFastTravelEligible(id, navigationSaveRef.current.unlockedDestinationIds)) return;
+    const spawn = getDistrictFastTravelSpawn(id);
+    if (!spawn) return;
+    worldSaveRef.current = {
+      ...worldSaveRef.current,
+      playerX: spawn.position.x,
+      playerZ: spawn.position.z,
+      angle: spawn.angle,
+      nearId: id,
+    };
+    playerPosRef.current = { ...spawn.position, angle: spawn.angle };
+    const next = {
+      ...navigationSaveRef.current,
+      position: spawn.position,
+      selectedDestinationId: id,
+    };
+    persistNavigation(next);
+    const route = buildDistrictRoute(spawn.position, id);
+    baseRouteRef.current = route?.points ?? null;
+    setLiveRoute(route);
+    setSelectedMapId(id);
+    saveWorldState({ ...worldSaveRef.current });
+  }, [persistNavigation]);
+
+  const handleResetNavigation = useCallback(() => {
+    resetDistrictNavigationSave();
+    clearDistrictPlayerLocation();
+    baseRouteRef.current = null;
+    setLiveRoute(null);
+    persistNavigation({ ...DEFAULT_DISTRICT_NAVIGATION });
+    playerPosRef.current = { x: 0, z: 0, angle: 0 };
+    worldSaveRef.current = { ...DEFAULT_WORLD_SAVE };
+    saveWorldState({ ...DEFAULT_WORLD_SAVE });
+    setSelectedMapId("black-index");
+  }, [persistNavigation]);
 
   const handleHubSelect = useCallback((choice: number) => {
     setHubMenuOpen(false);
@@ -1091,13 +1235,49 @@ export default function World() {
     setBedroomPrompt(null);
   }, []);
 
-  // Shared player position for the minimap (updated every frame by CityScene)
-  const playerPosRef = useRef<{ x: number; z: number; angle: number }>({
-    x: worldSaveRef.current.playerX,
-    z: worldSaveRef.current.playerZ,
-    angle: worldSaveRef.current.angle,
-  });
-  const touchKeysRef = useRef(new Set<string>());
+  useEffect(() => {
+    if (mapOpen || activeScene !== "city") return;
+    let lastStoredAt = Date.now();
+    const syncNavigation = () => {
+      const position = { x: playerPosRef.current.x, z: playerPosRef.current.z };
+      const destinationId = navigationSaveRef.current.selectedDestinationId;
+      if (destinationId) {
+        let baseRoute = baseRouteRef.current;
+        if (!baseRoute || shouldRecalculateDistrictRoute(position, baseRoute)) {
+          const recalculated = buildDistrictRoute(position, destinationId);
+          baseRoute = recalculated?.points ?? null;
+          baseRouteRef.current = baseRoute;
+        }
+        setLiveRoute(baseRoute ? trimDistrictRoute(baseRoute, position, destinationId) : null);
+      }
+      const now = Date.now();
+      if (now - lastStoredAt >= 1000 && isSafeDistrictPosition(position)) {
+        const next = { ...navigationSaveRef.current, position };
+        navigationSaveRef.current = next;
+        saveDistrictNavigationSave(next);
+        lastStoredAt = now;
+      }
+    };
+    const timer = window.setInterval(syncNavigation, 350);
+    syncNavigation();
+    return () => window.clearInterval(timer);
+  }, [activeScene, mapOpen]);
+
+  useEffect(() => {
+    const onMapShortcut = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest("input, textarea, select, [contenteditable='true'], button")) return;
+      if (event.code === "KeyM" && !mapOpen) {
+        event.preventDefault();
+        openDistrictMap();
+      } else if ((event.code === "Escape" || event.code === "KeyM") && mapOpen) {
+        event.preventDefault();
+        setMapOpen(false);
+      }
+    };
+    window.addEventListener("keydown", onMapShortcut);
+    return () => window.removeEventListener("keydown", onMapShortcut);
+  }, [mapOpen, openDistrictMap]);
 
   const touchHold = (code: string) => ({
     onPointerDown: (event: React.PointerEvent<HTMLButtonElement>) => {
@@ -1133,11 +1313,15 @@ export default function World() {
       <DistrictMapView
         locations={mapLocations}
         playerPosition={playerPosRef.current}
-        playerDestinationId={playerDestinationId}
+        playerDestinationId={navigationSave.selectedDestinationId}
+        route={liveRoute}
+        unlockedDestinationIds={navigationSave.unlockedDestinationIds}
         gameplayPaused={mapOpen || mapFallbackActive}
         selectedId={selectedMapId}
         onSelect={setSelectedMapId}
-        onEnter={handleMapEnter}
+        onSetDestination={handleSetDestination}
+        onFastTravel={handleFastTravel}
+        onResetNavigation={handleResetNavigation}
         onClose={() => mapFallbackActive ? navigate("/worlds") : setMapOpen(false)}
       />
     );
@@ -1190,8 +1374,30 @@ export default function World() {
           cursor: "pointer",
         }}
       >
-        OPEN CITY MAP
+        OPEN CITY MAP · M
       </button>
+
+      {!inBedroom && (
+        <button
+          type="button"
+          className="vanta-city-objective"
+          onClick={() => {
+            setSelectedMapId(navigationSave.selectedDestinationId ?? "black-index");
+            openDistrictMap();
+          }}
+          aria-label={navigationSave.selectedDestinationId
+            ? `Change current objective ${DISTRICT_LANDMARKS.find((landmark) => landmark.id === navigationSave.selectedDestinationId)?.name ?? ""}. ${liveRoute ? `${Math.round(liveRoute.distance)} meters remaining, ${liveRoute.direction}.` : ""}`
+            : "Choose a District destination and set an objective"}
+        >
+          <span>CURRENT OBJECTIVE</span>
+          <strong>
+            {navigationSave.selectedDestinationId
+              ? DISTRICT_LANDMARKS.find((landmark) => landmark.id === navigationSave.selectedDestinationId)?.shortName
+              : "SELECT DESTINATION"}
+          </strong>
+          {liveRoute && <small>{Math.round(liveRoute.distance)} m · {liveRoute.direction}</small>}
+        </button>
+      )}
 
       {!inBedroom && (
         <div className="vanta-city-touch-controls" data-district-touch-controls="" aria-label="Vanta District touch movement">
@@ -1217,14 +1423,23 @@ export default function World() {
 
       {/* ── City: proximity prompt (enter range) ────────────────────────────── */}
       {!inBedroom && lm && canEnter && (
-        <div style={{
+        <div className={`vanta-city-arrival${lm.id === "fractured-godhead-portal" ? " is-portal" : ""}`} style={{
           position: "absolute", bottom: "28%", left: "50%", transform: "translateX(-50%)",
           background: "rgba(5,3,12,0.93)", border: `1px solid #${lm.cap.toString(16).padStart(6, "0")}`,
           color: "#c4b5fd", fontFamily: "monospace", fontSize: 13,
           padding: "10px 26px", borderRadius: 4,
-          letterSpacing: "0.1em", zIndex: 999, pointerEvents: "none", whiteSpace: "nowrap",
+          letterSpacing: "0.1em", zIndex: 999,
+          pointerEvents: lm.id === "fractured-godhead-portal" ? "auto" : "none",
+          whiteSpace: lm.id === "fractured-godhead-portal" ? "normal" : "nowrap",
         }}>
-          {lm.msg ? `! ${lm.msg}` : `[E]  Enter ${lm.name}`}
+          {lm.id === "fractured-godhead-portal" ? (
+            <>
+              <strong>PORTAL ARRIVAL · E ENTER FRACTURED GODHEAD</strong>
+              <button type="button" onClick={() => handleEnter("/godforsaken-paradise")}>
+                CONTINUE TO GODFORSAKEN PARADISE
+              </button>
+            </>
+          ) : lm.msg ? `! ${lm.msg}` : `[E]  Enter ${lm.name}`}
         </div>
       )}
 
@@ -1322,7 +1537,9 @@ export default function World() {
         <DistrictMinimap
           locations={mapLocations}
           playerPosRef={playerPosRef}
-          playerDestinationId={playerDestinationId}
+          playerDestinationId={navigationSave.selectedDestinationId}
+          route={liveRoute}
+          onOpenMap={openDistrictMap}
         />
       )}
 

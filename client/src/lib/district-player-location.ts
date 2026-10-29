@@ -54,3 +54,7 @@ export function saveDistrictPlayerLocation(landmarkId: string): boolean {
     return false;
   }
 }
+
+export function clearDistrictPlayerLocation(): void {
+  try { window.localStorage.removeItem(STORAGE_KEY); } catch {}
+}
