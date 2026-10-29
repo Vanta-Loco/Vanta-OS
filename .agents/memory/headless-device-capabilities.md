@@ -27,3 +27,16 @@ prove actual draw and pixel output rather than only successful module loading.
 frame rate as a physical-GPU performance benchmark. Browser-window minimization
 through CDP genuinely changes document visibility and can test hidden-page
 pausing without redefining `document.hidden`.
+
+For District route automation under very low software-rendered frame rates, use
+short turn-hold/release pulses and reread the live heading between pulses.
+Long wall-clock turn holds can overshoot because gameplay movement and rotation
+advance per rendered frame.
+
+**Why:** Duration-based steering repeatedly overshot in SwiftShader, while
+feedback from the live minimap restored controlled progress without changing
+the player's saved coordinates.
+
+**How to apply:** Use ordinary keyboard or touch inputs, adjust in small
+feedback-based steps, and treat the resulting frame rate as a test-environment
+constraint rather than a physical-device performance benchmark.
