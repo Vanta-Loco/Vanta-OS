@@ -31,6 +31,7 @@ import {
   type StationLocalPoint,
 } from "./station-world";
 import { saveDistrictPlayerLocation } from "@/lib/district-player-location";
+import { queueDistrictChatSystemMessage } from "@/lib/district-chat-events";
 
 type Point = StationLocalPoint;
 type Dialogue = { name: string; text: string } | null;
@@ -106,6 +107,7 @@ export function GodforsakenParadiseGame() {
   const report = useCallback((message: string) => {
     gameRef.current.feedback = message;
     gameRef.current.feedbackUntil = performance.now() + 3600;
+    queueDistrictChatSystemMessage(message);
     publish();
   }, [publish]);
   const commitProgress = useCallback((next: ProgressSave) => {

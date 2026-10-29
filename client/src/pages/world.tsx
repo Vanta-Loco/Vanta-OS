@@ -18,6 +18,7 @@ import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 import { VignetteShader } from "three/examples/jsm/shaders/VignetteShader.js";
 import { VaultRadio } from "@/components/vault-radio";
 import { DistrictChat, type DistrictChatHandle } from "@/components/district-chat/DistrictChat";
+import { DistrictJoystick, type DistrictJoystickInput } from "@/components/district-chat/DistrictJoystick";
 import { DistrictMinimap } from "@/components/vanta-district-map/DistrictMinimap";
 import { DistrictMapView } from "@/components/vanta-district-map/DistrictMapView";
 import { VantaBedroomScene } from "@/components/vanta-bedroom";
@@ -27,6 +28,7 @@ import {
   type WorldSave,
 } from "@/lib/world-state";
 import { clearDistrictPlayerLocation, loadDistrictPlayerLocation, saveDistrictPlayerLocation } from "@/lib/district-player-location";
+import { drainDistrictChatSystemMessages, queueDistrictChatSystemMessage } from "@/lib/district-chat-events";
 import {
   buildDistrictRoute,
   DEFAULT_DISTRICT_NAVIGATION,
@@ -65,7 +67,6 @@ interface ChunkData    { key: string; cx: number; cz: number; objects: THREE.Obj
 interface LandmarkDef  { id: string; name: string; x: number; z: number; h: number; color: number; cap: number; route: string | null; msg: string | null }
 interface BuildingType { color: number; roofColor: number; minH: number; maxH: number; minW: number; maxW: number; minD: number; maxD: number }
 interface NearState    { lm: LandmarkDef | null; canEnter: boolean }
-interface DistrictJoystickInput { x: number; y: number; magnitude: number }
 const NEUTRAL_JOYSTICK: DistrictJoystickInput = { x: 0, y: 0, magnitude: 0 };
 
 function isSmallTouchPortrait(): boolean {
@@ -661,11 +662,22 @@ interface CitySceneProps {
   onEnter:         (route: string) => void;
   onOpenHubMenu:   () => void;
   playerPosRef:    React.MutableRefObject<{ x: number; z: number; angle: number }>;
-  touchKeysRef:    React.MutableRefObject<Set<string>>;
+  touchAxesRef:    React.MutableRefObject<DistrictJoystickInput>;
+  gamePausedRef:   React.MutableRefObject<boolean>;
+  chatInputFocusedRef: React.MutableRefObject<boolean>;
   worldSaveRef:    React.MutableRefObject<WorldSave>;
 }
 
-function CityScene({ onNear, onEnter, onOpenHubMenu, playerPosRef, touchKeysRef, worldSaveRef }: CitySceneProps) {
+function CityScene({
+  onNear,
+  onEnter,
+  onOpenHubMenu,
+  playerPosRef,
+  touchAxesRef,
+  gamePausedRef,
+  chatInputFocusedRef,
+  worldSaveRef,
+}: CitySceneProps) {
   const { scene } = useThree();
 
   // Player / movement
@@ -772,8 +784,12 @@ function CityScene({ onNear, onEnter, onOpenHubMenu, playerPosRef, touchKeysRef,
 
     // ── Keyboard ─────────────────────────────────────────────────────────────
     const onKeyDown = (e: KeyboardEvent) => {
-      // Don't capture keys when the user is interacting with the Vault Radio HUD
-      if ((e.target as HTMLElement)?.closest?.("[data-vault-radio]")) return;
+      const target = e.target as HTMLElement | null;
+      if (
+        gamePausedRef.current ||
+        chatInputFocusedRef.current ||
+        target?.closest?.("input, textarea, select, [contenteditable='true'], [data-vault-radio], [data-vanta-district-chat]")
+      ) return;
       keysRef.current.add(e.code);
       if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.code)) e.preventDefault();
       // E = enter landmark (never used for camera rotation)
@@ -787,7 +803,7 @@ function CityScene({ onNear, onEnter, onOpenHubMenu, playerPosRef, touchKeysRef,
     const onKeyUp = (e: KeyboardEvent) => keysRef.current.delete(e.code);
     const onWindowBlur = () => {
       keysRef.current.clear();
-      touchKeysRef.current.clear();
+      touchAxesRef.current = NEUTRAL_JOYSTICK;
     };
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup",   onKeyUp);
@@ -799,7 +815,7 @@ function CityScene({ onNear, onEnter, onOpenHubMenu, playerPosRef, touchKeysRef,
     const DIST_MIN  = 4, DIST_MAX = 22;
 
     const onMouseDown  = (e: MouseEvent) => {
-      if ((e.target as HTMLElement)?.closest?.("[data-vault-radio], [data-district-touch-controls]")) return;
+      if ((e.target as HTMLElement)?.closest?.("[data-vault-radio], [data-district-touch-controls], [data-vanta-district-chat], [data-vanta-city-controls]")) return;
       isDraggingRef.current = true;
       lastPtrXRef.current = e.clientX;
       lastPtrYRef.current = e.clientY;
@@ -818,7 +834,7 @@ function CityScene({ onNear, onEnter, onOpenHubMenu, playerPosRef, touchKeysRef,
 
     // ── Scroll wheel zoom ─────────────────────────────────────────────────────
     const onWheel = (e: WheelEvent) => {
-      if ((e.target as HTMLElement)?.closest?.("[data-vault-radio], [data-district-touch-controls]")) return;
+      if ((e.target as HTMLElement)?.closest?.("[data-vault-radio], [data-district-touch-controls], [data-vanta-district-chat], [data-vanta-city-controls]")) return;
       camDistRef.current = Math.max(DIST_MIN, Math.min(DIST_MAX,
         camDistRef.current + e.deltaY * 0.02,
       ));
@@ -826,13 +842,13 @@ function CityScene({ onNear, onEnter, onOpenHubMenu, playerPosRef, touchKeysRef,
 
     // ── Touch drag (camera yaw + pitch) ──────────────────────────────────────
     const onTouchStart = (e: TouchEvent) => {
-      if ((e.target as HTMLElement)?.closest?.("[data-vault-radio], [data-district-touch-controls]")) return;
+      if ((e.target as HTMLElement)?.closest?.("[data-vault-radio], [data-district-touch-controls], [data-vanta-district-chat], [data-vanta-city-controls]")) return;
       isDraggingRef.current = true;
       lastPtrXRef.current = e.touches[0].clientX;
       lastPtrYRef.current = e.touches[0].clientY;
     };
     const onTouchMove  = (e: TouchEvent) => {
-      if ((e.target as HTMLElement)?.closest?.("[data-vault-radio], [data-district-touch-controls]")) return;
+      if ((e.target as HTMLElement)?.closest?.("[data-vault-radio], [data-district-touch-controls], [data-vanta-district-chat], [data-vanta-city-controls]")) return;
       if (!isDraggingRef.current) return;
       const dx = e.touches[0].clientX - lastPtrXRef.current;
       const dy = e.touches[0].clientY - lastPtrYRef.current;
@@ -851,6 +867,7 @@ function CityScene({ onNear, onEnter, onOpenHubMenu, playerPosRef, touchKeysRef,
     window.addEventListener("touchstart", onTouchStart, { passive: true });
     window.addEventListener("touchmove",  onTouchMove,  { passive: true });
     window.addEventListener("touchend",   onTouchEnd);
+    window.addEventListener("touchcancel", onTouchEnd);
 
     console.log("[Vanta City] Scene ready ✓  districts: tech/residential/industrial/commercial");
 
@@ -880,11 +897,12 @@ function CityScene({ onNear, onEnter, onOpenHubMenu, playerPosRef, touchKeysRef,
       window.removeEventListener("touchstart", onTouchStart);
       window.removeEventListener("touchmove",  onTouchMove);
       window.removeEventListener("touchend",   onTouchEnd);
+      window.removeEventListener("touchcancel", onTouchEnd);
 
       playerRef.current  = null;
       beaconsRef.current = [];
       keysRef.current.clear();
-      touchKeysRef.current.clear();
+      touchAxesRef.current = NEUTRAL_JOYSTICK;
     };
   }, [scene]);
 
@@ -893,12 +911,28 @@ function CityScene({ onNear, onEnter, onOpenHubMenu, playerPosRef, touchKeysRef,
     const player = playerRef.current;
     if (!player) return;
 
-    const isDown = (code: string) => keysRef.current.has(code) || touchKeysRef.current.has(code);
     const safeDt = Math.min(dt, 0.05);
+    if (gamePausedRef.current) {
+      keysRef.current.clear();
+      touchAxesRef.current = NEUTRAL_JOYSTICK;
+      return;
+    }
+    const chatFocused = chatInputFocusedRef.current;
+    const isDown = (code: string) => !chatFocused && keysRef.current.has(code);
+    const axes = chatFocused ? NEUTRAL_JOYSTICK : touchAxesRef.current;
+    const drive = Math.max(-1, Math.min(1,
+      (isDown("KeyW") || isDown("ArrowUp") ? 1 : 0) -
+      (isDown("KeyS") || isDown("ArrowDown") ? 1 : 0) -
+      axes.y * axes.magnitude,
+    ));
+    const steering = Math.max(-1, Math.min(1,
+      (isDown("KeyD") || isDown("ArrowRight") ? 1 : 0) -
+      (isDown("KeyA") || isDown("ArrowLeft") ? 1 : 0) +
+      axes.x * axes.magnitude,
+    ));
 
     // Player rotation (WASD/arrows)
-    if (isDown("KeyA") || isDown("ArrowLeft"))  angleRef.current += 2.2 * safeDt;
-    if (isDown("KeyD") || isDown("ArrowRight")) angleRef.current -= 2.2 * safeDt;
+    angleRef.current -= steering * 2.2 * safeDt;
 
     // Camera orbit via keyboard: comma = orbit left, period = orbit right
     if (isDown("Comma"))  camYawRef.current -= CAM_ROT_SPD * safeDt;
@@ -909,14 +943,8 @@ function CityScene({ onNear, onEnter, onOpenHubMenu, playerPosRef, touchKeysRef,
     const fwdZ  = -Math.cos(angle);
 
     // Player translate
-    if (isDown("KeyW") || isDown("ArrowUp")) {
-      player.position.x += fwdX * 10 * safeDt;
-      player.position.z += fwdZ * 10 * safeDt;
-    }
-    if (isDown("KeyS") || isDown("ArrowDown")) {
-      player.position.x -= fwdX * 10 * safeDt;
-      player.position.z -= fwdZ * 10 * safeDt;
-    }
+    player.position.x += fwdX * 10 * safeDt * drive;
+    player.position.z += fwdZ * 10 * safeDt * drive;
     player.rotation.y = angle;
 
     // Camera: spherical follow — yaw + pitch + variable distance
@@ -1061,6 +1089,9 @@ export default function World() {
   const [, navigate]  = useLocation();
   const [near, setNear] = useState<NearState>({ lm: null, canEnter: false });
   const [mapOpen, setMapOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatUnreadCount, setChatUnreadCount] = useState(0);
+  const [rotateDevice, setRotateDevice] = useState(isSmallTouchPortrait);
   const [webglAvailable] = useState(() => supportsWorldWebGL());
   const [canvasFailed, setCanvasFailed] = useState(false);
   const [selectedMapId, setSelectedMapId] = useState("black-index");
@@ -1087,13 +1118,29 @@ export default function World() {
     z: worldSaveRef.current.playerZ,
     angle: worldSaveRef.current.angle,
   });
-  const touchKeysRef = useRef(new Set<string>());
+  const touchAxesRef = useRef<DistrictJoystickInput>({ ...NEUTRAL_JOYSTICK });
+  const gamePausedRef = useRef(false);
+  const chatInputFocusedRef = useRef(false);
+  const chatRef = useRef<DistrictChatHandle | null>(null);
   const [liveRoute, setLiveRoute] = useState<DistrictRoute | null>(() =>
     initialNavigationSave.selectedDestinationId
       ? buildDistrictRoute(initialNavigationSave.position, initialNavigationSave.selectedDestinationId)
       : null,
   );
   const baseRouteRef = useRef<DistrictWorldPoint[] | null>(liveRoute?.points ?? null);
+
+  useEffect(() => {
+    const refreshOrientation = () => setRotateDevice(isSmallTouchPortrait());
+    window.addEventListener("resize", refreshOrientation);
+    window.addEventListener("orientationchange", refreshOrientation);
+    window.visualViewport?.addEventListener("resize", refreshOrientation);
+    refreshOrientation();
+    return () => {
+      window.removeEventListener("resize", refreshOrientation);
+      window.removeEventListener("orientationchange", refreshOrientation);
+      window.visualViewport?.removeEventListener("resize", refreshOrientation);
+    };
+  }, []);
 
   const persistNavigation = useCallback((next: DistrictNavigationSave) => {
     navigationSaveRef.current = next;
@@ -1113,7 +1160,9 @@ export default function World() {
       if (unlocked !== navigationSaveRef.current &&
         unlocked.unlockedDestinationIds.length !== navigationSaveRef.current.unlockedDestinationIds.length) {
         persistNavigation(unlocked);
+        chatRef.current?.system(`${s.lm.name} discovered. Fast travel is now available from the District map.`);
       }
+      chatRef.current?.system(`Arrived at ${s.lm.name}.`);
     }
   }, [persistNavigation]);
 
@@ -1124,7 +1173,11 @@ export default function World() {
     const routeMatch = DISTRICT_LANDMARKS.find((landmark) =>
       landmark.route === route && landmark.action !== "locked"
     );
-    if (nearby ?? routeMatch) rememberDestination((nearby ?? routeMatch)!.id);
+    if (nearby ?? routeMatch) {
+      const destination = nearby ?? routeMatch!;
+      rememberDestination(destination.id);
+      queueDistrictChatSystemMessage(`Leaving Vanta District for ${destination.name}.`);
+    }
     const position = { x: playerPosRef.current.x, z: playerPosRef.current.z };
     if (isSafeDistrictPosition(position)) {
       const next = { ...navigationSaveRef.current, position };
@@ -1139,12 +1192,24 @@ export default function World() {
   const [hubMenuOpen,    setHubMenuOpen]    = useState(false);
   const [hubSelected,    setHubSelected]    = useState(0);    // 0=releases, 1=bedroom
 
+  useEffect(() => {
+    const paused = rotateDevice || hubMenuOpen;
+    gamePausedRef.current = paused;
+    if (paused || mapOpen) {
+      touchAxesRef.current = { ...NEUTRAL_JOYSTICK };
+      chatInputFocusedRef.current = false;
+    }
+  }, [rotateDevice, hubMenuOpen, mapOpen]);
+
   const handleOpenHubMenu = useCallback(() => {
     setHubMenuOpen(true);
     setHubSelected(0);
   }, []);
 
   const openDistrictMap = useCallback(() => {
+    setChatOpen(false);
+    chatInputFocusedRef.current = false;
+    touchAxesRef.current = { ...NEUTRAL_JOYSTICK };
     saveWorldState({ ...worldSaveRef.current });
     const position = { x: playerPosRef.current.x, z: playerPosRef.current.z };
     if (isSafeDistrictPosition(position)) {
@@ -1169,6 +1234,7 @@ export default function World() {
     const route = buildDistrictRoute(playerPosRef.current, destination.id);
     baseRouteRef.current = route?.points ?? null;
     setLiveRoute(route);
+    queueDistrictChatSystemMessage(`Objective set: ${destination.name}. Follow the route on your District map.`);
   }, [persistNavigation]);
 
   const handleFastTravel = useCallback((id: string) => {
@@ -1194,6 +1260,8 @@ export default function World() {
     setLiveRoute(route);
     setSelectedMapId(id);
     saveWorldState({ ...worldSaveRef.current });
+    const destination = DISTRICT_LANDMARKS.find((landmark) => landmark.id === id);
+    queueDistrictChatSystemMessage(`Fast traveled to ${destination?.name ?? "District destination"}.`);
   }, [persistNavigation]);
 
   const handleResetNavigation = useCallback(() => {
@@ -1206,6 +1274,7 @@ export default function World() {
     worldSaveRef.current = { ...DEFAULT_WORLD_SAVE };
     saveWorldState({ ...DEFAULT_WORLD_SAVE });
     setSelectedMapId("black-index");
+    queueDistrictChatSystemMessage("District navigation was reset to its default spawn.");
   }, [persistNavigation]);
 
   const handleHubSelect = useCallback((choice: number) => {
@@ -1289,19 +1358,47 @@ export default function World() {
     return () => window.removeEventListener("keydown", onMapShortcut);
   }, [mapOpen, openDistrictMap]);
 
-  const touchHold = (code: string) => ({
-    onPointerDown: (event: React.PointerEvent<HTMLButtonElement>) => {
-      event.preventDefault();
-      event.currentTarget.setPointerCapture(event.pointerId);
-      touchKeysRef.current.add(code);
-    },
-    onPointerUp: () => touchKeysRef.current.delete(code),
-    onPointerCancel: () => touchKeysRef.current.delete(code),
-    onLostPointerCapture: () => touchKeysRef.current.delete(code),
-  });
-
   const { lm, canEnter } = near;
   const inBedroom = activeScene === "bedroom";
+  const contextLandmark = lm ? DISTRICT_LANDMARKS.find((landmark) => landmark.id === lm.id) ?? null : null;
+  const contextActionLabel = inBedroom && bedroomPrompt
+    ? bedroomPrompt.toLowerCase().includes("return")
+      ? "RETURN TO VANTA CITY"
+      : "TOGGLE RADIO"
+    : !inBedroom && lm && canEnter
+      ? contextLandmark?.action === "locked"
+        ? `LOCKED · ${lm.name}`
+        : contextLandmark?.actionLabel ?? `ENTER ${lm.name}`
+      : null;
+  const contextActionDisabled = !inBedroom && contextLandmark?.action === "locked";
+  const handlePrimaryAction = () => {
+    if (inBedroom && bedroomPrompt) {
+      if (bedroomPrompt.toLowerCase().includes("return")) {
+        handleExitBedroom();
+      } else {
+        window.dispatchEvent(new CustomEvent("vanta:toggleradio"));
+      }
+      return;
+    }
+    if (!lm || !canEnter || !contextLandmark) return;
+    if (contextLandmark.action === "locked") {
+      chatRef.current?.system(`${contextLandmark.name} remains locked.`);
+      return;
+    }
+    if (contextLandmark.action === "music-hub") {
+      handleOpenHubMenu();
+      return;
+    }
+    if (contextLandmark.route) handleEnter(contextLandmark.route);
+  };
+  const handleJoystickChange = useCallback((input: DistrictJoystickInput) => {
+    touchAxesRef.current = input;
+  }, []);
+  const handleChatFocus = useCallback((focused: boolean) => {
+    chatInputFocusedRef.current = focused;
+    if (focused) touchAxesRef.current = { ...NEUTRAL_JOYSTICK };
+  }, []);
+
   const mapLocations = DISTRICT_LANDMARKS.map((landmark) => ({
     id: landmark.id,
     name: landmark.name,
@@ -1320,28 +1417,40 @@ export default function World() {
   const mapFallbackActive = !webglAvailable || canvasFailed;
   if (mapOpen || mapFallbackActive) {
     return (
-      <DistrictMapView
-        locations={mapLocations}
-        playerPosition={playerPosRef.current}
-        playerDestinationId={navigationSave.selectedDestinationId}
-        route={liveRoute}
-        unlockedDestinationIds={navigationSave.unlockedDestinationIds}
-        gameplayPaused={mapOpen || mapFallbackActive}
-        selectedId={selectedMapId}
-        onSelect={setSelectedMapId}
-        onSetDestination={handleSetDestination}
-        onFastTravel={handleFastTravel}
-        onResetNavigation={handleResetNavigation}
-        onClose={() => mapFallbackActive ? navigate("/worlds") : setMapOpen(false)}
-      />
+      <>
+        <DistrictMapView
+          locations={mapLocations}
+          playerPosition={playerPosRef.current}
+          playerDestinationId={navigationSave.selectedDestinationId}
+          route={liveRoute}
+          unlockedDestinationIds={navigationSave.unlockedDestinationIds}
+          gameplayPaused={mapOpen || mapFallbackActive}
+          selectedId={selectedMapId}
+          onSelect={setSelectedMapId}
+          onSetDestination={handleSetDestination}
+          onFastTravel={handleFastTravel}
+          onResetNavigation={handleResetNavigation}
+          onClose={() => mapFallbackActive ? navigate("/worlds") : setMapOpen(false)}
+        />
+        <div hidden aria-hidden="true">
+          <DistrictChat
+            ref={chatRef}
+            open={false}
+            onToggle={() => undefined}
+            onInputFocus={() => undefined}
+            keyboardShortcutEnabled={false}
+          />
+        </div>
+      </>
     );
   }
 
   return (
-    <div style={{ position: "fixed", inset: 0, width: "100vw", height: "100vh", background: "#060412" }}>
+    <>
+    <div className="vanta-world-surface">
 
       {/* ── HUD — top-left badge + controls ────────────────────────────────── */}
-      <div style={{
+      <div className="vanta-city-hud" style={{
         position: "absolute", top: 16, left: 16, zIndex: 999,
         fontFamily: "monospace", fontSize: 11, pointerEvents: "none", letterSpacing: "0.08em",
       }}>
@@ -1350,7 +1459,7 @@ export default function World() {
             <div style={{ color: "#9cff66", background: "rgba(0,0,0,0.85)", border: "1px solid #9cff66", padding: "6px 14px", borderRadius: 4 }}>
               VANTA BEDROOM
             </div>
-            <div style={{ color: "#4b5563", background: "rgba(0,0,0,0.6)", padding: "6px 14px", borderRadius: 4, marginTop: 6, fontSize: 9, lineHeight: "1.9" }}>
+            <div className="vanta-city-hud__hints" style={{ color: "#4b5563", background: "rgba(0,0,0,0.6)", padding: "6px 14px", borderRadius: 4, marginTop: 6, fontSize: 9, lineHeight: "1.9" }}>
               WASD / ARROWS — move<br />
               DRAG — orbit camera<br />
               E — interact
@@ -1361,7 +1470,7 @@ export default function World() {
             <div style={{ color: "#a855f7", background: "rgba(0,0,0,0.8)", border: "1px solid #a855f7", padding: "6px 14px", borderRadius: 4 }}>
               VANTA CITY
             </div>
-            <div style={{ color: "#4b5563", background: "rgba(0,0,0,0.6)", padding: "6px 14px", borderRadius: 4, marginTop: 6, fontSize: 9, lineHeight: "1.9" }}>
+            <div className="vanta-city-hud__hints" style={{ color: "#4b5563", background: "rgba(0,0,0,0.6)", padding: "6px 14px", borderRadius: 4, marginTop: 6, fontSize: 9, lineHeight: "1.9" }}>
               WASD / ARROWS — move<br />
               DRAG — orbit + pitch camera<br />
               SCROLL — zoom in / out<br />
@@ -1372,22 +1481,25 @@ export default function World() {
         )}
       </div>
 
-      <button
-        type="button"
-        data-testid="button-open-district-map"
-        onClick={openDistrictMap}
-        style={{
-          position: "absolute", top: 16, right: 16, zIndex: 999,
-          padding: "8px 12px", border: "1px solid rgba(168,85,247,.55)",
-          borderRadius: 4, color: "#d8b4fe", background: "rgba(5,3,12,.88)",
-          font: "10px ui-monospace, monospace", letterSpacing: ".12em",
-          cursor: "pointer",
-        }}
-      >
-        OPEN CITY MAP · M
-      </button>
+      <div className="vanta-city-top-controls" data-vanta-city-controls="">
+        <button
+          type="button"
+          data-testid="button-open-district-map"
+          onClick={openDistrictMap}
+          aria-label="Open the Vanta District map. Keyboard shortcut M."
+        >MAP · M</button>
+        <button
+          type="button"
+          data-testid="button-toggle-district-chat"
+          onClick={() => setChatOpen((value) => !value)}
+          aria-label={chatOpen ? "Close District chat" : `Open District chat${chatUnreadCount ? `, ${chatUnreadCount} unread` : ""}`}
+          aria-expanded={chatOpen}
+        >
+          CHAT{chatUnreadCount > 0 ? ` · ${chatUnreadCount > 99 ? "99+" : chatUnreadCount}` : ""}
+        </button>
+      </div>
 
-      {!inBedroom && (
+      {!inBedroom && !(canEnter && lm?.id === "fractured-godhead-portal") && (
         <button
           type="button"
           className="vanta-city-objective"
@@ -1409,14 +1521,21 @@ export default function World() {
         </button>
       )}
 
-      {!inBedroom && (
-        <div className="vanta-city-touch-controls" data-district-touch-controls="" aria-label="Vanta District touch movement">
-          <span>TURN · DRIVE</span>
-          <button type="button" aria-label="Move forward" {...touchHold("KeyW")}>▲</button>
-          <button type="button" aria-label="Turn left" {...touchHold("KeyA")}>◀</button>
-          <button type="button" aria-label="Move backward" {...touchHold("KeyS")}>▼</button>
-          <button type="button" aria-label="Turn right" {...touchHold("KeyD")}>▶</button>
-        </div>
+      <DistrictJoystick
+        disabled={rotateDevice || hubMenuOpen}
+        onChange={handleJoystickChange}
+      />
+
+      {contextActionLabel && (
+        <button
+          type="button"
+          className={`vanta-city-context-action${chatOpen ? " is-chat-open" : ""}`}
+          data-vanta-city-controls=""
+          data-testid="button-context-action"
+          disabled={contextActionDisabled}
+          onClick={handlePrimaryAction}
+          aria-label={contextActionDisabled ? `${contextActionLabel}. This location is locked.` : contextActionLabel}
+        >{contextActionLabel}</button>
       )}
 
       {/* ── City: landmark name label (broad range) ────────────────────────── */}
@@ -1433,15 +1552,10 @@ export default function World() {
 
       {/* ── City: proximity prompt (enter range) ────────────────────────────── */}
       {!inBedroom && lm && canEnter && (
-        <div className={`vanta-city-arrival${lm.id === "fractured-godhead-portal" ? " is-portal" : ""}`} style={{
-          position: "absolute", bottom: "28%", left: "50%", transform: "translateX(-50%)",
-          background: "rgba(5,3,12,0.93)", border: `1px solid #${lm.cap.toString(16).padStart(6, "0")}`,
-          color: "#c4b5fd", fontFamily: "monospace", fontSize: 13,
-          padding: "10px 26px", borderRadius: 4,
-          letterSpacing: "0.1em", zIndex: 999,
-          pointerEvents: lm.id === "fractured-godhead-portal" ? "auto" : "none",
-          whiteSpace: lm.id === "fractured-godhead-portal" ? "normal" : "nowrap",
-        }}>
+        <div
+          className={`vanta-city-arrival${lm.id === "fractured-godhead-portal" ? " is-portal" : ""}${chatOpen ? " is-chat-open" : ""}`}
+          style={{ borderColor: `#${lm.cap.toString(16).padStart(6, "0")}` }}
+        >
           {lm.id === "fractured-godhead-portal" ? (
             <>
               <strong>PORTAL ARRIVAL · E ENTER FRACTURED GODHEAD</strong>
@@ -1455,7 +1569,7 @@ export default function World() {
 
       {/* ── Bedroom: interaction prompt (door / iPod) ─────────────────────── */}
       {inBedroom && bedroomPrompt && (
-        <div style={{
+        <div className="vanta-bedroom-prompt" style={{
           position: "absolute", bottom: "28%", left: "50%", transform: "translateX(-50%)",
           background: "rgba(5,3,12,0.93)", border: "1px solid #9cff66",
           color: "#c4b5fd", fontFamily: "monospace", fontSize: 13,

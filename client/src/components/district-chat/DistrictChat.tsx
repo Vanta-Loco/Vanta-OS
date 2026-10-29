@@ -12,6 +12,7 @@ import {
   parseDistrictChatInput,
   type DistrictChatChannel,
 } from "@/lib/district-chat-commands";
+import { drainDistrictChatSystemMessages } from "@/lib/district-chat-events";
 import {
   VantaDistrictChat,
   type DistrictChatConnectionStatus,
@@ -53,6 +54,8 @@ export interface DistrictChatProps {
   open: boolean;
   onToggle(open: boolean): void;
   onInputFocus(focused: boolean): void;
+  onUnreadCountChange?(count: number): void;
+  keyboardShortcutEnabled?: boolean;
 }
 
 function makeLocalMessage(channel: "system" | "local", text: string): DistrictChatMessage {
@@ -66,7 +69,10 @@ function makeLocalMessage(channel: "system" | "local", text: string): DistrictCh
 }
 
 export const DistrictChat = forwardRef<DistrictChatHandle, DistrictChatProps>(
-  function DistrictChat({ open, onToggle, onInputFocus }, forwardedRef) {
+  function DistrictChat(
+    { open, onToggle, onInputFocus, onUnreadCountChange, keyboardShortcutEnabled = true },
+    forwardedRef,
+  ) {
     const [messages, setMessages] = useState<DistrictChatMessage[]>([]);
     const [activeChannel, setActiveChannel] = useState<DistrictChatChannel>("world");
     const [unreadCounts, setUnreadCounts] = useState<DistrictChatUnreadCounts>({});
@@ -113,6 +119,17 @@ export const DistrictChat = forwardRef<DistrictChatHandle, DistrictChatProps>(
         setUnreadCounts((counts) => ({ ...counts, [activeChannel]: 0 }));
       }
     }, [activeChannel, open]);
+
+    useEffect(() => {
+      drainDistrictChatSystemMessages().forEach((text) => {
+        appendMessage(makeLocalMessage("system", text));
+      });
+    }, [appendMessage]);
+
+    useEffect(() => {
+      const count = Object.values(unreadCounts).reduce((total, value) => total + (value ?? 0), 0);
+      onUnreadCountChange?.(count);
+    }, [onUnreadCountChange, unreadCounts]);
 
     useEffect(() => {
       mountedRef.current = true;
@@ -319,6 +336,7 @@ export const DistrictChat = forwardRef<DistrictChatHandle, DistrictChatProps>(
         onMuteChannel={toggleMuteChannel}
         onBlockSender={toggleBlockedSender}
         initiallyOpen={false}
+        keyboardShortcutEnabled={keyboardShortcutEnabled}
       />
     );
   },

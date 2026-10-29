@@ -244,7 +244,7 @@ export class DistrictChatHub {
         text: command.text,
         timestamp,
       };
-      for (const client of this.clients.values()) this.safeSend(client, event);
+      for (const client of Array.from(this.clients.values())) this.safeSend(client, event);
       return;
     }
 
@@ -259,7 +259,7 @@ export class DistrictChatHub {
       return;
     }
 
-    sender.peer.send({
+    this.safeSend(sender, {
       type: "message",
       id,
       channel: "private",
@@ -452,6 +452,9 @@ export function installDistrictChat(app: Express, server: Server): void {
           if (webSocket.readyState === WebSocket.OPEN) webSocket.send(JSON.stringify(event));
         },
       });
+      const statefulClient = webSocket as WebSocket & { isAlive?: boolean };
+      statefulClient.isAlive = true;
+      webSocket.on("pong", () => { statefulClient.isAlive = true; });
       webSocket.on("message", (data, isBinary) => {
         if (isBinary) {
           webSocket.close(1003, "Text messages only");
@@ -466,6 +469,12 @@ export function installDistrictChat(app: Express, server: Server): void {
 
   const heartbeat = setInterval(() => {
     Array.from(wss.clients).forEach((client) => {
+      const statefulClient = client as WebSocket & { isAlive?: boolean };
+      if (!statefulClient.isAlive) {
+        client.terminate();
+        return;
+      }
+      statefulClient.isAlive = false;
       if (client.readyState === WebSocket.OPEN) client.ping();
     });
   }, 30_000);

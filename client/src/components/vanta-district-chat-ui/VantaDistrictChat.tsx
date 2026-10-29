@@ -35,6 +35,7 @@ export interface VantaDistrictChatProps {
   open?: boolean;
   identityLabel?: string;
   initiallyOpen?: boolean;
+  keyboardShortcutEnabled?: boolean;
   className?: string;
 }
 
@@ -94,6 +95,7 @@ export function VantaDistrictChat({
   open: controlledOpen,
   identityLabel,
   initiallyOpen = true,
+  keyboardShortcutEnabled = true,
   className = "",
 }: VantaDistrictChatProps) {
   const [internalOpen, setInternalOpen] = useState(initiallyOpen);
@@ -140,7 +142,7 @@ export function VantaDistrictChat({
       const target = event.target as HTMLElement | null;
       const typing = Boolean(target?.closest?.("input, textarea, select, [contenteditable='true']"));
       const interactive = Boolean(target?.closest?.("button, a, [role='button']"));
-      if (event.key === "Enter" && !open && !typing && !interactive) {
+      if (keyboardShortcutEnabled && event.key === "Enter" && !open && !typing && !interactive) {
         event.preventDefault();
         setPanelOpen(true);
         window.requestAnimationFrame(() => inputRef.current?.focus());
@@ -154,7 +156,7 @@ export function VantaDistrictChat({
     };
     window.addEventListener("keydown", handleGlobalKeys);
     return () => window.removeEventListener("keydown", handleGlobalKeys);
-  }, [open, controlledOpen]);
+  }, [open, controlledOpen, keyboardShortcutEnabled]);
 
   function submitMessage(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

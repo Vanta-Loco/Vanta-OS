@@ -80,6 +80,11 @@
   cursor: not-allowed;
 }
 
+.vanta-city-context-action.is-chat-open {
+  top: calc(max(12px, env(safe-area-inset-top, 0px)) + 52px);
+  bottom: auto;
+}
+
 .vanta-city-objective {
   position: fixed;
   top: calc(max(12px, env(safe-area-inset-top, 0px)) + 62px);
@@ -105,6 +110,23 @@
 .vanta-city-objective small { grid-column: 1 / -1; color: #d2b3ee; font-size: 8px; letter-spacing: .08em; }
 .vanta-city-objective:hover { border-color: #c99cf0; background: rgba(23, 15, 31, .96); }
 .vanta-city-objective:focus-visible { outline: 2px solid #eed8ff; outline-offset: 3px; }
+
+.vanta-city-arrival {
+  position: fixed;
+  bottom: 28%;
+  left: 50%;
+  z-index: 21;
+  padding: 10px 26px;
+  transform: translateX(-50%);
+  border: 1px solid rgba(204, 165, 237, .7);
+  border-radius: 4px;
+  background: rgba(5, 3, 12, .94);
+  color: #c4b5fd;
+  font: 13px ui-monospace, monospace;
+  letter-spacing: .1em;
+  white-space: nowrap;
+  pointer-events: none;
+}
 
 .vanta-city-arrival.is-portal {
   position: fixed;
@@ -139,6 +161,24 @@
 }
 .vanta-city-arrival.is-portal button:hover { background: rgba(120, 68, 154, .55); }
 .vanta-city-arrival.is-portal button:focus-visible { outline: 2px solid #f0d9ff; outline-offset: 3px; }
+.vanta-city-arrival.is-portal.is-chat-open { top: calc(max(12px, env(safe-area-inset-top, 0px)) + 54px); bottom: auto; }
+
+.vanta-bedroom-prompt {
+  position: fixed;
+  bottom: 28%;
+  left: 50%;
+  z-index: 21;
+  padding: 10px 16px;
+  transform: translateX(-50%);
+  border: 1px solid #9cff66;
+  border-radius: 4px;
+  background: rgba(5, 3, 12, .93);
+  color: #c4b5fd;
+  font: 10px ui-monospace, monospace;
+  letter-spacing: .08em;
+  white-space: nowrap;
+  pointer-events: none;
+}
 
 .vanta-city-joystick {
   display: none;
@@ -314,8 +354,11 @@
   .vanta-city-objective strong { font-size: 8px; }
   .vanta-city-objective small { font-size: 7px; }
   .vanta-city-context-action { right: max(14px, env(safe-area-inset-right, 0px)); bottom: calc(max(12px, env(safe-area-inset-bottom, 0px)) + 58px); max-width: 188px; min-height: 38px; font-size: 7px; }
+  .vanta-city-context-action.is-chat-open { top: calc(max(9px, env(safe-area-inset-top, 0px)) + 47px); }
   .vanta-city-arrival.is-portal { bottom: calc(23% + env(safe-area-inset-bottom, 0px)); width: min(310px, calc(100vw - 300px)); padding: 7px 10px; font-size: 8px; }
+  .vanta-city-arrival.is-portal.is-chat-open { top: calc(max(9px, env(safe-area-inset-top, 0px)) + 50px); width: min(310px, calc(100vw - 300px)); }
   .vanta-city-arrival.is-portal button { min-height: 34px; font-size: 7px; }
+  .vanta-bedroom-prompt { bottom: calc(24% + env(safe-area-inset-bottom, 0px)); }
 }
 
 @media (orientation: landscape) and (pointer: coarse) and (max-height: 560px) and (max-width: 780px) {

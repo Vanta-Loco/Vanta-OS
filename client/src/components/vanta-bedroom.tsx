@@ -296,9 +296,18 @@ function mkPlayer(disp: Disp[]): THREE.Group {
 export interface BedroomProps {
   onExitBedroom: () => void;
   onPromptChange: (prompt: string | null) => void;
+  touchAxesRef: React.MutableRefObject<{ x: number; y: number; magnitude: number }>;
+  gamePausedRef: React.MutableRefObject<boolean>;
+  chatInputFocusedRef: React.MutableRefObject<boolean>;
 }
 
-export function VantaBedroomScene({ onExitBedroom, onPromptChange }: BedroomProps) {
+export function VantaBedroomScene({
+  onExitBedroom,
+  onPromptChange,
+  touchAxesRef,
+  gamePausedRef,
+  chatInputFocusedRef,
+}: BedroomProps) {
   const { scene } = useThree();
 
   const playerRef     = useRef<THREE.Group | null>(null);
@@ -347,7 +356,12 @@ export function VantaBedroomScene({ onExitBedroom, onPromptChange }: BedroomProp
 
     // ── Keyboard ───────────────────────────────────────────────────────────
     const onKeyDown = (e: KeyboardEvent) => {
-      if ((e.target as HTMLElement)?.closest?.("[data-vault-radio]")) return;
+      const target = e.target as HTMLElement | null;
+      if (
+        gamePausedRef.current ||
+        chatInputFocusedRef.current ||
+        target?.closest?.("input, textarea, select, [contenteditable='true'], [data-vault-radio], [data-vanta-district-chat]")
+      ) return;
       keysRef.current.add(e.code);
       if (["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.code)) e.preventDefault();
       if (e.code === "KeyE") {
@@ -360,14 +374,17 @@ export function VantaBedroomScene({ onExitBedroom, onPromptChange }: BedroomProp
       }
     };
     const onKeyUp = (e: KeyboardEvent) => keysRef.current.delete(e.code);
-    const onBlur  = () => keysRef.current.clear();
+    const onBlur  = () => {
+      keysRef.current.clear();
+      touchAxesRef.current = { x: 0, y: 0, magnitude: 0 };
+    };
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup",   onKeyUp);
     window.addEventListener("blur",    onBlur);
 
     // ── Mouse drag (camera orbit) ───────────────────────────────────────────
     const onMouseDown = (e: MouseEvent) => {
-      if ((e.target as HTMLElement)?.closest?.("[data-vault-radio]")) return;
+      if ((e.target as HTMLElement)?.closest?.("[data-vault-radio], [data-district-touch-controls], [data-vanta-district-chat], [data-vanta-city-controls]")) return;
       isDragging.current = true;
       lastPtrX.current = e.clientX; lastPtrY.current = e.clientY;
     };
@@ -382,11 +399,13 @@ export function VantaBedroomScene({ onExitBedroom, onPromptChange }: BedroomProp
 
     // Touch drag
     const onTouchStart = (e: TouchEvent) => {
+      if ((e.target as HTMLElement)?.closest?.("[data-vault-radio], [data-district-touch-controls], [data-vanta-district-chat], [data-vanta-city-controls]")) return;
       if (e.touches.length !== 1) return;
       isDragging.current = true;
       lastPtrX.current = e.touches[0].clientX; lastPtrY.current = e.touches[0].clientY;
     };
     const onTouchMove = (e: TouchEvent) => {
+      if ((e.target as HTMLElement)?.closest?.("[data-vault-radio], [data-district-touch-controls], [data-vanta-district-chat], [data-vanta-city-controls]")) return;
       if (!isDragging.current || e.touches.length !== 1) return;
       camYawRef.current   -= (e.touches[0].clientX - lastPtrX.current) * 0.004;
       camPitchRef.current += (e.touches[0].clientY - lastPtrY.current) * 0.004;
@@ -396,6 +415,7 @@ export function VantaBedroomScene({ onExitBedroom, onPromptChange }: BedroomProp
     const onTouchEnd = () => { isDragging.current = false; };
 
     const onWheel = (e: WheelEvent) => {
+      if ((e.target as HTMLElement)?.closest?.("[data-vault-radio], [data-district-touch-controls], [data-vanta-district-chat], [data-vanta-city-controls]")) return;
       camDistRef.current = Math.max(DIST_MIN, Math.min(DIST_MAX, camDistRef.current + e.deltaY * 0.012));
     };
     window.addEventListener("mousedown",  onMouseDown);
@@ -404,6 +424,7 @@ export function VantaBedroomScene({ onExitBedroom, onPromptChange }: BedroomProp
     window.addEventListener("touchstart", onTouchStart, { passive: true });
     window.addEventListener("touchmove",  onTouchMove,  { passive: false });
     window.addEventListener("touchend",   onTouchEnd);
+    window.addEventListener("touchcancel", onTouchEnd);
     window.addEventListener("wheel",      onWheel, { passive: true });
 
     return () => {
@@ -413,6 +434,7 @@ export function VantaBedroomScene({ onExitBedroom, onPromptChange }: BedroomProp
       lampRef.current   = null;
       crtRef.current    = null;
       keysRef.current.clear();
+      touchAxesRef.current = { x: 0, y: 0, magnitude: 0 };
       isDragging.current = false;
       promptIdRef.current = null;
       window.removeEventListener("keydown",    onKeyDown);
@@ -424,6 +446,7 @@ export function VantaBedroomScene({ onExitBedroom, onPromptChange }: BedroomProp
       window.removeEventListener("touchstart", onTouchStart);
       window.removeEventListener("touchmove",  onTouchMove);
       window.removeEventListener("touchend",   onTouchEnd);
+      window.removeEventListener("touchcancel", onTouchEnd);
       window.removeEventListener("wheel",      onWheel);
     };
   }, [scene]);
@@ -434,27 +457,38 @@ export function VantaBedroomScene({ onExitBedroom, onPromptChange }: BedroomProp
 
     const keys   = keysRef.current;
     const safeDt = Math.min(dt, 0.05);
+    if (gamePausedRef.current) {
+      keys.clear();
+      touchAxesRef.current = { x: 0, y: 0, magnitude: 0 };
+      return;
+    }
+    const chatFocused = chatInputFocusedRef.current;
+    const isDown = (code: string) => !chatFocused && keys.has(code);
+    const axes = chatFocused ? { x: 0, y: 0, magnitude: 0 } : touchAxesRef.current;
+    const drive = Math.max(-1, Math.min(1,
+      (isDown("KeyW") || isDown("ArrowUp") ? 1 : 0) -
+      (isDown("KeyS") || isDown("ArrowDown") ? 1 : 0) -
+      axes.y * axes.magnitude,
+    ));
+    const steering = Math.max(-1, Math.min(1,
+      (isDown("KeyD") || isDown("ArrowRight") ? 1 : 0) -
+      (isDown("KeyA") || isDown("ArrowLeft") ? 1 : 0) +
+      axes.x * axes.magnitude,
+    ));
 
     // Rotation
-    if (keys.has("KeyA") || keys.has("ArrowLeft"))  angleRef.current += 2.0 * safeDt;
-    if (keys.has("KeyD") || keys.has("ArrowRight")) angleRef.current -= 2.0 * safeDt;
+    angleRef.current -= steering * 2.0 * safeDt;
 
-    if (keys.has("Comma"))  camYawRef.current -= CAM_ROT_SPD * safeDt;
-    if (keys.has("Period")) camYawRef.current += CAM_ROT_SPD * safeDt;
+    if (isDown("Comma"))  camYawRef.current -= CAM_ROT_SPD * safeDt;
+    if (isDown("Period")) camYawRef.current += CAM_ROT_SPD * safeDt;
 
     const angle = angleRef.current;
     const fwdX  = -Math.sin(angle);
     const fwdZ  = -Math.cos(angle);
 
     // Movement — clamped to room
-    if (keys.has("KeyW") || keys.has("ArrowUp")) {
-      player.position.x = Math.max(-BOUND_X, Math.min(BOUND_X, player.position.x + fwdX * 5 * safeDt));
-      player.position.z = Math.max(-BOUND_Z, Math.min(BOUND_Z, player.position.z + fwdZ * 5 * safeDt));
-    }
-    if (keys.has("KeyS") || keys.has("ArrowDown")) {
-      player.position.x = Math.max(-BOUND_X, Math.min(BOUND_X, player.position.x - fwdX * 5 * safeDt));
-      player.position.z = Math.max(-BOUND_Z, Math.min(BOUND_Z, player.position.z - fwdZ * 5 * safeDt));
-    }
+    player.position.x = Math.max(-BOUND_X, Math.min(BOUND_X, player.position.x + fwdX * 5 * safeDt * drive));
+    player.position.z = Math.max(-BOUND_Z, Math.min(BOUND_Z, player.position.z + fwdZ * 5 * safeDt * drive));
     player.rotation.y = angle;
 
     // Camera
