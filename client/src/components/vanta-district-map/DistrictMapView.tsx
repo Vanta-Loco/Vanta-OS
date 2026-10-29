@@ -1,6 +1,13 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import type { CSSProperties, PointerEvent, WheelEvent } from "react";
 import "./DistrictMapView.css";
+import { DistrictMapArtwork } from "./DistrictMapArtwork";
+import {
+  DISTRICT_MAP_HEIGHT,
+  DISTRICT_MAP_WIDTH,
+  getDistrictMapBounds,
+  projectDistrictWorldPoint,
+} from "./district-map-geometry";
 
 export type DistrictMapLocation = {
   id: string;
@@ -22,6 +29,8 @@ export type DistrictMapPlayerPosition = { x: number; z: number } | null;
 export interface DistrictMapViewProps {
   locations: DistrictMapLocation[];
   playerPosition: DistrictMapPlayerPosition;
+  playerDestinationId?: string | null;
+  gameplayPaused?: boolean;
   selectedId: string;
   onSelect: (id: string) => void;
   onEnter: (id: string) => void;
@@ -31,31 +40,8 @@ export interface DistrictMapViewProps {
 type Point = { x: number; y: number };
 type DragState = { pointerId: number; x: number; y: number; moved: boolean };
 
-const MAP_WIDTH = 1000;
-const MAP_HEIGHT = 700;
-const MAP_PADDING = 110;
 const MIN_ZOOM = 0.72;
 const MAX_ZOOM = 2.7;
-
-const districts = [
-  { name: "INDUSTRIAL", points: "42,35 488,35 454,223 270,278 42,234", tint: "amber", labelX: 166, labelY: 67 },
-  { name: "TECH", points: "488,35 958,35 958,255 704,293 454,223", tint: "violet", labelX: 743, labelY: 67 },
-  { name: "RESIDENTIAL", points: "42,234 270,278 454,223 512,426 354,652 42,652", tint: "blue", labelX: 171, labelY: 625 },
-  { name: "COMMERCIAL", points: "454,223 704,293 958,255 958,652 574,652 512,426", tint: "rose", labelX: 797, labelY: 625 },
-];
-
-const blocks = [
-  [70, 77, 80, 42], [178, 78, 74, 42], [279, 78, 74, 42], [377, 77, 77, 42],
-  [567, 77, 75, 42], [671, 77, 74, 42], [774, 77, 78, 42], [873, 77, 54, 42],
-  [70, 137, 80, 45], [177, 137, 72, 45], [280, 137, 73, 45], [376, 137, 78, 45],
-  [567, 137, 75, 45], [671, 137, 75, 45], [774, 137, 78, 45], [873, 137, 54, 45],
-  [70, 292, 82, 58], [178, 295, 74, 56], [277, 294, 77, 58], [386, 285, 57, 68],
-  [564, 310, 74, 53], [666, 312, 82, 55], [772, 302, 78, 59], [873, 294, 54, 62],
-  [70, 382, 82, 55], [177, 382, 76, 55], [280, 382, 73, 55], [386, 382, 57, 55],
-  [564, 382, 74, 55], [666, 382, 82, 55], [772, 382, 78, 55], [873, 382, 54, 55],
-  [70, 478, 82, 62], [177, 478, 76, 62], [280, 478, 73, 62], [386, 478, 57, 62],
-  [564, 478, 74, 62], [666, 478, 82, 62], [772, 478, 78, 62], [873, 478, 54, 62],
-];
 
 function getCategoryMark(category: string) {
   const value = category.toLowerCase();
@@ -74,6 +60,8 @@ function clamp(value: number, min: number, max: number) {
 export function DistrictMapView({
   locations,
   playerPosition,
+  playerDestinationId = null,
+  gameplayPaused = false,
   selectedId,
   onSelect,
   onEnter,
@@ -84,30 +72,10 @@ export function DistrictMapView({
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState<Point>({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
-
-  const bounds = useMemo(() => {
-    const points = [
-      ...locations.map(({ x, z }) => ({ x, z })),
-      ...(playerPosition ? [playerPosition] : []),
-    ];
-    if (!points.length) return { minX: -160, maxX: 160, minZ: -120, maxZ: 120 };
-    const xs = points.map((point) => point.x);
-    const zs = points.map((point) => point.z);
-    const spanX = Math.max(...xs) - Math.min(...xs);
-    const spanZ = Math.max(...zs) - Math.min(...zs);
-    const padX = Math.max(spanX * 0.22, 42);
-    const padZ = Math.max(spanZ * 0.22, 42);
-    return {
-      minX: Math.min(...xs) - padX,
-      maxX: Math.max(...xs) + padX,
-      minZ: Math.min(...zs) - padZ,
-      maxZ: Math.max(...zs) + padZ,
-    };
-  }, [locations, playerPosition]);
+  const bounds = useMemo(() => getDistrictMapBounds(locations), [locations]);
 
   const toPoint = useCallback((x: number, z: number): Point => ({
-    x: MAP_PADDING + ((x - bounds.minX) / (bounds.maxX - bounds.minX)) * (MAP_WIDTH - MAP_PADDING * 2),
-    y: MAP_PADDING + ((z - bounds.minZ) / (bounds.maxZ - bounds.minZ)) * (MAP_HEIGHT - MAP_PADDING * 2),
+    ...projectDistrictWorldPoint(x, z, bounds),
   }), [bounds]);
 
   const selected = locations.find((location) => location.id === selectedId);
@@ -141,8 +109,8 @@ export function DistrictMapView({
     const point = toPoint(playerPosition.x, playerPosition.z);
     const rect = mapFrameRef.current.getBoundingClientRect();
     setPan({
-      x: rect.width / 2 - (point.x / MAP_WIDTH) * rect.width * zoom,
-      y: rect.height / 2 - (point.y / MAP_HEIGHT) * rect.height * zoom,
+      x: rect.width / 2 - (point.x / DISTRICT_MAP_WIDTH) * rect.width * zoom,
+      y: rect.height / 2 - (point.y / DISTRICT_MAP_HEIGHT) * rect.height * zoom,
     });
   };
 
@@ -187,7 +155,7 @@ export function DistrictMapView({
   };
 
   const mapStyle = {
-    "--map-zoom": zoom,
+      "--map-zoom": zoom,
     "--map-pan-x": `${pan.x}px`,
     "--map-pan-y": `${pan.y}px`,
   } as CSSProperties;
@@ -203,7 +171,9 @@ export function DistrictMapView({
           </div>
         </div>
         <div className="vdm-header-meta">
-          <span className="vdm-live"><i /> CITY SIGNAL ACTIVE</span>
+            <span className={`vdm-live${gameplayPaused ? " vdm-live--paused" : ""}`}>
+              <i /> {gameplayPaused ? "CITY GAMEPLAY PAUSED" : "CITY SIGNAL ACTIVE"}
+            </span>
           <span className="vdm-coordinates">GRID 04 · NIGHT INDEX</span>
           <button className="vdm-close" type="button" onClick={onClose} aria-label="Close district map">×</button>
         </div>
@@ -232,56 +202,7 @@ export function DistrictMapView({
             tabIndex={0}
           >
             <div className="vdm-map-viewport" style={mapStyle}>
-              <svg className="vdm-map-art" viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`} preserveAspectRatio="none" aria-hidden="true">
-                <defs>
-                  <pattern id="vdm-grid" width="34" height="34" patternUnits="userSpaceOnUse">
-                    <path d="M 34 0 L 0 0 0 34" fill="none" stroke="rgba(190,155,238,.075)" strokeWidth="1" />
-                  </pattern>
-                  <pattern id="vdm-water-grid" width="22" height="22" patternUnits="userSpaceOnUse">
-                    <path d="M0 11 Q5 7 11 11 T22 11" fill="none" stroke="rgba(106,151,181,.12)" strokeWidth="1" />
-                  </pattern>
-                </defs>
-                <rect width="1000" height="700" fill="#0b0a12" />
-                <rect width="1000" height="700" fill="url(#vdm-grid)" />
-                {districts.map((district) => (
-                  <g key={district.name}>
-                    <polygon className={`vdm-district-zone zone-${district.tint}`} points={district.points} />
-                    <text className="vdm-district-name" x={district.labelX} y={district.labelY}>{district.name}</text>
-                  </g>
-                ))}
-                <path className="vdm-water" d="M-10 251 C112 225 172 268 258 256 C344 244 402 230 476 256 C555 284 606 320 691 305 C803 286 875 242 1010 268 L1010 294 C875 268 803 311 694 332 C600 350 551 312 466 284 C398 262 344 278 262 288 C166 300 112 258 -10 282 Z" />
-                <path className="vdm-water-highlight" d="M-10 265 C112 239 172 282 258 270 C344 258 402 244 476 270 C555 298 606 334 691 319 C803 300 875 256 1010 282" />
-                <path className="vdm-park" d="M73 557 L197 541 L232 618 L179 670 L54 663 Z" />
-                <path className="vdm-park-detail" d="M85 575 L124 614 L177 565 M124 614 L163 652 M124 614 L75 645" />
-                <path className="vdm-park" d="M786 447 L865 431 L933 458 L916 520 L837 532 L776 499 Z" />
-                <path className="vdm-park-detail" d="M798 471 L844 487 L891 452 M844 487 L858 521 M844 487 L803 510" />
-                {blocks.map(([x, y, width, height], index) => (
-                  <g key={`block-${index}`} className="vdm-city-block">
-                    <rect x={x} y={y} width={width} height={height} rx="2" />
-                    <path d={`M${x + 8} ${y + 8}h${width * 0.28} M${x + 8} ${y + 15}h${width * 0.54}`} />
-                    <circle cx={x + width - 9} cy={y + 10} r="2" />
-                  </g>
-                ))}
-                <g className="vdm-roads">
-                  <path className="vdm-road-edge" d="M-20 116 H1020 M-20 365 H1020 M-20 450 H1020 M155 -20 V720 M365 -20 V720 M652 -20 V720 M856 -20 V720" />
-                  <path className="vdm-road-fill" d="M-20 116 H1020 M-20 365 H1020 M-20 450 H1020 M155 -20 V720 M365 -20 V720 M652 -20 V720 M856 -20 V720" />
-                  <path className="vdm-road-center" d="M-20 116 H1020 M-20 365 H1020 M-20 450 H1020 M155 -20 V720 M365 -20 V720 M652 -20 V720 M856 -20 V720" />
-                  <path className="vdm-arterial-edge" d="M-20 211 C167 191 282 212 424 208 S689 220 1020 190 M489 -20 C472 128 501 224 491 341 S514 559 548 720" />
-                  <path className="vdm-arterial" d="M-20 211 C167 191 282 212 424 208 S689 220 1020 190 M489 -20 C472 128 501 224 491 341 S514 559 548 720" />
-                </g>
-                <g className="vdm-road-labels">
-                  <text x="66" y="108">WESTLINE AVE</text><text x="667" y="358">CROWN CIRCUIT</text>
-                  <text x="505" y="558" transform="rotate(85 505 558)">NORTH / SOUTH SPINE</text>
-                  <text x="789" y="201">EAST RELAY</text>
-                </g>
-                <g className="vdm-crossings">
-                  {[155, 365, 652, 856].map((x) => [116, 365, 450].map((y) => (
-                    <circle key={`${x}-${y}`} cx={x} cy={y} r="4" />
-                  )))}
-                </g>
-                <path className="vdm-map-border" d="M22 22H978V678H22Z" />
-                <path className="vdm-map-corner" d="M22 53V22H53 M947 22H978V53 M22 647V678H53 M947 678H978V647" />
-              </svg>
+              <DistrictMapArtwork />
 
               {locations.map((location, index) => {
                 const point = toPoint(location.x, location.z);
@@ -290,10 +211,10 @@ export function DistrictMapView({
                   <button
                     key={location.id}
                     type="button"
-                    className={`vdm-marker${isSelected ? " is-selected" : ""}${location.locked ? " is-locked" : ""}`}
+                    className={`vdm-marker${isSelected ? " is-selected" : ""}${location.locked ? " is-locked" : ""}${location.id === playerDestinationId ? " is-current-destination" : ""}`}
                     style={{
-                      left: `${(point.x / MAP_WIDTH) * 100}%`,
-                      top: `${(point.y / MAP_HEIGHT) * 100}%`,
+                      left: `${(point.x / DISTRICT_MAP_WIDTH) * 100}%`,
+                      top: `${(point.y / DISTRICT_MAP_HEIGHT) * 100}%`,
                       "--marker-color": location.color || "#a855f7",
                     } as CSSProperties}
                     onPointerDown={(event) => event.stopPropagation()}
@@ -305,8 +226,8 @@ export function DistrictMapView({
                       }
                     }}
                     aria-pressed={isSelected}
-                    aria-label={`${location.name}, ${location.district}, ${location.status}${location.locked ? ", locked" : ""}`}
-                    title={`${location.name} · ${location.district}`}
+                    aria-label={`${location.name}, ${location.district}, ${location.status}${location.locked ? ", locked" : ""}${location.id === playerDestinationId ? ", last entered destination" : ""}`}
+                    title={`${location.name} · ${location.district}${location.id === playerDestinationId ? " · last entered destination" : ""}`}
                   >
                     <span className="vdm-marker-node" aria-hidden="true">
                       <span className="vdm-marker-icon">{getCategoryMark(location.category)}</span>
@@ -322,7 +243,17 @@ export function DistrictMapView({
 
               {playerPosition && (() => {
                 const point = toPoint(playerPosition.x, playerPosition.z);
-                return <div className="vdm-player" style={{ left: `${point.x / MAP_WIDTH * 100}%`, top: `${point.y / MAP_HEIGHT * 100}%` }} aria-label="Your position"><span /><b>YOU</b></div>;
+                const markerName = `Your current Vanta District position, X ${playerPosition.x.toFixed(1)}, Z ${playerPosition.z.toFixed(1)}.`;
+                return (
+                  <div
+                    className="vdm-player"
+                    style={{ left: `${point.x / DISTRICT_MAP_WIDTH * 100}%`, top: `${point.y / DISTRICT_MAP_HEIGHT * 100}%` }}
+                    aria-label={markerName}
+                    title={markerName}
+                  >
+                    <span /><b>YOU · {playerPosition.x.toFixed(0)},{playerPosition.z.toFixed(0)}</b>
+                  </div>
+                );
               })()}
             </div>
 
@@ -344,7 +275,7 @@ export function DistrictMapView({
               <span><i className="legend-destination" /> DESTINATION</span>
               <span><i className="legend-road" /> ARTERIAL</span>
               <span><i className="legend-water" /> WATERFRONT</span>
-              {playerPosition && <span><i className="legend-player" /> YOUR POSITION</span>}
+              {playerPosition && <span><i className="legend-player" /> YOUR POSITION · CITY GRID</span>}
             </div>
             <span className="vdm-footnote">MAP DATA // VANTA CITY TRANSIT AUTHORITY</span>
           </div>

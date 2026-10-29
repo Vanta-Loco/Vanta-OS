@@ -1,0 +1,45 @@
+.vanta-city-touch-controls {
+  display: none;
+  position: fixed;
+  top: 50%;
+  right: 12px;
+  z-index: 9;
+  transform: translateY(-50%);
+  grid-template: 44px 44px 44px / 44px 44px 44px;
+  gap: 4px;
+  padding: 7px;
+  border: 1px solid rgba(168, 85, 247, .44);
+  border-radius: 5px;
+  background: rgba(8, 6, 14, .78);
+  touch-action: none;
+  user-select: none;
+}
+.vanta-city-touch-controls span {
+  grid-area: 1 / 1 / 1 / 4;
+  align-self: center;
+  color: #c6acd9;
+  font: 7px ui-monospace, monospace;
+  letter-spacing: .12em;
+  text-align: center;
+}
+.vanta-city-touch-controls button {
+  min-width: 44px;
+  min-height: 44px;
+  border: 1px solid rgba(168, 85, 247, .5);
+  border-radius: 4px;
+  background: rgba(36, 23, 49, .84);
+  color: #e5caff;
+  font: 16px ui-monospace, monospace;
+  touch-action: none;
+  user-select: none;
+}
+.vanta-city-touch-controls button:active { background: rgba(119, 64, 154, .72); }
+.vanta-city-touch-controls button:focus-visible { outline: 2px solid #e4c7ff; outline-offset: 2px; }
+.vanta-city-touch-controls button:nth-of-type(1) { grid-area: 2 / 2; }
+.vanta-city-touch-controls button:nth-of-type(2) { grid-area: 3 / 1; }
+.vanta-city-touch-controls button:nth-of-type(3) { grid-area: 3 / 2; }
+.vanta-city-touch-controls button:nth-of-type(4) { grid-area: 3 / 3; }
+
+@media (max-width: 760px), (pointer: coarse) {
+  .vanta-city-touch-controls { display: grid; }
+}

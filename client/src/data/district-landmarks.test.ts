@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { DISTRICT_LANDMARKS } from "./district-landmarks";
+import { getDistrictMapBounds, projectDistrictWorldPoint } from "../components/vanta-district-map/district-map-geometry";
 
 test("District keeps its existing active and locked destinations", () => {
   const byId = new Map(DISTRICT_LANDMARKS.map((landmark) => [landmark.id, landmark]));
@@ -20,4 +21,16 @@ test("Fractured Godhead archive and station prototype are distinct map destinati
   assert.equal(station?.route, "/godforsaken-paradise");
   assert.notEqual(portal?.id, station?.id);
   assert.notEqual(portal?.route, station?.route);
+});
+
+test("District world movement uses the shared map projection on both live axes", () => {
+  const bounds = getDistrictMapBounds(DISTRICT_LANDMARKS);
+  const origin = projectDistrictWorldPoint(0, 0, bounds);
+  const movedRight = projectDistrictWorldPoint(1, 0, bounds);
+  const movedUp = projectDistrictWorldPoint(0, -1, bounds);
+
+  assert.ok(movedRight.x > origin.x);
+  assert.equal(movedRight.y, origin.y);
+  assert.equal(movedUp.x, origin.x);
+  assert.ok(movedUp.y < origin.y);
 });

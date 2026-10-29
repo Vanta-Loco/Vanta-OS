@@ -17,7 +17,7 @@ import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 // @ts-ignore
 import { VignetteShader } from "three/examples/jsm/shaders/VignetteShader.js";
 import { VaultRadio } from "@/components/vault-radio";
-import { WorldMinimap } from "@/components/world-minimap";
+import { DistrictMinimap } from "@/components/vanta-district-map/DistrictMinimap";
 import { DistrictMapView } from "@/components/vanta-district-map/DistrictMapView";
 import { VantaBedroomScene } from "@/components/vanta-bedroom";
 import { DISTRICT_LANDMARKS } from "@/data/district-landmarks";
@@ -25,6 +25,8 @@ import {
   saveWorldState, loadWorldState, DEFAULT_WORLD_SAVE,
   type WorldSave,
 } from "@/lib/world-state";
+import { loadDistrictPlayerLocation, saveDistrictPlayerLocation } from "@/lib/district-player-location";
+import "./vanta-district-touch-controls.css";
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 const CS          = 80;    // chunk size (world units)
@@ -587,10 +589,11 @@ interface CitySceneProps {
   onEnter:         (route: string) => void;
   onOpenHubMenu:   () => void;
   playerPosRef:    React.MutableRefObject<{ x: number; z: number; angle: number }>;
+  touchKeysRef:    React.MutableRefObject<Set<string>>;
   worldSaveRef:    React.MutableRefObject<WorldSave>;
 }
 
-function CityScene({ onNear, onEnter, onOpenHubMenu, playerPosRef, worldSaveRef }: CitySceneProps) {
+function CityScene({ onNear, onEnter, onOpenHubMenu, playerPosRef, touchKeysRef, worldSaveRef }: CitySceneProps) {
   const { scene } = useThree();
 
   // Player / movement
@@ -710,10 +713,13 @@ function CityScene({ onNear, onEnter, onOpenHubMenu, playerPosRef, worldSaveRef 
       }
     };
     const onKeyUp = (e: KeyboardEvent) => keysRef.current.delete(e.code);
-    const onBlur  = () => keysRef.current.clear();
+    const onWindowBlur = () => {
+      keysRef.current.clear();
+      touchKeysRef.current.clear();
+    };
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup",   onKeyUp);
-    window.addEventListener("blur",    onBlur);
+    window.addEventListener("blur",    onWindowBlur);
 
     // ── Mouse drag (camera yaw + pitch) ──────────────────────────────────────
     const PITCH_MIN = -Math.PI / 180 * 25;  // -25°
@@ -721,7 +727,7 @@ function CityScene({ onNear, onEnter, onOpenHubMenu, playerPosRef, worldSaveRef 
     const DIST_MIN  = 4, DIST_MAX = 22;
 
     const onMouseDown  = (e: MouseEvent) => {
-      if ((e.target as HTMLElement)?.closest?.("[data-vault-radio]")) return;
+      if ((e.target as HTMLElement)?.closest?.("[data-vault-radio], [data-district-touch-controls]")) return;
       isDraggingRef.current = true;
       lastPtrXRef.current = e.clientX;
       lastPtrYRef.current = e.clientY;
@@ -740,7 +746,7 @@ function CityScene({ onNear, onEnter, onOpenHubMenu, playerPosRef, worldSaveRef 
 
     // ── Scroll wheel zoom ─────────────────────────────────────────────────────
     const onWheel = (e: WheelEvent) => {
-      if ((e.target as HTMLElement)?.closest?.("[data-vault-radio]")) return;
+      if ((e.target as HTMLElement)?.closest?.("[data-vault-radio], [data-district-touch-controls]")) return;
       camDistRef.current = Math.max(DIST_MIN, Math.min(DIST_MAX,
         camDistRef.current + e.deltaY * 0.02,
       ));
@@ -748,11 +754,13 @@ function CityScene({ onNear, onEnter, onOpenHubMenu, playerPosRef, worldSaveRef 
 
     // ── Touch drag (camera yaw + pitch) ──────────────────────────────────────
     const onTouchStart = (e: TouchEvent) => {
+      if ((e.target as HTMLElement)?.closest?.("[data-vault-radio], [data-district-touch-controls]")) return;
       isDraggingRef.current = true;
       lastPtrXRef.current = e.touches[0].clientX;
       lastPtrYRef.current = e.touches[0].clientY;
     };
     const onTouchMove  = (e: TouchEvent) => {
+      if ((e.target as HTMLElement)?.closest?.("[data-vault-radio], [data-district-touch-controls]")) return;
       if (!isDraggingRef.current) return;
       const dx = e.touches[0].clientX - lastPtrXRef.current;
       const dy = e.touches[0].clientY - lastPtrYRef.current;
@@ -792,7 +800,7 @@ function CityScene({ onNear, onEnter, onOpenHubMenu, playerPosRef, worldSaveRef 
 
       window.removeEventListener("keydown",    onKeyDown);
       window.removeEventListener("keyup",      onKeyUp);
-      window.removeEventListener("blur",       onBlur);
+      window.removeEventListener("blur",       onWindowBlur);
       window.removeEventListener("mousedown",  onMouseDown);
       window.removeEventListener("mousemove",  onMouseMove);
       window.removeEventListener("mouseup",    onMouseUp);
@@ -803,6 +811,8 @@ function CityScene({ onNear, onEnter, onOpenHubMenu, playerPosRef, worldSaveRef 
 
       playerRef.current  = null;
       beaconsRef.current = [];
+      keysRef.current.clear();
+      touchKeysRef.current.clear();
     };
   }, [scene]);
 
@@ -811,27 +821,27 @@ function CityScene({ onNear, onEnter, onOpenHubMenu, playerPosRef, worldSaveRef 
     const player = playerRef.current;
     if (!player) return;
 
-    const keys   = keysRef.current;
+    const isDown = (code: string) => keysRef.current.has(code) || touchKeysRef.current.has(code);
     const safeDt = Math.min(dt, 0.05);
 
     // Player rotation (WASD/arrows)
-    if (keys.has("KeyA") || keys.has("ArrowLeft"))  angleRef.current += 2.2 * safeDt;
-    if (keys.has("KeyD") || keys.has("ArrowRight")) angleRef.current -= 2.2 * safeDt;
+    if (isDown("KeyA") || isDown("ArrowLeft"))  angleRef.current += 2.2 * safeDt;
+    if (isDown("KeyD") || isDown("ArrowRight")) angleRef.current -= 2.2 * safeDt;
 
     // Camera orbit via keyboard: comma = orbit left, period = orbit right
-    if (keys.has("Comma"))  camYawRef.current -= CAM_ROT_SPD * safeDt;
-    if (keys.has("Period")) camYawRef.current += CAM_ROT_SPD * safeDt;
+    if (isDown("Comma"))  camYawRef.current -= CAM_ROT_SPD * safeDt;
+    if (isDown("Period")) camYawRef.current += CAM_ROT_SPD * safeDt;
 
     const angle = angleRef.current;
     const fwdX  = -Math.sin(angle);
     const fwdZ  = -Math.cos(angle);
 
     // Player translate
-    if (keys.has("KeyW") || keys.has("ArrowUp")) {
+    if (isDown("KeyW") || isDown("ArrowUp")) {
       player.position.x += fwdX * 10 * safeDt;
       player.position.z += fwdZ * 10 * safeDt;
     }
-    if (keys.has("KeyS") || keys.has("ArrowDown")) {
+    if (isDown("KeyS") || isDown("ArrowDown")) {
       player.position.x -= fwdX * 10 * safeDt;
       player.position.z -= fwdZ * 10 * safeDt;
     }
@@ -989,6 +999,12 @@ export default function World() {
 
   // Populated from sessionStorage so returning from a building restores exactly where the user left
   const worldSaveRef = useRef<WorldSave>(loadWorldState() ?? { ...DEFAULT_WORLD_SAVE });
+  const [playerDestinationId, setPlayerDestinationId] = useState(
+    () => loadDistrictPlayerLocation()?.landmarkId ?? null,
+  );
+  const rememberDestination = useCallback((landmarkId: string) => {
+    if (saveDistrictPlayerLocation(landmarkId)) setPlayerDestinationId(landmarkId);
+  }, []);
 
   const handleNear = useCallback((s: NearState) => {
     setNear(s);
@@ -996,9 +1012,16 @@ export default function World() {
   }, []);
 
   const handleEnter = useCallback((route: string) => {
+    const nearby = DISTRICT_LANDMARKS.find((landmark) =>
+      landmark.id === worldSaveRef.current.nearId && landmark.route === route && landmark.action !== "locked"
+    );
+    const routeMatch = DISTRICT_LANDMARKS.find((landmark) =>
+      landmark.route === route && landmark.action !== "locked"
+    );
+    if (nearby ?? routeMatch) rememberDestination((nearby ?? routeMatch)!.id);
     saveWorldState({ ...worldSaveRef.current });
     navigate(route);
-  }, [navigate]);
+  }, [navigate, rememberDestination]);
 
   // Hub menu — shown when player presses E at MUSIC HUB
   const [hubMenuOpen,    setHubMenuOpen]    = useState(false);
@@ -1018,6 +1041,7 @@ export default function World() {
   const handleMapEnter = useCallback((id: string) => {
     const destination = DISTRICT_LANDMARKS.find((landmark) => landmark.id === id);
     if (!destination || destination.action === "locked") return;
+    rememberDestination(destination.id);
     setMapOpen(false);
     if (destination.action === "music-hub") {
       if (!webglAvailable || canvasFailed) {
@@ -1028,10 +1052,11 @@ export default function World() {
       return;
     }
     if (destination.route) handleEnter(destination.route);
-  }, [canvasFailed, handleEnter, handleOpenHubMenu, webglAvailable]);
+  }, [canvasFailed, handleEnter, handleOpenHubMenu, rememberDestination, webglAvailable]);
 
   const handleHubSelect = useCallback((choice: number) => {
     setHubMenuOpen(false);
+    rememberDestination("music-hub");
     if (choice === 0) {
       saveWorldState({ ...worldSaveRef.current });
       navigate("/releases");
@@ -1040,7 +1065,7 @@ export default function World() {
       setActiveScene("bedroom");
       setBedroomPrompt(null);
     }
-  }, [navigate]);
+  }, [navigate, rememberDestination]);
 
   // Keyboard nav inside hub menu
   useEffect(() => {
@@ -1067,7 +1092,23 @@ export default function World() {
   }, []);
 
   // Shared player position for the minimap (updated every frame by CityScene)
-  const playerPosRef = useRef<{ x: number; z: number; angle: number }>({ x: 0, z: 0, angle: 0 });
+  const playerPosRef = useRef<{ x: number; z: number; angle: number }>({
+    x: worldSaveRef.current.playerX,
+    z: worldSaveRef.current.playerZ,
+    angle: worldSaveRef.current.angle,
+  });
+  const touchKeysRef = useRef(new Set<string>());
+
+  const touchHold = (code: string) => ({
+    onPointerDown: (event: React.PointerEvent<HTMLButtonElement>) => {
+      event.preventDefault();
+      event.currentTarget.setPointerCapture(event.pointerId);
+      touchKeysRef.current.add(code);
+    },
+    onPointerUp: () => touchKeysRef.current.delete(code),
+    onPointerCancel: () => touchKeysRef.current.delete(code),
+    onLostPointerCapture: () => touchKeysRef.current.delete(code),
+  });
 
   const { lm, canEnter } = near;
   const inBedroom = activeScene === "bedroom";
@@ -1092,6 +1133,8 @@ export default function World() {
       <DistrictMapView
         locations={mapLocations}
         playerPosition={playerPosRef.current}
+        playerDestinationId={playerDestinationId}
+        gameplayPaused={mapOpen || mapFallbackActive}
         selectedId={selectedMapId}
         onSelect={setSelectedMapId}
         onEnter={handleMapEnter}
@@ -1149,6 +1192,16 @@ export default function World() {
       >
         OPEN CITY MAP
       </button>
+
+      {!inBedroom && (
+        <div className="vanta-city-touch-controls" data-district-touch-controls="" aria-label="Vanta District touch movement">
+          <span>TURN · DRIVE</span>
+          <button type="button" aria-label="Move forward" {...touchHold("KeyW")}>▲</button>
+          <button type="button" aria-label="Turn left" {...touchHold("KeyA")}>◀</button>
+          <button type="button" aria-label="Move backward" {...touchHold("KeyS")}>▼</button>
+          <button type="button" aria-label="Turn right" {...touchHold("KeyD")}>▶</button>
+        </div>
+      )}
 
       {/* ── City: landmark name label (broad range) ────────────────────────── */}
       {!inBedroom && lm && !canEnter && (
@@ -1265,7 +1318,13 @@ export default function World() {
       )}
 
       {/* ── Mini-map HUD (city only) ────────────────────────────────────────── */}
-      {!inBedroom && <WorldMinimap playerPosRef={playerPosRef} />}
+      {!inBedroom && (
+        <DistrictMinimap
+          locations={mapLocations}
+          playerPosRef={playerPosRef}
+          playerDestinationId={playerDestinationId}
+        />
+      )}
 
       {/* ── Vault Radio HUD (always visible) ───────────────────────────────── */}
       <VaultRadio />
@@ -1285,6 +1344,7 @@ export default function World() {
               onEnter={handleEnter}
               onOpenHubMenu={handleOpenHubMenu}
               playerPosRef={playerPosRef}
+              touchKeysRef={touchKeysRef}
               worldSaveRef={worldSaveRef}
             />
           ) : (

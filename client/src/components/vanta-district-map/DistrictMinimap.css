@@ -1,0 +1,128 @@
+.vdm-minimap {
+  position: fixed;
+  z-index: 8;
+  left: 16px;
+  bottom: 16px;
+  width: min(246px, calc(100vw - 32px));
+  overflow: hidden;
+  color: #eee7f5;
+  border: 1px solid rgba(190, 149, 222, .52);
+  background: linear-gradient(145deg, rgba(18, 14, 25, .97), rgba(7, 8, 14, .98));
+  box-shadow: 0 12px 34px rgba(0, 0, 0, .48), 0 0 20px rgba(168, 85, 247, .1);
+  pointer-events: none;
+  font-family: "Space Mono", "SFMono-Regular", Consolas, monospace;
+}
+.vdm-minimap__header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 8px;
+  align-items: center;
+  min-height: 35px;
+  padding: 5px 8px;
+  border-bottom: 1px solid rgba(190, 164, 220, .2);
+  background: rgba(10, 8, 15, .96);
+}
+.vdm-minimap__header div { min-width: 0; }
+.vdm-minimap__header span:first-child {
+  display: block;
+  color: #b88bd4;
+  font-size: 7px;
+  letter-spacing: .13em;
+}
+.vdm-minimap__header strong {
+  display: block;
+  margin-top: 2px;
+  color: #f0eaf5;
+  font-size: 8px;
+  letter-spacing: .11em;
+}
+.vdm-minimap__coords {
+  color: #c4b6d2;
+  font-size: 7px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.vdm-minimap__north {
+  color: #d6b9f1;
+  font-size: 8px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.vdm-minimap__map {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 10 / 7;
+  background: #0b0a12;
+}
+.vdm-minimap__art { pointer-events: none; }
+.vdm-minimap__destination {
+  fill: #160f20;
+  font: 700 9px "Space Mono", monospace;
+  text-anchor: middle;
+  paint-order: stroke;
+  stroke: rgba(9, 7, 14, .92);
+  stroke-width: 2.2px;
+  stroke-linejoin: round;
+}
+.vdm-minimap__destination-ring {
+  fill: rgba(14, 10, 20, .94);
+  stroke: rgba(217, 187, 244, .82);
+  stroke-width: 1.4;
+}
+.vdm-minimap__destination-core { stroke: rgba(255,255,255,.86); stroke-width: 1; }
+.vdm-minimap__destination > text:not(.vdm-minimap__destination-label) {
+  fill: #fff;
+  stroke: none;
+  font-size: 8px;
+}
+.vdm-minimap__destination-label {
+  fill: #f4eafa;
+  font-size: 7px;
+  text-anchor: start;
+  stroke-width: 2.5px;
+}
+.vdm-minimap__destination.is-current .vdm-minimap__destination-ring {
+  stroke: #ffe0a6;
+  stroke-width: 2;
+  stroke-dasharray: 2 1;
+}
+.vdm-minimap__destination.is-locked .vdm-minimap__destination-ring {
+  stroke: #d29a87;
+  stroke-dasharray: 2 2;
+}
+.vdm-minimap__player { fill: #f3dcff; stroke: #0b0a12; stroke-width: 1.5; }
+.vdm-minimap__player path { fill: #dbb3ff; stroke: #fff; stroke-width: 1.5; }
+.vdm-minimap__player-halo { fill: rgba(198, 138, 245, .14); stroke: rgba(218, 181, 244, .56); stroke-width: 1; }
+.vdm-minimap__legend {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px 10px;
+  min-height: 25px;
+  padding: 5px 8px;
+  border-top: 1px solid rgba(190, 164, 220, .16);
+  color: #c1b8c9;
+  font-size: 6px;
+  letter-spacing: .06em;
+}
+.vdm-minimap__legend span { display: inline-flex; align-items: center; gap: 4px; }
+.vdm-minimap__legend i { display: inline-block; width: 7px; height: 7px; border-radius: 50%; }
+.vdm-minimap__legend i.is-player { background: #d9b2ff; }
+.vdm-minimap__legend i.is-destination { background: #f0bb78; }
+.vdm-minimap__legend i.is-road { width: 10px; height: 2px; border-radius: 0; background: #c3a8d7; }
+.vdm-minimap__legend i.is-locked { background: #a76e68; border: 1px dashed #f2b2a3; }
+.vdm-minimap__destination-note { margin-left: auto; color: #e7cba0; }
+
+@media (max-width: 700px) {
+  .vdm-minimap { left: 10px; bottom: 10px; width: min(202px, calc(100vw - 20px)); }
+  .vdm-minimap__header { min-height: 32px; gap: 5px; padding: 4px 6px; }
+  .vdm-minimap__header span:first-child { font-size: 6px; }
+  .vdm-minimap__header strong { font-size: 7px; }
+  .vdm-minimap__coords { font-size: 6px; }
+  .vdm-minimap__legend { gap: 4px 7px; padding: 4px 6px; font-size: 5.5px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vdm-minimap *, .vdm-minimap *::before, .vdm-minimap *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
+}

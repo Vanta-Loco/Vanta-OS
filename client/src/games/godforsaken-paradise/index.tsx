@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import "./game.css";
+import { StationMinimap, type StationMinimapLiveState } from "./StationMinimap";
 import {
   clearProgress,
   completeActiveMission,
@@ -15,8 +16,23 @@ import {
   type ProgressSave,
   type UpgradeId,
 } from "./progression";
+import {
+  STATION_BOUNDS,
+  STATION_DISPATCH_PACKET,
+  STATION_EXIT,
+  STATION_INTERACTABLES,
+  STATION_ITEMS,
+  STATION_NPCS,
+  STATION_PATHS,
+  STATION_REPAIR_RELAY,
+  STATION_ROOMS,
+  STATION_SPAWN,
+  STATION_WALLS,
+  type StationLocalPoint,
+} from "./station-world";
+import { saveDistrictPlayerLocation } from "@/lib/district-player-location";
 
-type Point = { x: number; y: number };
+type Point = StationLocalPoint;
 type Dialogue = { name: string; text: string } | null;
 type InteractionKind = "npc" | "terminal" | "item" | "repair" | "dispatch" | "cabin" | "canteen" | "operations" | "lift";
 type Interaction = { id: string; label: string; kind: InteractionKind; x: number; y: number };
@@ -30,32 +46,6 @@ type GameState = {
   feedbackUntil: number;
 };
 
-const ITEMS = [
-  { id: "filter", name: "Air filter", x: -5.2, y: -2.8, color: "#b9d37d" },
-  { id: "coupler", name: "Power coupler", x: 4.9, y: -1.5, color: "#df9a56" },
-  { id: "parcel", name: "Sealed parcel", x: 2.7, y: 5.2, color: "#d6c293" },
-];
-const NPCS = [
-  { id: "mara", name: "Mara Venn", x: -5.4, y: 3.4, coat: "#a55f4b", patrol: 0.38, phase: 0 },
-  { id: "tovin", name: "Tovin Rusk", x: 5.4, y: 3.8, coat: "#527e86", patrol: 0.48, phase: Math.PI },
-];
-const WALLS = [
-  { x: -4.6, y: -5.3, w: 4.1, h: 2.1, label: "CABIN 04" },
-  { x: 2.8, y: -5.5, w: 2.6, h: 2.0, label: "SUPPLY LOCKER" },
-  { x: -1.0, y: 4.6, w: 3.0, h: 1.35, label: "CABLE RUN" },
-  { x: -12.0, y: -1.8, w: 3.0, h: 1.1, label: "CANTEEN COUNTER" },
-  { x: -11.0, y: 2.1, w: 2.0, h: 1.3, label: "TABLES" },
-  { x: 8.0, y: -5.7, w: 3.4, h: 1.3, label: "OPS CONSOLE" },
-  { x: 8.1, y: -1.6, w: 3.4, h: 1.2, label: "SHIFT BOARD" },
-  { x: -1.2, y: 9.0, w: 2.4, h: 1.2, label: "REPAIR RELAY" },
-  { x: 8.2, y: 7.8, w: 4.0, h: 4.6, label: "COMMAND LIFT" },
-];
-const ROOM_LABELS = [
-  { name: "CANTEEN", x: -10.2, y: -4.0, color: "#d8b572" },
-  { name: "OPERATIONS DECK", x: 9.6, y: -3.4, color: "#8ab8bd" },
-  { name: "MAINTENANCE CORRIDOR", x: 1.0, y: 12.1, color: "#91b181" },
-  { name: "COMMAND LIFT · LOCKED", x: 10.2, y: 12.0, color: "#dc7b70" },
-];
 const MISSION_NAMES: Record<MissionType, string> = {
   supply: "SUPPLY COLLECTION",
   repair: "EQUIPMENT REPAIR",
@@ -83,9 +73,13 @@ export function GodforsakenParadiseGame() {
   const frameRef = useRef<number | null>(null);
   const heldRef = useRef<Set<string>>(new Set());
   const [initialProgress] = useState(() => loadProgress());
+  const stationMapLiveStateRef = useRef<StationMinimapLiveState>({
+    player: { ...STATION_SPAWN },
+    npcs: STATION_NPCS.map(({ id, x, y }) => ({ id, x, y })),
+  });
   const createInitialGame = (): GameState => ({
-    player: { x: 0, y: 0 },
-    camera: { x: 0, y: 0 },
+    player: { ...STATION_SPAWN },
+    camera: { ...STATION_SPAWN },
     progress: cloneProgress(initialProgress),
     nearby: null,
     dialogue: null,
@@ -99,6 +93,10 @@ export function GodforsakenParadiseGame() {
   const [missionMenuOpen, setMissionMenuOpen] = useState(false);
   const [upgradeMenuOpen, setUpgradeMenuOpen] = useState(false);
   const [confirmFullReset, setConfirmFullReset] = useState(false);
+
+  useEffect(() => {
+    saveDistrictPlayerLocation("brizz-station");
+  }, []);
 
   const publish = useCallback(() => setView({
     ...gameRef.current,
@@ -141,7 +139,7 @@ export function GodforsakenParadiseGame() {
     const target = g.nearby;
     if (!target) return;
     if (target.kind === "npc") {
-      const npc = NPCS.find((person) => person.id === target.id);
+      const npc = STATION_NPCS.find((person) => person.id === target.id);
       const active = g.progress.activeMission;
       if (active?.type === "delivery" && active.objectives.includes("dispatch-picked") && active.employeeTarget === target.id) {
         let next = recordMissionObjective(g.progress, `delivered-to-${target.id}`);
@@ -170,7 +168,7 @@ export function GodforsakenParadiseGame() {
       return;
     }
     if (target.kind === "item") {
-      const item = ITEMS.find((entry) => entry.id === target.id);
+      const item = STATION_ITEMS.find((entry) => entry.id === target.id);
       if (item && g.progress.activeMission?.type === "supply") {
         const next = recordMissionObjective(g.progress, item.id);
         if (next !== g.progress) {
@@ -347,35 +345,47 @@ export function GodforsakenParadiseGame() {
       const mag = Math.hypot(dx, dy) || 1;
       dx = dx / mag * speed; dy = dy / mag * speed;
       const canOccupy = (x: number, y: number) => {
-        if (x < -14 || x > 14 || y < -13 || y > 14) return false;
-        return !WALLS.some((w) => x > w.x - .38 && x < w.x + w.w + .38 && y > w.y - .35 && y < w.y + w.h + .35);
+        if (
+          x < STATION_BOUNDS.minX || x > STATION_BOUNDS.maxX ||
+          y < STATION_BOUNDS.minY || y > STATION_BOUNDS.maxY
+        ) return false;
+        return !STATION_WALLS.some((w) => x > w.x - .38 && x < w.x + w.w + .38 && y > w.y - .35 && y < w.y + w.h + .35);
       };
       if (canOccupy(g.player.x + dx, g.player.y)) g.player.x += dx;
       if (canOccupy(g.player.x, g.player.y + dy)) g.player.y += dy;
       const seconds = now / 1000;
-      const npcPositions = NPCS.map((npc) => ({
+      const npcPositions = STATION_NPCS.map((npc) => ({
         ...npc,
         position: {
           x: npc.x + (reducedRef.current ? 0 : Math.sin(seconds * .48 + npc.phase) * npc.patrol),
           y: npc.y + (reducedRef.current ? 0 : Math.cos(seconds * .33 + npc.phase) * .16),
         },
       }));
+      const liveMapState = stationMapLiveStateRef.current;
+      liveMapState.player.x = g.player.x;
+      liveMapState.player.y = g.player.y;
+      npcPositions.forEach((npc, index) => {
+        liveMapState.npcs[index].x = npc.position.x;
+        liveMapState.npcs[index].y = npc.position.y;
+      });
       const activeMission = g.progress.activeMission;
       const active: Interaction[] = [
-        { id: "terminal", label: "Shift terminal", kind: "terminal", x: 0, y: -1.6 },
-        { id: "cabin", label: "Cabin upgrade terminal", kind: "cabin", x: -3.1, y: -2.7 },
-        { id: "canteen", label: "Canteen counter", kind: "canteen", x: -8.1, y: .3 },
-        { id: "operations", label: "Operations deck", kind: "operations", x: 11.5, y: -3.0 },
-        { id: "lift", label: "Command lift", kind: "lift", x: 7.25, y: 9.8 },
+        ...STATION_INTERACTABLES.map((location) => ({
+          id: location.id,
+          label: location.label,
+          kind: location.kind,
+          x: location.x,
+          y: location.y,
+        })),
         ...npcPositions.map((npc) => ({ id: npc.id, label: npc.name, kind: "npc" as const, x: npc.position.x, y: npc.position.y })),
         ...(activeMission?.type === "supply"
-          ? ITEMS.filter((item) => !activeMission.objectives.includes(item.id)).map((item) => ({ id: item.id, label: item.name, kind: "item" as const, x: item.x, y: item.y }))
+          ? STATION_ITEMS.filter((item) => !activeMission.objectives.includes(item.id)).map((item) => ({ id: item.id, label: item.name, kind: "item" as const, x: item.x, y: item.y }))
           : []),
         ...(activeMission?.type === "repair" && !activeMission.objectives.includes("relay-repaired")
-          ? [{ id: "relay", label: "Maintenance relay", kind: "repair" as const, x: 1.9, y: 10.6 }]
+          ? [{ id: STATION_REPAIR_RELAY.id, label: STATION_REPAIR_RELAY.label, kind: "repair" as const, x: STATION_REPAIR_RELAY.x, y: STATION_REPAIR_RELAY.y }]
           : []),
         ...(activeMission?.type === "delivery" && !activeMission.objectives.includes("dispatch-picked")
-          ? [{ id: "dispatch-packet", label: "Dispatch packet", kind: "dispatch" as const, x: 7.6, y: -3.0 }]
+          ? [{ id: STATION_DISPATCH_PACKET.id, label: STATION_DISPATCH_PACKET.label, kind: "dispatch" as const, x: STATION_DISPATCH_PACKET.x, y: STATION_DISPATCH_PACKET.y }]
           : []),
       ];
       const nearest = active.map((target) => ({ target, d: distance(g.player, target) })).filter((v) => v.d < 1.35).sort((a, b) => a.d - b.d)[0];
@@ -394,21 +404,38 @@ export function GodforsakenParadiseGame() {
       const radial = ctx.createRadialGradient(width * .53, height * .43, 10, width * .53, height * .43, width * .75);
       radial.addColorStop(0, "rgba(58,75,72,.24)"); radial.addColorStop(1, "rgba(5,9,12,.45)");
       ctx.fillStyle = radial; ctx.fillRect(0, 0, width, height);
-      const groundA = project(-14, -13), groundB = project(14, -13), groundC = project(14, 14), groundD = project(-14, 14);
+      const groundA = project(STATION_BOUNDS.minX, STATION_BOUNDS.minY);
+      const groundB = project(STATION_BOUNDS.maxX, STATION_BOUNDS.minY);
+      const groundC = project(STATION_BOUNDS.maxX, STATION_BOUNDS.maxY);
+      const groundD = project(STATION_BOUNDS.minX, STATION_BOUNDS.maxY);
       poly([groundA, groundB, groundC, groundD], "#202a2b", "rgba(207,170,117,.25)");
       const floorZone = (x1: number, y1: number, x2: number, y2: number, color: string) => {
         poly([project(x1,y1),project(x2,y1),project(x2,y2),project(x1,y2)],color);
       };
-      floorZone(-13, -4, -6, 6, "rgba(172,119,73,.09)");
-      floorZone(6, -7, 13, 5, "rgba(91,147,155,.09)");
-      floorZone(-4, 7, 6, 14, "rgba(119,151,97,.09)");
-      floorZone(7, 6, 13, 14, "rgba(176,86,78,.08)");
+      ctx.globalAlpha = .13;
+      STATION_ROOMS.forEach((room) => floorZone(room.x, room.y, room.x + room.width, room.y + room.height, room.color));
+      ctx.globalAlpha = 1;
       ctx.strokeStyle = "rgba(193,169,128,.11)"; ctx.lineWidth = 1;
-      for (let i = -14; i <= 14; i += 1) {
-        const a = project(i, -13), b = project(i, 14), c = project(-14, i), d = project(14, i);
+      for (let i = STATION_BOUNDS.minX; i <= STATION_BOUNDS.maxX; i += 1) {
+        const a = project(i, STATION_BOUNDS.minY), b = project(i, STATION_BOUNDS.maxY);
         ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+      }
+      for (let i = STATION_BOUNDS.minY; i <= STATION_BOUNDS.maxY; i += 1) {
+        const c = project(STATION_BOUNDS.minX, i), d = project(STATION_BOUNDS.maxX, i);
         ctx.beginPath(); ctx.moveTo(c.x, c.y); ctx.lineTo(d.x, d.y); ctx.stroke();
       }
+
+      ctx.strokeStyle = "rgba(197,207,185,.28)";
+      ctx.lineWidth = 2;
+      ctx.setLineDash([4, 7]);
+      STATION_PATHS.forEach((path) => {
+        const [start, ...rest] = path.points.map((point) => project(point.x, point.y));
+        ctx.beginPath();
+        ctx.moveTo(start.x, start.y);
+        rest.forEach((point) => ctx.lineTo(point.x, point.y));
+        ctx.stroke();
+      });
+      ctx.setLineDash([]);
       const drawStructure = (x: number, y: number, w: number, h: number, label: string, color: string, tall = 1) => {
         const base = [project(x,y), project(x+w,y), project(x+w,y+h), project(x,y+h)];
         const lift = tall * scale * .75;
@@ -421,36 +448,51 @@ export function GodforsakenParadiseGame() {
           ctx.fillText(label, center.x, center.y-lift*.56);
         }
       };
-      WALLS.forEach((wall, index) => drawStructure(wall.x, wall.y, wall.w, wall.h, wall.label, index === 0 ? "#34464a" : index >= 7 ? "#304044" : "#2e3c40", index === 0 ? 1.4 : index >= 7 ? 1.2 : .8));
-      ROOM_LABELS.forEach((room) => {
-        const p = project(room.x, room.y);
+      STATION_WALLS.forEach((wall, index) => drawStructure(wall.x, wall.y, wall.w, wall.h, wall.label, index === 0 ? "#34464a" : index >= 7 ? "#304044" : "#2e3c40", index === 0 ? 1.4 : index >= 7 ? 1.2 : .8));
+      STATION_ROOMS.forEach((room) => {
+        const p = project(room.labelX, room.labelY);
         ctx.fillStyle = room.color;
         ctx.font = "bold 9px ui-monospace, monospace";
         ctx.textAlign = "center";
         ctx.fillText(room.name, p.x, p.y);
       });
+      const exit = project(STATION_EXIT.x, STATION_EXIT.y);
+      ctx.strokeStyle = "rgba(197,168,244,.88)";
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(exit.x, exit.y, 15, 0, Math.PI * 2); ctx.stroke();
+      ctx.strokeStyle = "rgba(197,168,244,.42)";
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(exit.x - 10, exit.y); ctx.lineTo(exit.x + 10, exit.y); ctx.stroke();
+      ctx.fillStyle = "#e5d5ff"; ctx.font = "bold 8px ui-monospace, monospace"; ctx.textAlign = "center";
+      ctx.fillText("VANTA EXIT", exit.x, exit.y - 20);
       // Cabin signal window and terminal console
       const cabinWindow = project(-3.4, -4.55);
       ctx.fillStyle = "rgba(229,168,93,.72)"; ctx.fillRect(cabinWindow.x-8, cabinWindow.y-12, 16, 7);
-      const term = project(0, -1.6);
+      const terminalLocation = STATION_INTERACTABLES.find((location) => location.id === "terminal")!;
+      const term = project(terminalLocation.x, terminalLocation.y);
       ctx.fillStyle = "#182326"; ctx.fillRect(term.x-15, term.y-19, 30, 23);
       ctx.fillStyle = "#e1a965"; ctx.fillRect(term.x-10, term.y-15, 20, 8);
       ctx.fillStyle = "rgba(229,168,93,.25)"; ctx.fillRect(term.x-20, term.y+3, 40, 3);
-      const relay = project(1.5, 10.6);
+      const cabinTerminalLocation = STATION_INTERACTABLES.find((location) => location.id === "cabin")!;
+      const cabinTerminal = project(cabinTerminalLocation.x, cabinTerminalLocation.y);
+      ctx.fillStyle = "#1a2424"; ctx.fillRect(cabinTerminal.x - 8, cabinTerminal.y - 11, 16, 12);
+      ctx.fillStyle = "#b8c88b"; ctx.fillRect(cabinTerminal.x - 5, cabinTerminal.y - 8, 10, 4);
+      const relay = project(STATION_REPAIR_RELAY.x, STATION_REPAIR_RELAY.y);
       ctx.fillStyle = "#192522"; ctx.fillRect(relay.x - 13, relay.y - 18, 26, 22);
       ctx.fillStyle = activeMission?.type === "repair" && activeMission.objectives.includes("relay-repaired") ? "#9bd58e" : "#8db6a5";
       ctx.fillRect(relay.x - 7, relay.y - 14, 14, 6);
       ctx.fillStyle = "#df9a56"; ctx.fillRect(relay.x - 3, relay.y - 4, 6, 3);
-      const dispatch = project(7.6, -3);
+      const dispatch = project(STATION_DISPATCH_PACKET.x, STATION_DISPATCH_PACKET.y);
       ctx.fillStyle = "#132026"; ctx.fillRect(dispatch.x - 10, dispatch.y - 12, 20, 14);
       ctx.fillStyle = "#dfb371"; ctx.fillRect(dispatch.x - 5, dispatch.y - 9, 10, 6);
-      const lift = project(10.2, 7.2);
+      const liftLocation = STATION_INTERACTABLES.find((location) => location.id === "lift")!;
+      const lift = project(liftLocation.x, liftLocation.y);
       ctx.strokeStyle = "rgba(224,113,99,.86)"; ctx.lineWidth = 2;
       ctx.strokeRect(lift.x - 16, lift.y - 20, 32, 25);
       ctx.fillStyle = "#dc7b70"; ctx.font = "bold 10px ui-monospace, monospace"; ctx.textAlign = "center";
       ctx.fillText("LOCKED", lift.x, lift.y - 6);
       // Supply objects remain visible; mission progress controls their active glow.
-      ITEMS.forEach((item, index) => {
+      STATION_ITEMS.forEach((item, index) => {
         const collected = activeMission?.type === "supply" && activeMission.objectives.includes(item.id);
         if (collected) return;
         const p = project(item.x, item.y);
@@ -495,8 +537,8 @@ export function GodforsakenParadiseGame() {
 
   const restartShift = () => {
     heldRef.current.clear();
-    gameRef.current.player = { x: 0, y: 0 };
-    gameRef.current.camera = { x: 0, y: 0 };
+    gameRef.current.player = { ...STATION_SPAWN };
+    gameRef.current.camera = { ...STATION_SPAWN };
     gameRef.current.nearby = null;
     gameRef.current.dialogue = null;
     setMissionMenuOpen(false);
@@ -516,8 +558,8 @@ export function GodforsakenParadiseGame() {
     clearProgress();
     const fresh = createInitialProgress();
     gameRef.current = {
-      player: { x: 0, y: 0 },
-      camera: { x: 0, y: 0 },
+      player: { ...STATION_SPAWN },
+      camera: { ...STATION_SPAWN },
       progress: fresh,
       nearby: null,
       dialogue: null,
@@ -584,6 +626,10 @@ export function GodforsakenParadiseGame() {
     ? `${MISSION_NAMES[activeMission.type]} · ${activeMission.id.toUpperCase()}`
     : view.progress.firstShiftEndingUnlocked ? "SHIFT ORDER RECEIVED" : "SHIFT NOTE";
   const isOwned = (upgrade: UpgradeId) => view.progress.upgrades.includes(upgrade);
+  const minimapHidden = Boolean(
+    view.dialogue || arrivalOpen || missionMenuOpen || upgradeMenuOpen || confirmFullReset ||
+    (!view.progress.firstShiftEndingSeen && view.progress.firstShiftEndingUnlocked),
+  );
 
   return (
     <section className="gp-game" aria-label="GODFORSAKEN PARADISE: The Brizz General’s Station">
@@ -607,12 +653,17 @@ export function GodforsakenParadiseGame() {
           aria-label={`Isometric station deck. Player position ${view.player.x.toFixed(1)}, ${view.player.y.toFixed(1)}. ${objective} ${prompt}.`}
           role="img"
         />
+        <StationMinimap
+          liveStateRef={stationMapLiveStateRef}
+          activeMission={activeMission}
+          hidden={minimapHidden}
+        />
         <div className="gp-overlays">
           <div className="gp-objective" aria-label="Current assignment">
             <div className="gp-objective-label">{objectiveLabel}</div>
             <div className="gp-objective-copy">{objective}</div>
             {activeMission?.type === "supply" && <div className="gp-collect-row" aria-label="Supply collection status">
-              {ITEMS.map((item) => <span key={item.id} className={`gp-item-chip ${activeMission.objectives.includes(item.id) ? "collected" : ""}`}>{activeMission.objectives.includes(item.id) ? "SECURED" : "PENDING"} · {item.name}</span>)}
+              {STATION_ITEMS.map((item) => <span key={item.id} className={`gp-item-chip ${activeMission.objectives.includes(item.id) ? "collected" : ""}`}>{activeMission.objectives.includes(item.id) ? "SECURED" : "PENDING"} · {item.name}</span>)}
             </div>}
             {view.progress.upgrades.length > 0 && <div className="gp-upgrade-strip">CABIN · {view.progress.upgrades.map((item) => item === "tool-rack" ? "TOOL RACK" : "SIGNAL RECEIVER").join(" / ")}</div>}
           </div>

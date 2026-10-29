@@ -57,6 +57,8 @@
 .vdm-header-meta { display: flex; align-items: center; gap: 24px; color: #716b7a; font-size: 9px; letter-spacing: .12em; }
 .vdm-live { display: flex; align-items: center; gap: 8px; color: #b7a9c3; }
 .vdm-live i { width: 6px; height: 6px; border-radius: 50%; background: #9bd79f; box-shadow: 0 0 7px rgba(155,215,159,.55); }
+.vdm-live--paused { color: #f2c98d; }
+.vdm-live--paused i { background: #e6b36d; box-shadow: 0 0 7px rgba(230,179,109,.55); }
 .vdm-close {
   appearance: none; border: 1px solid var(--vdm-line); background: transparent;
   width: 34px; height: 34px; color: #aaa0b3; font: 24px/1 sans-serif; cursor: pointer;
@@ -130,10 +132,15 @@
 .vdm-marker.is-selected .vdm-marker-node { background: color-mix(in srgb, var(--marker-color) 20%, #100c17); box-shadow: 0 0 0 5px rgba(9,7,14,.8), 0 0 25px color-mix(in srgb, var(--marker-color) 55%, transparent); }
 .vdm-marker:focus-visible { outline: 2px solid #f0d8ff; outline-offset: 6px; border-radius: 2px; }
 .vdm-marker.is-locked .vdm-marker-label { color: #b7a8b1; }
+.vdm-marker.is-current-destination .vdm-marker-label { border-color: rgba(240,187,120,.75); color: #ffe0ae; }
+.vdm-marker.is-current-destination .vdm-marker-node { box-shadow: 0 0 0 5px rgba(9,7,14,.8), 0 0 22px color-mix(in srgb, var(--marker-color) 54%, transparent); }
 
 .vdm-player { position: absolute; z-index: 2; width: 12px; height: 12px; transform: translate(-50%, -50%); border: 2px solid #d9c7ff; background: #9f72d8; border-radius: 50%; box-shadow: 0 0 0 6px rgba(172,127,255,.12), 0 0 16px rgba(190,150,255,.65); }
 .vdm-player span { position: absolute; left: 50%; top: 50%; width: 34px; height: 34px; border: 1px solid rgba(197,168,255,.35); border-radius: 50%; transform: translate(-50%,-50%); }
 .vdm-player b { position: absolute; top: 15px; left: 50%; color: #cbb4ed; font-size: 7px; letter-spacing: .12em; transform: translateX(-50%); }
+.vdm-player--destination { border-color: #f0bb78; background: #d79c57; box-shadow: 0 0 0 7px rgba(240,187,120,.14), 0 0 20px rgba(240,187,120,.74); }
+.vdm-player--destination span { border-color: rgba(240,187,120,.48); }
+.vdm-player--destination b { color: #f3d1a4; white-space: nowrap; }
 
 .vdm-map-stamp { position: absolute; z-index: 2; top: 17px; left: 20px; display: flex; gap: 8px; align-items: center; color: #9785a5; font-size: 8px; letter-spacing: .14em; pointer-events: none; }
 .vdm-map-stamp span { color: #d1b5f2; font-size: 13px; font-weight: 700; }
