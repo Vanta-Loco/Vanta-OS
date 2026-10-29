@@ -17,6 +17,7 @@ import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 // @ts-ignore
 import { VignetteShader } from "three/examples/jsm/shaders/VignetteShader.js";
 import { VaultRadio } from "@/components/vault-radio";
+import { DistrictChat, type DistrictChatHandle } from "@/components/district-chat/DistrictChat";
 import { DistrictMinimap } from "@/components/vanta-district-map/DistrictMinimap";
 import { DistrictMapView } from "@/components/vanta-district-map/DistrictMapView";
 import { VantaBedroomScene } from "@/components/vanta-bedroom";
@@ -64,6 +65,15 @@ interface ChunkData    { key: string; cx: number; cz: number; objects: THREE.Obj
 interface LandmarkDef  { id: string; name: string; x: number; z: number; h: number; color: number; cap: number; route: string | null; msg: string | null }
 interface BuildingType { color: number; roofColor: number; minH: number; maxH: number; minW: number; maxW: number; minD: number; maxD: number }
 interface NearState    { lm: LandmarkDef | null; canEnter: boolean }
+interface DistrictJoystickInput { x: number; y: number; magnitude: number }
+const NEUTRAL_JOYSTICK: DistrictJoystickInput = { x: 0, y: 0, magnitude: 0 };
+
+function isSmallTouchPortrait(): boolean {
+  if (typeof window === "undefined") return false;
+  const touchCapable = window.matchMedia("(pointer: coarse)").matches || navigator.maxTouchPoints > 0;
+  const smallestDimension = Math.min(window.innerWidth, window.innerHeight);
+  return touchCapable && smallestDimension <= 520 && window.innerHeight > window.innerWidth;
+}
 
 // ─── Landmarks (fixed world positions) ────────────────────────────────────────
 const LANDMARKS: LandmarkDef[] = [

@@ -1,83 +1,342 @@
-.vanta-city-touch-controls {
-  display: none;
+.vanta-world-surface {
   position: fixed;
-  top: 50%;
-  right: 12px;
-  z-index: 9;
-  transform: translateY(-50%);
-  grid-template: 44px 44px 44px / 44px 44px 44px;
-  gap: 4px;
-  padding: 7px;
-  border: 1px solid rgba(168, 85, 247, .44);
-  border-radius: 5px;
-  background: rgba(8, 6, 14, .78);
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  background: #060412;
+  overscroll-behavior: none;
   touch-action: none;
   user-select: none;
+  -webkit-user-select: none;
 }
-.vanta-city-touch-controls span {
-  grid-area: 1 / 1 / 1 / 4;
-  align-self: center;
-  color: #c6acd9;
-  font: 7px ui-monospace, monospace;
-  letter-spacing: .12em;
-  text-align: center;
-}
-.vanta-city-touch-controls button {
-  min-width: 44px;
-  min-height: 44px;
-  border: 1px solid rgba(168, 85, 247, .5);
-  border-radius: 4px;
-  background: rgba(36, 23, 49, .84);
-  color: #e5caff;
-  font: 16px ui-monospace, monospace;
+
+.vanta-world-surface canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
   touch-action: none;
-  user-select: none;
 }
-.vanta-city-touch-controls button:active { background: rgba(119, 64, 154, .72); }
-.vanta-city-touch-controls button:focus-visible { outline: 2px solid #e4c7ff; outline-offset: 2px; }
-.vanta-city-touch-controls button:nth-of-type(1) { grid-area: 2 / 2; }
-.vanta-city-touch-controls button:nth-of-type(2) { grid-area: 3 / 1; }
-.vanta-city-touch-controls button:nth-of-type(3) { grid-area: 3 / 2; }
-.vanta-city-touch-controls button:nth-of-type(4) { grid-area: 3 / 3; }
+
+.vanta-city-chat-input,
+.vanta-city-chat-input * {
+  touch-action: auto;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.vanta-city-top-controls {
+  position: fixed;
+  z-index: 20;
+  top: max(12px, env(safe-area-inset-top, 0px));
+  right: max(12px, env(safe-area-inset-right, 0px));
+  display: flex;
+  gap: 7px;
+}
+
+.vanta-city-top-controls button,
+.vanta-city-context-action {
+  min-height: 42px;
+  border: 1px solid rgba(181, 129, 213, .57);
+  border-radius: 3px;
+  background: rgba(8, 6, 14, .92);
+  color: #e5d2f3;
+  font: 9px ui-monospace, monospace;
+  letter-spacing: .1em;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.vanta-city-top-controls button {
+  min-width: 52px;
+  padding: 0 12px;
+}
+
+.vanta-city-top-controls button:hover,
+.vanta-city-context-action:hover:not(:disabled) {
+  border-color: #e4c7ff;
+  background: rgba(69, 43, 87, .85);
+}
+
+.vanta-city-top-controls button:focus-visible,
+.vanta-city-context-action:focus-visible {
+  outline: 2px solid #f0d9ff;
+  outline-offset: 3px;
+}
+
+.vanta-city-context-action {
+  position: fixed;
+  z-index: 22;
+  right: max(14px, env(safe-area-inset-right, 0px));
+  bottom: calc(max(12px, env(safe-area-inset-bottom, 0px)) + 58px);
+  max-width: min(220px, calc(100vw - 32px));
+  padding: 0 14px;
+}
+
+.vanta-city-context-action:disabled {
+  border-style: dashed;
+  color: #9b879f;
+  cursor: not-allowed;
+}
 
 .vanta-city-objective {
   position: fixed;
-  top: 122px;
-  left: 16px;
-  z-index: 999;
+  top: calc(max(12px, env(safe-area-inset-top, 0px)) + 62px);
+  left: max(14px, env(safe-area-inset-left, 0px));
+  z-index: 18;
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 3px 9px;
   min-width: 210px;
   max-width: min(280px, calc(100vw - 32px));
   padding: 8px 10px;
-  color: #e7d8f2;
   border: 1px solid rgba(184, 133, 222, .45);
   background: rgba(8, 6, 14, .9);
+  color: #e7d8f2;
   font-family: ui-monospace, monospace;
   text-align: left;
   cursor: pointer;
+  touch-action: manipulation;
 }
+
 .vanta-city-objective span { color: #bd97d5; font-size: 7px; letter-spacing: .12em; }
 .vanta-city-objective strong { color: #f1e4fa; font-size: 9px; letter-spacing: .07em; }
 .vanta-city-objective small { grid-column: 1 / -1; color: #d2b3ee; font-size: 8px; letter-spacing: .08em; }
 .vanta-city-objective:hover { border-color: #c99cf0; background: rgba(23, 15, 31, .96); }
 .vanta-city-objective:focus-visible { outline: 2px solid #eed8ff; outline-offset: 3px; }
-.vanta-city-arrival.is-portal { display: grid; gap: 9px; width: min(350px, calc(100vw - 32px)); text-align: center; line-height: 1.5; }
+
+.vanta-city-arrival.is-portal {
+  position: fixed;
+  bottom: 28%;
+  left: 50%;
+  z-index: 21;
+  display: grid;
+  gap: 9px;
+  width: min(350px, calc(100vw - 32px));
+  padding: 10px 16px;
+  transform: translateX(-50%);
+  border: 1px solid rgba(204, 165, 237, .7);
+  border-radius: 4px;
+  background: rgba(5, 3, 12, .94);
+  color: #ead7ff;
+  font: 9px/1.5 ui-monospace, monospace;
+  letter-spacing: .08em;
+  text-align: center;
+  pointer-events: auto;
+}
+
 .vanta-city-arrival.is-portal strong { color: #ead7ff; font-size: 10px; }
-.vanta-city-arrival.is-portal button { min-height: 38px; color: #f1e4fa; border: 1px solid rgba(204, 165, 237, .7); background: rgba(94, 53, 124, .32); font: 8px ui-monospace, monospace; letter-spacing: .08em; cursor: pointer; }
+.vanta-city-arrival.is-portal button {
+  min-height: 38px;
+  border: 1px solid rgba(204, 165, 237, .7);
+  background: rgba(94, 53, 124, .32);
+  color: #f1e4fa;
+  font: 8px ui-monospace, monospace;
+  letter-spacing: .08em;
+  cursor: pointer;
+  touch-action: manipulation;
+}
 .vanta-city-arrival.is-portal button:hover { background: rgba(120, 68, 154, .55); }
 .vanta-city-arrival.is-portal button:focus-visible { outline: 2px solid #f0d9ff; outline-offset: 3px; }
 
+.vanta-city-joystick {
+  display: none;
+  position: fixed;
+  z-index: 19;
+  left: max(14px, env(safe-area-inset-left, 0px));
+  bottom: max(12px, env(safe-area-inset-bottom, 0px));
+  width: 132px;
+  height: 132px;
+  padding: 0;
+  border: 1px solid rgba(196, 151, 226, .64);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(46, 33, 57, .82) 0 31%, rgba(16, 12, 23, .82) 32% 100%);
+  box-shadow: inset 0 0 26px rgba(172, 119, 210, .1), 0 0 20px rgba(0, 0, 0, .25);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: grab;
+}
+
+.vanta-city-joystick::before,
+.vanta-city-joystick::after {
+  position: absolute;
+  content: "";
+  pointer-events: none;
+}
+
+.vanta-city-joystick::before {
+  inset: 13px;
+  border: 1px dashed rgba(196, 151, 226, .28);
+  border-radius: 50%;
+}
+
+.vanta-city-joystick::after {
+  top: 50%;
+  left: 50%;
+  width: 1px;
+  height: 66%;
+  transform: translate(-50%, -50%);
+  background: rgba(196, 151, 226, .14);
+  box-shadow: 0 0 0 1px transparent;
+}
+
+.vanta-city-joystick:focus-visible {
+  outline: 2px solid #f0d9ff;
+  outline-offset: 4px;
+}
+
+.vanta-city-joystick.is-active { cursor: grabbing; border-color: #e0c0f5; }
+
+.vanta-city-joystick__thumb {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 1;
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  transform: translate(calc(-50% + var(--stick-x, 0px)), calc(-50% + var(--stick-y, 0px)));
+  border: 1px solid rgba(226, 196, 245, .86);
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 28%, rgba(113, 77, 138, .95), rgba(35, 24, 45, .98));
+  box-shadow: 0 0 12px rgba(189, 135, 224, .2);
+  color: #f1e4fa;
+  font: 12px ui-monospace, monospace;
+  pointer-events: none;
+}
+
+.vanta-city-joystick__hint {
+  position: absolute;
+  right: 0;
+  bottom: -18px;
+  left: 0;
+  color: rgba(230, 207, 244, .76);
+  font: 6px ui-monospace, monospace;
+  letter-spacing: .12em;
+  text-align: center;
+  pointer-events: none;
+}
+
+.vanta-city-rotate-overlay {
+  position: fixed;
+  z-index: 2000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding:
+    max(24px, env(safe-area-inset-top, 0px))
+    max(24px, env(safe-area-inset-right, 0px))
+    max(24px, env(safe-area-inset-bottom, 0px))
+    max(24px, env(safe-area-inset-left, 0px));
+  background:
+    radial-gradient(ellipse at 50% 44%, rgba(76, 47, 93, .42), transparent 58%),
+    rgba(6, 4, 13, .98);
+  color: #f0e4f5;
+  font-family: ui-monospace, monospace;
+  text-align: center;
+  overscroll-behavior: none;
+  touch-action: none;
+}
+
+.vanta-city-rotate-card {
+  width: min(360px, 100%);
+  padding: 26px 24px;
+  border: 1px solid rgba(196, 151, 226, .56);
+  background: rgba(12, 9, 18, .94);
+  box-shadow: 0 0 60px rgba(100, 62, 129, .15);
+}
+
+.vanta-city-rotate-mark {
+  width: 82px;
+  height: 48px;
+  margin: 0 auto 20px;
+  border: 2px solid #c797e6;
+  border-radius: 6px;
+  color: #e7caf8;
+  font-size: 22px;
+  line-height: 44px;
+}
+
+.vanta-city-rotate-card span {
+  display: block;
+  margin-bottom: 10px;
+  color: #ba8dd5;
+  font-size: 8px;
+  letter-spacing: .2em;
+}
+
+.vanta-city-rotate-card h1 {
+  margin: 0 0 10px;
+  font-size: clamp(16px, 5vw, 20px);
+  font-weight: 400;
+  letter-spacing: .09em;
+}
+
+.vanta-city-rotate-card p {
+  margin: 0;
+  color: #a79aae;
+  font-size: 10px;
+  line-height: 1.7;
+}
+
 @media (max-width: 760px), (pointer: coarse) {
-  .vanta-city-touch-controls { display: grid; }
+  .vanta-city-joystick { display: block; }
 }
 
 @media (max-width: 500px) {
-  .vanta-city-objective { top: 126px; left: 10px; min-width: 190px; max-width: calc(100vw - 20px); }
-  .vanta-city-arrival.is-portal { bottom: 31% !important; }
+  .vanta-city-objective { top: calc(max(10px, env(safe-area-inset-top, 0px)) + 62px); left: max(10px, env(safe-area-inset-left, 0px)); min-width: 190px; max-width: calc(100vw - 20px); }
+  .vanta-city-arrival.is-portal { bottom: calc(31% + env(safe-area-inset-bottom, 0px)); }
 }
 
+@media (orientation: landscape) and (pointer: coarse) and (max-height: 560px) {
+  .vanta-city-joystick {
+    width: 122px;
+    height: 122px;
+    left: max(14px, env(safe-area-inset-left, 0px));
+    bottom: max(12px, env(safe-area-inset-bottom, 0px));
+  }
+
+  .vanta-city-objective {
+    top: calc(max(10px, env(safe-area-inset-top, 0px)) + 47px);
+    left: 50%;
+    width: min(235px, calc(100vw - 270px));
+    min-width: 0;
+    max-width: 235px;
+    padding: 6px 8px;
+    transform: translateX(-50%);
+  }
+
+  .vanta-city-objective span { font-size: 6px; }
+  .vanta-city-objective strong { font-size: 8px; }
+  .vanta-city-objective small { font-size: 7px; }
+  .vanta-city-context-action { right: max(14px, env(safe-area-inset-right, 0px)); bottom: calc(max(12px, env(safe-area-inset-bottom, 0px)) + 58px); max-width: 188px; min-height: 38px; font-size: 7px; }
+  .vanta-city-arrival.is-portal { bottom: calc(23% + env(safe-area-inset-bottom, 0px)); width: min(310px, calc(100vw - 300px)); padding: 7px 10px; font-size: 8px; }
+  .vanta-city-arrival.is-portal button { min-height: 34px; font-size: 7px; }
+}
+
+@media (orientation: landscape) and (pointer: coarse) and (max-height: 560px) and (max-width: 780px) {
+  .vanta-city-hud__hints { display: none; }
+  .vanta-city-hud { top: max(9px, env(safe-area-inset-top, 0px)) !important; left: max(10px, env(safe-area-inset-left, 0px)) !important; }
+  .vanta-city-top-controls { top: max(9px, env(safe-area-inset-top, 0px)); right: max(10px, env(safe-area-inset-right, 0px)); gap: 5px; }
+  .vanta-city-top-controls button { min-width: 46px; min-height: 38px; padding: 0 8px; font-size: 8px; }
+  .vanta-city-context-action { min-height: 36px; }
+}
+
+.vanta-world-surface :focus-visible { outline-offset: 3px; }
+
 @media (prefers-reduced-motion: reduce) {
-  .vanta-city-objective, .vanta-city-arrival button { transition-duration: .01ms !important; }
+  .vanta-world-surface *,
+  .vanta-world-surface *::before,
+  .vanta-world-surface *::after,
+  .vanta-city-rotate-overlay *,
+  .vanta-city-rotate-overlay *::before,
+  .vanta-city-rotate-overlay *::after {
+    scroll-behavior: auto !important;
+    transition-duration: .01ms !important;
+    animation-duration: .01ms !important;
+  }
 }

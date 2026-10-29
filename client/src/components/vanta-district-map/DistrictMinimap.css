@@ -147,6 +147,30 @@
   .vdm-minimap__legend { gap: 4px 7px; padding: 4px 6px; font-size: 5.5px; }
 }
 
+@media (orientation: landscape) and (pointer: coarse) and (max-height: 560px) {
+  .vdm-minimap {
+    top: calc(max(10px, env(safe-area-inset-top, 0px)) + 52px);
+    bottom: auto;
+    left: max(12px, env(safe-area-inset-left, 0px));
+    width: min(176px, 24vw);
+  }
+
+  .vdm-minimap__header { min-height: 28px; padding: 3px 5px; }
+  .vdm-minimap__header span:first-child { font-size: 5.5px; }
+  .vdm-minimap__header strong { font-size: 6px; }
+  .vdm-minimap__coords { font-size: 5.5px; }
+  .vdm-minimap__map { height: 102px; }
+  .vdm-minimap__legend { gap: 3px 5px; padding: 3px 5px; font-size: 5px; }
+  .vdm-minimap__route-status { font-size: 5.5px; }
+  .vdm-minimap__destination-note { min-height: 21px; font-size: 5px; }
+}
+
+@media (orientation: landscape) and (pointer: coarse) and (max-height: 390px) {
+  .vdm-minimap { width: min(160px, 23vw); }
+  .vdm-minimap__map { height: 88px; }
+  .vdm-minimap__legend { display: none; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .vdm-minimap *, .vdm-minimap *::before, .vdm-minimap *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
 }
