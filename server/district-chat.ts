@@ -17,6 +17,7 @@ const REPORTABLE_MESSAGE_LIMIT = 500;
 const BLOCKED_SENDER_LIMIT = 100;
 const PARTY_INVITE_TTL_MS = 5 * 60_000;
 const PARTY_MEMBER_LIMIT = 8;
+const PENDING_PARTY_NOTICE_LIMIT = 500;
 export const MAX_DISTRICT_CHAT_MESSAGE_LENGTH = 500;
 export const DISTRICT_CHAT_REPORT_CATEGORIES = ["harassment", "hate", "threats", "spam", "other"] as const;
 type DistrictChatReportCategory = typeof DISTRICT_CHAT_REPORT_CATEGORIES[number];
@@ -39,7 +40,7 @@ type ChatClientCommand = {
   recipient?: string;
 } | {
   type: "party";
-  action: "create" | "join" | "leave" | "invite";
+  action: "create" | "join" | "leave" | "invite" | "remove";
   invitationId?: string;
   recipient?: string;
 } | {
@@ -58,7 +59,7 @@ type ChatEvent =
   | { type: "block-state"; senders: string[] }
   | {
       type: "party-state";
-      party: { id: string; name: string; members: string[] } | null;
+      party: { id: string; name: string; leader: string; members: string[]; isLeader: boolean } | null;
       invitations: Array<{ id: string; partyName: string; inviter: string }>;
     }
   | { type: "system"; id: string; text: string; timestamp: string }
@@ -101,7 +102,7 @@ const commandSchema = z.object({
   recipient: z.string().max(32).optional(),
 }).strict().or(z.object({
   type: z.literal("party"),
-  action: z.enum(["create", "join", "leave", "invite"]),
+  action: z.enum(["create", "join", "leave", "invite", "remove"]),
   invitationId: z.string().uuid().optional(),
   recipient: z.string().max(32).optional(),
 }).strict()).or(z.object({
@@ -211,7 +212,7 @@ function parseCommand(raw: string): ChatClientCommand | null {
       return parsed.data.invitationId ? { ...parsed.data } : null;
     }
     if (parsed.data.invitationId !== undefined) return null;
-    if (parsed.data.action === "invite") {
+    if (parsed.data.action === "invite" || parsed.data.action === "remove") {
       const recipient = parsed.data.recipient?.trim().replace(/^@/, "");
       if (!recipient || recipient.length > 32 || /[\u0000-\u001F\u007F]/.test(recipient)) return null;
       return { ...parsed.data, recipient };
@@ -248,6 +249,7 @@ export class DistrictChatHub {
     inviterName: string;
     expiresAt: number;
   }>();
+  private pendingPartyRemovalNotices = new Map<string, string>();
   private blockedSenders = new Map<string, Map<string, string>>();
   private reportTimes = new Map<string, number[]>();
   private reportableMessages = new Map<string, ReportableMessage>();
@@ -304,6 +306,11 @@ export class DistrictChatHub {
       this.broadcastPartyState(Array.from(party.members));
     } else {
       this.sendPartyState(identityKey);
+    }
+    const pendingPartyNotice = this.pendingPartyRemovalNotices.get(identityKey);
+    if (pendingPartyNotice) {
+      this.system(connectionId, pendingPartyNotice);
+      this.pendingPartyRemovalNotices.delete(identityKey);
     }
     this.broadcastPresence();
     return connectionId;
@@ -606,6 +613,48 @@ export class DistrictChatHub {
       this.system(client.connectionId, `Party invitation sent to ${target.displayName}.`);
       return;
     }
+    if (command.action === "remove") {
+      if (!currentParty) return this.error(client.connectionId, "You are not currently in a party.");
+      if (currentParty.leaderIdentityKey !== client.identityKey) {
+        return this.error(client.connectionId, "Only the party leader can remove members.");
+      }
+      const targetName = normalizeName(command.recipient!);
+      const targets = Array.from(currentParty.members).filter((identityKey) =>
+        normalizeName(currentParty.memberNames.get(identityKey) ?? "") === targetName
+      );
+      if (targets.length === 0) return this.error(client.connectionId, "That player is not in your party.");
+      if (targets.length > 1) {
+        return this.error(client.connectionId, "More than one party member has that name. Use a unique player name.");
+      }
+      const targetIdentityKey = targets[0];
+      if (targetIdentityKey === client.identityKey) {
+        return this.error(client.connectionId, "You cannot remove yourself. Leave the party instead.");
+      }
+      const targetNameInParty = currentParty.memberNames.get(targetIdentityKey) ?? command.recipient!;
+      const partyName = currentParty.name;
+      const remainingMembers = Array.from(currentParty.members).filter((key) => key !== targetIdentityKey);
+      const affectedInvitees = this.removePartyIdentity(targetIdentityKey);
+      affectedInvitees.push(...this.removeInvitationsForIdentity(targetIdentityKey));
+      const removalNotice =
+        `You were removed from ${partyName} by ${client.displayName}. Party access has been revoked.`;
+      let deliveredNotice = false;
+      for (const connected of Array.from(this.clients.values())) {
+        if (connected.identityKey === targetIdentityKey) {
+          this.system(connected.connectionId, removalNotice);
+          deliveredNotice = true;
+        }
+      }
+      if (!deliveredNotice) {
+        this.pendingPartyRemovalNotices.set(targetIdentityKey, removalNotice);
+        if (this.pendingPartyRemovalNotices.size > PENDING_PARTY_NOTICE_LIMIT) {
+          const oldestIdentity = this.pendingPartyRemovalNotices.keys().next().value;
+          if (oldestIdentity) this.pendingPartyRemovalNotices.delete(oldestIdentity);
+        }
+      }
+      this.broadcastPartyState([...remainingMembers, targetIdentityKey, ...affectedInvitees]);
+      this.system(client.connectionId, `${targetNameInParty} was removed from the party.`);
+      return;
+    }
 
     if (currentParty) return this.error(client.connectionId, "Leave your current party before joining another.");
     const invitation = this.partyInvitations.get(command.invitationId!);
@@ -621,6 +670,7 @@ export class DistrictChatHub {
       return this.error(client.connectionId, party ? "That party is full." : "That party no longer exists.");
     }
     party.members.add(client.identityKey);
+    party.memberNames.set(client.identityKey, client.displayName);
     this.partyByIdentity.set(client.identityKey, party.id);
     const affectedInvitees = this.removeInvitationsForIdentity(client.identityKey);
     this.broadcastPartyState([...Array.from(party.members), ...affectedInvitees]);
@@ -685,7 +735,15 @@ export class DistrictChatHub {
       });
     const event: ChatEvent = {
       type: "party-state",
-      party: party ? { id: party.id, name: party.name, members } : null,
+      party: party
+        ? {
+            id: party.id,
+            name: party.name,
+            leader: party.memberNames.get(party.leaderIdentityKey) ?? "",
+            members,
+            isLeader: party.leaderIdentityKey === identityKey,
+          }
+        : null,
       invitations,
     };
     for (const connected of Array.from(this.clients.values())) {

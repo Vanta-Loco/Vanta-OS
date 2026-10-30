@@ -30,7 +30,7 @@ type ServerEvent =
   | { type: "block-state"; senders: string[] }
   | {
       type: "party-state";
-      party: { id: string; name: string; members: string[] } | null;
+      party: { id: string; name: string; leader: string; members: string[]; isLeader: boolean } | null;
       invitations: Array<{ id: string; partyName: string; inviter: string }>;
     }
   | { type: "system"; id: string; text: string; timestamp: string }
@@ -46,7 +46,7 @@ type ServerEvent =
     }
   | { type: "error"; text: string; cooldownMs?: number };
 
-type PartyAction = "create" | "join" | "leave" | "invite";
+type PartyAction = "create" | "join" | "leave" | "invite" | "remove";
 
 type TicketResponse = {
   ticket: string;
@@ -88,7 +88,12 @@ export const DistrictChat = forwardRef<DistrictChatHandle, DistrictChatProps>(
     const [mutedChannels, setMutedChannels] = useState<DistrictChatChannel[]>([]);
     const [blockedSenders, setBlockedSenders] = useState<string[]>([]);
     const [onlineNames, setOnlineNames] = useState<string[]>([]);
-    const [party, setParty] = useState<{ name: string; members: string[] } | null>(null);
+    const [party, setParty] = useState<{
+      name: string;
+      leader: string;
+      members: string[];
+      isLeader: boolean;
+    } | null>(null);
     const [partyInvitations, setPartyInvitations] = useState<Array<{ id: string; partyName: string; inviter: string }>>([]);
     const [connectionStatus, setConnectionStatus] = useState<DistrictChatConnectionStatus>("connecting");
     const [identityLabel, setIdentityLabel] = useState("District comms");
@@ -179,7 +184,14 @@ export const DistrictChat = forwardRef<DistrictChatHandle, DistrictChatProps>(
         } else if (event.type === "block-state") {
           setBlockedSenders(event.senders.filter((name) => typeof name === "string").slice(0, 100));
         } else if (event.type === "party-state") {
-          setParty(event.party ? { name: event.party.name, members: event.party.members } : null);
+          setParty(event.party
+            ? {
+                name: event.party.name,
+                leader: event.party.leader,
+                members: event.party.members,
+                isLeader: event.party.isLeader,
+              }
+            : null);
           setPartyInvitations(event.invitations);
           if (!event.party) setActiveChannel((current) => current === "party" ? "world" : current);
         } else if (event.type === "system") {
@@ -366,6 +378,7 @@ export const DistrictChat = forwardRef<DistrictChatHandle, DistrictChatProps>(
         onCreateParty={() => sendPartyAction("create")}
         onLeaveParty={() => sendPartyAction("leave")}
         onInviteToParty={(recipient) => sendPartyAction("invite", { recipient })}
+        onRemovePartyMember={(recipient) => sendPartyAction("remove", { recipient })}
         onAcceptPartyInvitation={(invitationId) => sendPartyAction("join", { invitationId })}
         open={open}
         onToggle={onToggle}

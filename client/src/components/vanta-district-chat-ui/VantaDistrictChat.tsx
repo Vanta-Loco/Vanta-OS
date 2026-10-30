@@ -24,7 +24,9 @@ export interface DistrictChatMessage {
 export type DistrictChatUnreadCounts = Partial<Record<DistrictChatChannel, number>>;
 export interface DistrictChatParty {
   name: string;
+  leader: string;
   members: string[];
+  isLeader: boolean;
 }
 export interface DistrictChatInvitation {
   id: string;
@@ -46,6 +48,7 @@ export interface VantaDistrictChatProps {
   onCreateParty?: () => void;
   onLeaveParty?: () => void;
   onInviteToParty?: (recipient: string) => void;
+  onRemovePartyMember?: (recipient: string) => void;
   onAcceptPartyInvitation?: (invitationId: string) => void;
   onToggle?: (open: boolean) => void;
   onSelectChannel: (channel: DistrictChatChannel) => void;
@@ -113,6 +116,7 @@ export function VantaDistrictChat({
   onCreateParty,
   onLeaveParty,
   onInviteToParty,
+  onRemovePartyMember,
   onAcceptPartyInvitation,
   onToggle,
   onSelectChannel,
@@ -314,8 +318,22 @@ export function VantaDistrictChat({
               <>
                 <div className="vdc-chat__party-status">
                   <strong>{party.name}</strong>
-                  <span>{party.members.length} / 8 members · {party.members.join(", ")}</span>
+                  <span>{party.members.length} / 8 members · Leader: {party.leader}</span>
                 </div>
+                <ul className="vdc-chat__party-members" aria-label="Party members">
+                  {party.members.map((member) => (
+                    <li key={member}>
+                      <span>{member}</span>
+                      {party.isLeader && member !== party.leader && (
+                        <button
+                          type="button"
+                          aria-label={`Remove ${member} from party`}
+                          onClick={() => onRemovePartyMember?.(member)}
+                        >REMOVE</button>
+                      )}
+                    </li>
+                  ))}
+                </ul>
                 <form
                   className="vdc-chat__party-invite"
                   onSubmit={(event) => {

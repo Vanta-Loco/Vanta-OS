@@ -230,6 +230,27 @@
   cursor: pointer;
 }
 .vdc-chat__party button:disabled { opacity: .45; cursor: not-allowed; }
+.vdc-chat__party-members {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.vdc-chat__party-members li {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 4px;
+  border: 1px solid rgba(223, 145, 189, .2);
+  color: #ded0df;
+}
+.vdc-chat__party-members button {
+  padding: 2px 3px;
+  font-size: 6px;
+}
 .vdc-chat__party-invite { display: flex; gap: 5px; }
 .vdc-chat__party-invite input {
   min-width: 0;
