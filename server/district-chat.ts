@@ -40,9 +40,10 @@ type ChatClientCommand = {
   recipient?: string;
 } | {
   type: "party";
-  action: "create" | "join" | "leave" | "invite" | "remove";
+  action: "create" | "join" | "leave" | "invite" | "remove" | "transfer-leadership";
   invitationId?: string;
   recipient?: string;
+  memberId?: string;
 } | {
   type: "block";
   sender: string;
@@ -59,7 +60,14 @@ type ChatEvent =
   | { type: "block-state"; senders: string[] }
   | {
       type: "party-state";
-      party: { id: string; name: string; leader: string; members: string[]; isLeader: boolean } | null;
+      party: {
+        id: string;
+        name: string;
+        leader: string;
+        leaderMemberId: string;
+        members: Array<{ id: string; name: string }>;
+        isLeader: boolean;
+      } | null;
       invitations: Array<{ id: string; partyName: string; inviter: string }>;
     }
   | { type: "system"; id: string; text: string; timestamp: string }
@@ -102,9 +110,10 @@ const commandSchema = z.object({
   recipient: z.string().max(32).optional(),
 }).strict().or(z.object({
   type: z.literal("party"),
-  action: z.enum(["create", "join", "leave", "invite", "remove"]),
+  action: z.enum(["create", "join", "leave", "invite", "remove", "transfer-leadership"]),
   invitationId: z.string().uuid().optional(),
   recipient: z.string().max(32).optional(),
+  memberId: z.string().uuid().optional(),
 }).strict()).or(z.object({
   type: z.literal("block"),
   sender: z.string().min(1).max(32),
@@ -239,6 +248,7 @@ export class DistrictChatHub {
     leaderIdentityKey: string;
     members: Set<string>;
     memberNames: Map<string, string>;
+    memberIds: Map<string, string>;
   }>();
   private partyByIdentity = new Map<string, string>();
   private partyInvitations = new Map<string, {
@@ -567,6 +577,7 @@ export class DistrictChatHub {
         leaderIdentityKey: client.identityKey,
         members: new Set([client.identityKey]),
         memberNames: new Map([[client.identityKey, client.displayName]]),
+        memberIds: new Map([[client.identityKey, randomUUID()]]),
       };
       this.parties.set(id, party);
       this.partyByIdentity.set(client.identityKey, id);
@@ -616,6 +627,23 @@ export class DistrictChatHub {
       this.schedulePartyInvitationExpiry(nextInvitation);
       this.sendPartyState(targetIdentityKey);
       this.system(client.connectionId, `Party invitation sent to ${target.displayName}.`);
+      return;
+    }
+    if (command.action === "transfer-leadership") {
+      if (!currentParty) return this.error(client.connectionId, "You are not currently in a party.");
+      if (currentParty.leaderIdentityKey !== client.identityKey) {
+        return this.error(client.connectionId, "Only the party leader can transfer leadership.");
+      }
+      const targetIdentityKey = Array.from(currentParty.memberIds.entries())
+        .find(([, memberId]) => memberId === command.memberId)?.[0];
+      if (!targetIdentityKey || !currentParty.members.has(targetIdentityKey)) {
+        return this.error(client.connectionId, "That player is no longer in your party.");
+      }
+      if (targetIdentityKey === client.identityKey) {
+        return this.error(client.connectionId, "You are already the party leader.");
+      }
+      currentParty.leaderIdentityKey = targetIdentityKey;
+      this.broadcastPartyState(Array.from(currentParty.members));
       return;
     }
     if (command.action === "remove") {
@@ -676,6 +704,7 @@ export class DistrictChatHub {
     }
     party.members.add(client.identityKey);
     party.memberNames.set(client.identityKey, client.displayName);
+    party.memberIds.set(client.identityKey, randomUUID());
     this.partyByIdentity.set(client.identityKey, party.id);
     const affectedInvitees = this.removeInvitationsForIdentity(client.identityKey);
     this.broadcastPartyState([...Array.from(party.members), ...affectedInvitees]);
@@ -688,6 +717,7 @@ export class DistrictChatHub {
     if (!party) return [];
     party.members.delete(identityKey);
     party.memberNames.delete(identityKey);
+    party.memberIds.delete(identityKey);
     if (party.leaderIdentityKey === identityKey) {
       party.leaderIdentityKey = party.members.values().next().value ?? "";
     }
@@ -757,7 +787,12 @@ export class DistrictChatHub {
   private sendPartyState(identityKey: string): void {
     const partyId = this.partyByIdentity.get(identityKey);
     const party = partyId ? this.parties.get(partyId) : undefined;
-    const members = party ? Array.from(party.memberNames.values()) : [];
+    const members = party
+      ? Array.from(party.members, (memberIdentityKey) => ({
+          id: party.memberIds.get(memberIdentityKey) ?? "",
+          name: party.memberNames.get(memberIdentityKey) ?? "",
+        }))
+      : [];
     const invitations = Array.from(this.partyInvitations.values())
       .filter((invitation) => invitation.targetIdentityKey === identityKey)
       .flatMap((invitation) => {
@@ -773,6 +808,7 @@ export class DistrictChatHub {
             id: party.id,
             name: party.name,
             leader: party.memberNames.get(party.leaderIdentityKey) ?? "",
+            leaderMemberId: party.memberIds.get(party.leaderIdentityKey) ?? "",
             members,
             isLeader: party.leaderIdentityKey === identityKey,
           }

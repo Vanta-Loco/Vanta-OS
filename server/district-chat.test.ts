@@ -287,7 +287,7 @@ test("party membership requires a targeted invitation and routes only to party m
   assert.match(String(eventList(leader, "error")[0]?.text), /not in a party/i);
   hub.receive(leaderId, JSON.stringify({ type: "party", action: "create" }));
   const leaderState = eventList(leader, "party-state").at(-1);
-  assert.equal((leaderState?.party as { members: string[] }).members[0], "Leader");
+  assert.equal((leaderState?.party as { members: Array<{ name: string }> }).members[0].name, "Leader");
 
   hub.receive(leaderId, JSON.stringify({ type: "party", action: "invite", recipient: "Invitee" }));
   const invitation = (eventList(invitee, "party-state").at(-1)?.invitations as Array<{ id: string }>)[0];
@@ -361,11 +361,11 @@ test("only the party leader can remove a member and the removed member loses par
   assert.equal(eventList(member, "party-state").at(-1)?.party, null);
   assert.match(String(eventList(member, "system").at(-1)?.text), /removed from .* party access has been revoked/i);
   assert.deepEqual(
-    (eventList(leader, "party-state").at(-1)?.party as { members: string[] }).members,
+    (eventList(leader, "party-state").at(-1)?.party as { members: Array<{ name: string }> }).members.map(({ name }) => name),
     ["Leader", "Staying"],
   );
   assert.deepEqual(
-    (eventList(remainingMember, "party-state").at(-1)?.party as { members: string[] }).members,
+    (eventList(remainingMember, "party-state").at(-1)?.party as { members: Array<{ name: string }> }).members.map(({ name }) => name),
     ["Leader", "Staying"],
   );
 
@@ -378,6 +378,97 @@ test("only the party leader can remove a member and the removed member loses par
   assert.equal(eventList(member, "message").length, 0);
   hub.receive(memberId, JSON.stringify({ type: "send", channel: "party", text: "still here?" }));
   assert.match(String(eventList(member, "error").at(-1)?.text), /not in a party/i);
+});
+
+test("party leaders can transfer leadership to a current member and all controls update", () => {
+  const hub = new DistrictChatHub(() => 3_750);
+  const leaderEvents: Event[] = [];
+  const successorEvents: Event[] = [];
+  const memberEvents: Event[] = [];
+  const outsiderEvents: Event[] = [];
+  const leaderId = hub.connect(
+    { kind: "member", userId: "transfer-leader", displayName: "Leader" },
+    peer(leaderEvents),
+  );
+  const successorId = hub.connect(
+    { kind: "member", userId: "transfer-successor", displayName: "Successor" },
+    peer(successorEvents),
+  );
+  const memberId = hub.connect(
+    { kind: "member", userId: "transfer-member", displayName: "Member" },
+    peer(memberEvents),
+  );
+  const outsiderId = hub.connect(
+    { kind: "member", userId: "transfer-outsider", displayName: "Outsider" },
+    peer(outsiderEvents),
+  );
+
+  hub.receive(leaderId, JSON.stringify({ type: "party", action: "create" }));
+  for (const [target, identity, name] of [
+    [successorId, successorEvents, "Successor"],
+    [memberId, memberEvents, "Member"],
+  ] as const) {
+    hub.receive(leaderId, JSON.stringify({ type: "party", action: "invite", recipient: name }));
+    const invitation = (eventList(identity, "party-state").at(-1)?.invitations as Array<{ id: string }>)[0];
+    hub.receive(target, JSON.stringify({ type: "party", action: "join", invitationId: invitation.id }));
+  }
+
+  const initialParty = eventList(leaderEvents, "party-state").at(-1)?.party as {
+    members: Array<{ id: string; name: string }>;
+    leaderMemberId: string;
+  };
+  const successorMemberId = initialParty.members.find(({ name }) => name === "Successor")?.id;
+  assert.ok(successorMemberId);
+
+  leaderEvents.length = 0;
+  successorEvents.length = 0;
+  memberEvents.length = 0;
+  outsiderEvents.length = 0;
+
+  hub.receive(successorId, JSON.stringify({
+    type: "party",
+    action: "transfer-leadership",
+    memberId: initialParty.members.find(({ name }) => name === "Member")?.id,
+  }));
+  assert.match(String(eventList(successorEvents, "error").at(-1)?.text), /only the party leader/i);
+
+  hub.receive(outsiderId, JSON.stringify({
+    type: "party",
+    action: "transfer-leadership",
+    memberId: successorMemberId,
+  }));
+  assert.match(String(eventList(outsiderEvents, "error").at(-1)?.text), /not currently in a party/i);
+
+  hub.receive(leaderId, JSON.stringify({
+    type: "party",
+    action: "transfer-leadership",
+    memberId: "00000000-0000-4000-8000-000000000000",
+  }));
+  assert.match(String(eventList(leaderEvents, "error").at(-1)?.text), /no longer in your party/i);
+
+  hub.receive(leaderId, JSON.stringify({
+    type: "party",
+    action: "transfer-leadership",
+    memberId: successorMemberId,
+  }));
+
+  for (const events of [leaderEvents, successorEvents, memberEvents]) {
+    const state = eventList(events, "party-state").at(-1)?.party as {
+      leader: string;
+      leaderMemberId: string;
+      isLeader: boolean;
+    };
+    assert.equal(state.leader, "Successor");
+    assert.equal(state.leaderMemberId, successorMemberId);
+  }
+  assert.equal((eventList(leaderEvents, "party-state").at(-1)?.party as { isLeader: boolean }).isLeader, false);
+  assert.equal((eventList(successorEvents, "party-state").at(-1)?.party as { isLeader: boolean }).isLeader, true);
+  assert.equal((eventList(memberEvents, "party-state").at(-1)?.party as { isLeader: boolean }).isLeader, false);
+
+  hub.receive(leaderId, JSON.stringify({ type: "party", action: "remove", recipient: "Member" }));
+  assert.match(String(eventList(leaderEvents, "error").at(-1)?.text), /only the party leader/i);
+  hub.receive(successorId, JSON.stringify({ type: "party", action: "remove", recipient: "Member" }));
+  assert.equal(eventList(memberEvents, "party-state").at(-1)?.party, null);
 });
 
 test("an offline removed member receives the removal explanation on reconnect", () => {
@@ -547,7 +638,10 @@ test("member party membership survives disconnects without delivering to offline
   const reconnectedEvents: Event[] = [];
   const reconnectedId = hub.connect(memberIdentity, peer(reconnectedEvents));
   const state = eventList(reconnectedEvents, "party-state").at(-1);
-  assert.equal((state?.party as { members: string[] }).members.includes("Member"), true);
+  assert.equal(
+    (state?.party as { members: Array<{ name: string }> }).members.some(({ name }) => name === "Member"),
+    true,
+  );
   leader.length = 0;
   reconnectedEvents.length = 0;
   hub.receive(leaderId, JSON.stringify({ type: "send", channel: "party", text: "member returned" }));

@@ -25,7 +25,8 @@ export type DistrictChatUnreadCounts = Partial<Record<DistrictChatChannel, numbe
 export interface DistrictChatParty {
   name: string;
   leader: string;
-  members: string[];
+  leaderMemberId: string;
+  members: Array<{ id: string; name: string }>;
   isLeader: boolean;
 }
 export interface DistrictChatInvitation {
@@ -49,6 +50,7 @@ export interface VantaDistrictChatProps {
   onLeaveParty?: () => void;
   onInviteToParty?: (recipient: string) => void;
   onRemovePartyMember?: (recipient: string) => void;
+  onTransferPartyLeadership?: (memberId: string) => void;
   onAcceptPartyInvitation?: (invitationId: string) => void;
   onToggle?: (open: boolean) => void;
   onSelectChannel: (channel: DistrictChatChannel) => void;
@@ -117,6 +119,7 @@ export function VantaDistrictChat({
   onLeaveParty,
   onInviteToParty,
   onRemovePartyMember,
+  onTransferPartyLeadership,
   onAcceptPartyInvitation,
   onToggle,
   onSelectChannel,
@@ -322,13 +325,20 @@ export function VantaDistrictChat({
                 </div>
                 <ul className="vdc-chat__party-members" aria-label="Party members">
                   {party.members.map((member) => (
-                    <li key={member}>
-                      <span>{member}</span>
-                      {party.isLeader && member !== party.leader && (
+                    <li key={member.id}>
+                      <span>{member.name}</span>
+                      {party.isLeader && member.id !== party.leaderMemberId && (
                         <button
                           type="button"
-                          aria-label={`Remove ${member} from party`}
-                          onClick={() => onRemovePartyMember?.(member)}
+                          aria-label={`Make ${member.name} the party leader`}
+                          onClick={() => onTransferPartyLeadership?.(member.id)}
+                        >MAKE LEADER</button>
+                      )}
+                      {party.isLeader && member.id !== party.leaderMemberId && (
+                        <button
+                          type="button"
+                          aria-label={`Remove ${member.name} from party`}
+                          onClick={() => onRemovePartyMember?.(member.name)}
                         >REMOVE</button>
                       )}
                     </li>

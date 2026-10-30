@@ -30,7 +30,14 @@ type ServerEvent =
   | { type: "block-state"; senders: string[] }
   | {
       type: "party-state";
-      party: { id: string; name: string; leader: string; members: string[]; isLeader: boolean } | null;
+      party: {
+        id: string;
+        name: string;
+        leader: string;
+        leaderMemberId: string;
+        members: Array<{ id: string; name: string }>;
+        isLeader: boolean;
+      } | null;
       invitations: Array<{ id: string; partyName: string; inviter: string }>;
     }
   | { type: "system"; id: string; text: string; timestamp: string }
@@ -46,7 +53,7 @@ type ServerEvent =
     }
   | { type: "error"; text: string; cooldownMs?: number };
 
-type PartyAction = "create" | "join" | "leave" | "invite" | "remove";
+type PartyAction = "create" | "join" | "leave" | "invite" | "remove" | "transfer-leadership";
 
 type TicketResponse = {
   ticket: string;
@@ -91,7 +98,8 @@ export const DistrictChat = forwardRef<DistrictChatHandle, DistrictChatProps>(
     const [party, setParty] = useState<{
       name: string;
       leader: string;
-      members: string[];
+      leaderMemberId: string;
+      members: Array<{ id: string; name: string }>;
       isLeader: boolean;
     } | null>(null);
     const [partyInvitations, setPartyInvitations] = useState<Array<{ id: string; partyName: string; inviter: string }>>([]);
@@ -188,6 +196,7 @@ export const DistrictChat = forwardRef<DistrictChatHandle, DistrictChatProps>(
             ? {
                 name: event.party.name,
                 leader: event.party.leader,
+                leaderMemberId: event.party.leaderMemberId,
                 members: event.party.members,
                 isLeader: event.party.isLeader,
               }
@@ -323,7 +332,11 @@ export const DistrictChat = forwardRef<DistrictChatHandle, DistrictChatProps>(
       }));
     }, [appendMessage]);
 
-    const sendPartyAction = useCallback((action: PartyAction, details: { recipient?: string; invitationId?: string } = {}) => {
+    const sendPartyAction = useCallback((action: PartyAction, details: {
+      recipient?: string;
+      invitationId?: string;
+      memberId?: string;
+    } = {}) => {
       const socket = socketRef.current;
       if (!socket || socket.readyState !== WebSocket.OPEN) {
         appendMessage(makeLocalMessage("system", "Not connected. Party changes will be available when chat reconnects."));
@@ -379,6 +392,7 @@ export const DistrictChat = forwardRef<DistrictChatHandle, DistrictChatProps>(
         onLeaveParty={() => sendPartyAction("leave")}
         onInviteToParty={(recipient) => sendPartyAction("invite", { recipient })}
         onRemovePartyMember={(recipient) => sendPartyAction("remove", { recipient })}
+        onTransferPartyLeadership={(memberId) => sendPartyAction("transfer-leadership", { memberId })}
         onAcceptPartyInvitation={(invitationId) => sendPartyAction("join", { invitationId })}
         open={open}
         onToggle={onToggle}
