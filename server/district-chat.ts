@@ -249,6 +249,7 @@ export class DistrictChatHub {
     inviterName: string;
     expiresAt: number;
   }>();
+  private partyInvitationExpiryTimers = new Map<string, ReturnType<typeof setTimeout>>();
   private pendingPartyRemovalNotices = new Map<string, string>();
   private blockedSenders = new Map<string, Map<string, string>>();
   private reportTimes = new Map<string, number[]>();
@@ -263,9 +264,11 @@ export class DistrictChatHub {
       reportedSender: string;
       reporterKind: "member" | "guest";
     }) => void = (report) => console.warn("[district-chat] message report:", JSON.stringify(report)),
+    private readonly partyInvitationTtlMs = PARTY_INVITE_TTL_MS,
   ) {}
 
   connect(identity: ChatTicketIdentity, peer: ChatPeer): string {
+    this.expirePartyInvitations();
     const connectionId = randomUUID();
     const identityKey = identity.kind === "member"
       ? `member:${identity.userId}`
@@ -601,14 +604,16 @@ export class DistrictChatHub {
         item.partyId === currentParty.id && item.targetIdentityKey === targetIdentityKey
       );
       const id = invitation?.id ?? randomUUID();
-      this.partyInvitations.set(id, {
+      const nextInvitation = {
         id,
         partyId: currentParty.id,
         targetIdentityKey,
         inviterIdentityKey: client.identityKey,
         inviterName: client.displayName,
-        expiresAt: this.clock() + PARTY_INVITE_TTL_MS,
-      });
+        expiresAt: this.clock() + this.partyInvitationTtlMs,
+      };
+      this.partyInvitations.set(id, nextInvitation);
+      this.schedulePartyInvitationExpiry(nextInvitation);
       this.sendPartyState(targetIdentityKey);
       this.system(client.connectionId, `Party invitation sent to ${target.displayName}.`);
       return;
@@ -659,13 +664,13 @@ export class DistrictChatHub {
     if (currentParty) return this.error(client.connectionId, "Leave your current party before joining another.");
     const invitation = this.partyInvitations.get(command.invitationId!);
     if (!invitation || invitation.targetIdentityKey !== client.identityKey || invitation.expiresAt <= this.clock()) {
-      if (invitation?.targetIdentityKey === client.identityKey) this.partyInvitations.delete(invitation.id);
+      if (invitation?.targetIdentityKey === client.identityKey) this.deletePartyInvitation(invitation.id);
       this.sendPartyState(client.identityKey);
       return this.error(client.connectionId, "That party invitation is no longer valid.");
     }
     const party = this.parties.get(invitation.partyId);
     if (!party || party.members.size >= PARTY_MEMBER_LIMIT) {
-      this.partyInvitations.delete(invitation.id);
+      this.deletePartyInvitation(invitation.id);
       this.sendPartyState(client.identityKey);
       return this.error(client.connectionId, party ? "That party is full." : "That party no longer exists.");
     }
@@ -692,7 +697,7 @@ export class DistrictChatHub {
       for (const [id, invite] of Array.from(this.partyInvitations.entries())) {
         if (invite.partyId === party.id) {
           affectedInvitees.push(invite.targetIdentityKey);
-          this.partyInvitations.delete(id);
+          this.deletePartyInvitation(id);
         }
       }
     }
@@ -704,17 +709,45 @@ export class DistrictChatHub {
     for (const [id, invitation] of Array.from(this.partyInvitations.entries())) {
       if (invitation.targetIdentityKey === identityKey || invitation.inviterIdentityKey === identityKey) {
         if (invitation.targetIdentityKey !== identityKey) affectedInvitees.push(invitation.targetIdentityKey);
-        this.partyInvitations.delete(id);
+        this.deletePartyInvitation(id);
       }
     }
     return affectedInvitees;
   }
 
+  private schedulePartyInvitationExpiry(invitation: {
+    id: string;
+    expiresAt: number;
+  }): void {
+    const existingTimer = this.partyInvitationExpiryTimers.get(invitation.id);
+    if (existingTimer) clearTimeout(existingTimer);
+    const timer = setTimeout(() => {
+      this.partyInvitationExpiryTimers.delete(invitation.id);
+      this.expirePartyInvitations();
+      const stillPending = this.partyInvitations.get(invitation.id);
+      if (stillPending) this.schedulePartyInvitationExpiry(stillPending);
+    }, Math.max(0, invitation.expiresAt - this.clock()));
+    timer.unref?.();
+    this.partyInvitationExpiryTimers.set(invitation.id, timer);
+  }
+
+  private deletePartyInvitation(id: string): void {
+    this.partyInvitations.delete(id);
+    const timer = this.partyInvitationExpiryTimers.get(id);
+    if (timer) clearTimeout(timer);
+    this.partyInvitationExpiryTimers.delete(id);
+  }
+
   private expirePartyInvitations(): void {
     const now = this.clock();
+    const affectedInvitees = new Set<string>();
     for (const [id, invitation] of Array.from(this.partyInvitations.entries())) {
-      if (invitation.expiresAt <= now || !this.parties.has(invitation.partyId)) this.partyInvitations.delete(id);
+      if (invitation.expiresAt <= now || !this.parties.has(invitation.partyId)) {
+        affectedInvitees.add(invitation.targetIdentityKey);
+        this.deletePartyInvitation(id);
+      }
     }
+    this.broadcastPartyState(Array.from(affectedInvitees));
   }
 
   private hasConnectedIdentity(identityKey: string): boolean {

@@ -433,6 +433,63 @@ test("party invitations reject invalid recipients and cannot be accepted by anot
   assert.match(String(eventList(target, "error").at(-1)?.text), /invalid chat message/i);
 });
 
+test("expired invitations disappear for connected recipients and expired IDs stay invalid", async () => {
+  let now = 10_000;
+  const invitationTtlMs = 20;
+  const hub = new DistrictChatHub(() => now, undefined, invitationTtlMs);
+  const leaderEvents: Event[] = [];
+  const inviteeEvents: Event[] = [];
+  const leaderId = hub.connect(
+    { kind: "member", userId: "expiry-leader", displayName: "Leader" },
+    peer(leaderEvents),
+  );
+  const inviteeId = hub.connect(
+    { kind: "member", userId: "expiry-invitee", displayName: "Invitee" },
+    peer(inviteeEvents),
+  );
+  hub.receive(leaderId, JSON.stringify({ type: "party", action: "create" }));
+  hub.receive(leaderId, JSON.stringify({ type: "party", action: "invite", recipient: "Invitee" }));
+  const invitation = (eventList(inviteeEvents, "party-state").at(-1)?.invitations as Array<{ id: string }>)[0];
+  assert.ok(invitation?.id);
+
+  inviteeEvents.length = 0;
+  now += invitationTtlMs;
+  await new Promise((resolve) => setTimeout(resolve, invitationTtlMs + 10));
+
+  const expiredState = eventList(inviteeEvents, "party-state").at(-1);
+  assert.deepEqual(expiredState?.invitations, []);
+  hub.receive(inviteeId, JSON.stringify({ type: "party", action: "join", invitationId: invitation.id }));
+  assert.match(String(eventList(inviteeEvents, "error").at(-1)?.text), /no longer valid/i);
+  assert.equal(eventList(inviteeEvents, "party-state").at(-1)?.party, null);
+});
+
+test("expired invitations are omitted after reconnect and cannot be joined", () => {
+  let now = 20_000;
+  const invitationTtlMs = 50;
+  const hub = new DistrictChatHub(() => now, undefined, invitationTtlMs);
+  const leaderEvents: Event[] = [];
+  const inviteeEvents: Event[] = [];
+  const leaderId = hub.connect(
+    { kind: "member", userId: "reconnect-leader", displayName: "Leader" },
+    peer(leaderEvents),
+  );
+  const inviteeIdentity = { kind: "member" as const, userId: "reconnect-invitee", displayName: "Invitee" };
+  const inviteeId = hub.connect(inviteeIdentity, peer(inviteeEvents));
+  hub.receive(leaderId, JSON.stringify({ type: "party", action: "create" }));
+  hub.receive(leaderId, JSON.stringify({ type: "party", action: "invite", recipient: "Invitee" }));
+  const invitation = (eventList(inviteeEvents, "party-state").at(-1)?.invitations as Array<{ id: string }>)[0];
+  assert.ok(invitation?.id);
+  hub.disconnect(inviteeId);
+
+  now += invitationTtlMs;
+  const reconnectedEvents: Event[] = [];
+  const reconnectedId = hub.connect(inviteeIdentity, peer(reconnectedEvents));
+  assert.deepEqual(eventList(reconnectedEvents, "party-state").at(-1)?.invitations, []);
+  hub.receive(reconnectedId, JSON.stringify({ type: "party", action: "join", invitationId: invitation.id }));
+  assert.match(String(eventList(reconnectedEvents, "error").at(-1)?.text), /no longer valid/i);
+  assert.equal(eventList(reconnectedEvents, "party-state").at(-1)?.party, null);
+});
+
 test("party delivery excludes disconnected members and guest disconnects remove membership", () => {
   const hub = new DistrictChatHub();
   const leader: Event[] = [];
