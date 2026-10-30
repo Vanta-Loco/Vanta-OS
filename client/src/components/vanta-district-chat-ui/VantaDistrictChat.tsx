@@ -49,7 +49,7 @@ export interface VantaDistrictChatProps {
   onCreateParty?: () => void;
   onLeaveParty?: () => void;
   onInviteToParty?: (recipient: string) => void;
-  onRemovePartyMember?: (recipient: string) => void;
+  onRemovePartyMember?: (memberId: string) => void;
   onTransferPartyLeadership?: (memberId: string) => void;
   onAcceptPartyInvitation?: (invitationId: string) => void;
   onToggle?: (open: boolean) => void;
@@ -160,6 +160,25 @@ export function VantaDistrictChat({
   const hiddenCount = channelMessages.length - visibleMessages.length;
   const onlineCount = onlineNames.length;
   const activeLabel = CHANNELS.find((channel) => channel.id === activeChannel)?.label ?? activeChannel;
+  const partyMemberLabels = useMemo(() => {
+    const members = party?.members ?? [];
+    const keyFor = (name: string) => name.normalize("NFKC").trim().toLocaleLowerCase("en-US");
+    const totals = new Map<string, number>();
+    members.forEach(({ name }) => {
+      const key = keyFor(name);
+      totals.set(key, (totals.get(key) ?? 0) + 1);
+    });
+    const seen = new Map<string, number>();
+    return members.map((member) => {
+      const key = keyFor(member.name);
+      const index = (seen.get(key) ?? 0) + 1;
+      seen.set(key, index);
+      return {
+        member,
+        label: (totals.get(key) ?? 0) > 1 ? `${member.name} · ${index}` : member.name,
+      };
+    });
+  }, [party?.members]);
 
   function setPanelOpen(nextOpen: boolean) {
     if (controlledOpen === undefined) setInternalOpen(nextOpen);
@@ -324,21 +343,21 @@ export function VantaDistrictChat({
                   <span>{party.members.length} / 8 members · Leader: {party.leader}</span>
                 </div>
                 <ul className="vdc-chat__party-members" aria-label="Party members">
-                  {party.members.map((member) => (
+                  {partyMemberLabels.map(({ member, label }) => (
                     <li key={member.id}>
-                      <span>{member.name}</span>
+                      <span>{label}</span>
                       {party.isLeader && member.id !== party.leaderMemberId && (
                         <button
                           type="button"
-                          aria-label={`Make ${member.name} the party leader`}
+                          aria-label={`Make ${label} the party leader`}
                           onClick={() => onTransferPartyLeadership?.(member.id)}
                         >MAKE LEADER</button>
                       )}
                       {party.isLeader && member.id !== party.leaderMemberId && (
                         <button
                           type="button"
-                          aria-label={`Remove ${member.name} from party`}
-                          onClick={() => onRemovePartyMember?.(member.name)}
+                          aria-label={`Remove ${label} from party`}
+                          onClick={() => onRemovePartyMember?.(member.id)}
                         >REMOVE</button>
                       )}
                     </li>

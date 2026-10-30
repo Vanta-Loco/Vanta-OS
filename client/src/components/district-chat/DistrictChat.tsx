@@ -391,7 +391,7 @@ export const DistrictChat = forwardRef<DistrictChatHandle, DistrictChatProps>(
         onCreateParty={() => sendPartyAction("create")}
         onLeaveParty={() => sendPartyAction("leave")}
         onInviteToParty={(recipient) => sendPartyAction("invite", { recipient })}
-        onRemovePartyMember={(recipient) => sendPartyAction("remove", { recipient })}
+        onRemovePartyMember={(memberId) => sendPartyAction("remove", { memberId })}
         onTransferPartyLeadership={(memberId) => sendPartyAction("transfer-leadership", { memberId })}
         onAcceptPartyInvitation={(invitationId) => sendPartyAction("join", { invitationId })}
         open={open}

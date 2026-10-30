@@ -221,6 +221,9 @@ function parseCommand(raw: string): ChatClientCommand | null {
       return parsed.data.invitationId ? { ...parsed.data } : null;
     }
     if (parsed.data.invitationId !== undefined) return null;
+    if (parsed.data.action === "remove" && parsed.data.memberId) {
+      return { ...parsed.data };
+    }
     if (parsed.data.action === "invite" || parsed.data.action === "remove") {
       const recipient = parsed.data.recipient?.trim().replace(/^@/, "");
       if (!recipient || recipient.length > 32 || /[\u0000-\u001F\u007F]/.test(recipient)) return null;
@@ -651,19 +654,28 @@ export class DistrictChatHub {
       if (currentParty.leaderIdentityKey !== client.identityKey) {
         return this.error(client.connectionId, "Only the party leader can remove members.");
       }
-      const targetName = normalizeName(command.recipient!);
-      const targets = Array.from(currentParty.members).filter((identityKey) =>
-        normalizeName(currentParty.memberNames.get(identityKey) ?? "") === targetName
-      );
-      if (targets.length === 0) return this.error(client.connectionId, "That player is not in your party.");
-      if (targets.length > 1) {
-        return this.error(client.connectionId, "More than one party member has that name. Use a unique player name.");
+      let targetIdentityKey: string | undefined;
+      if (command.memberId) {
+        targetIdentityKey = Array.from(currentParty.memberIds.entries())
+          .find(([, memberId]) => memberId === command.memberId)?.[0];
+        if (!targetIdentityKey || !currentParty.members.has(targetIdentityKey)) {
+          return this.error(client.connectionId, "That player is no longer in your party.");
+        }
+      } else {
+        const targetName = normalizeName(command.recipient ?? "");
+        const targets = Array.from(currentParty.members).filter((identityKey) =>
+          normalizeName(currentParty.memberNames.get(identityKey) ?? "") === targetName
+        );
+        if (targets.length === 0) return this.error(client.connectionId, "That player is not in your party.");
+        if (targets.length > 1) {
+          return this.error(client.connectionId, "More than one party member has that name. Select a member from the party roster.");
+        }
+        targetIdentityKey = targets[0];
       }
-      const targetIdentityKey = targets[0];
       if (targetIdentityKey === client.identityKey) {
         return this.error(client.connectionId, "You cannot remove yourself. Leave the party instead.");
       }
-      const targetNameInParty = currentParty.memberNames.get(targetIdentityKey) ?? command.recipient!;
+      const targetNameInParty = currentParty.memberNames.get(targetIdentityKey) ?? command.recipient ?? "Player";
       const partyName = currentParty.name;
       const remainingMembers = Array.from(currentParty.members).filter((key) => key !== targetIdentityKey);
       const affectedInvitees = this.removePartyIdentity(targetIdentityKey);

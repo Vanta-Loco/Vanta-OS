@@ -380,6 +380,78 @@ test("only the party leader can remove a member and the removed member loses par
   assert.match(String(eventList(member, "error").at(-1)?.text), /not in a party/i);
 });
 
+test("party leaders can remove the selected member when party names match", () => {
+  const hub = new DistrictChatHub(() => 3_600);
+  const leaderEvents: Event[] = [];
+  const firstTwinEvents: Event[] = [];
+  const secondTwinEvents: Event[] = [];
+  const leaderId = hub.connect(
+    { kind: "member", userId: "matching-name-leader", displayName: "Leader" },
+    peer(leaderEvents),
+  );
+  const firstTwinIdentity = { kind: "member" as const, userId: "matching-name-first", displayName: "Twin" };
+  const secondTwinIdentity = { kind: "member" as const, userId: "matching-name-second", displayName: "Twin" };
+
+  const firstTwinId = hub.connect(firstTwinIdentity, peer(firstTwinEvents));
+  hub.receive(leaderId, JSON.stringify({ type: "party", action: "create" }));
+  hub.receive(leaderId, JSON.stringify({ type: "party", action: "invite", recipient: "Twin" }));
+  const firstInvitation = (eventList(firstTwinEvents, "party-state").at(-1)?.invitations as Array<{ id: string }>)[0];
+  hub.disconnect(firstTwinId);
+
+  const secondTwinId = hub.connect(secondTwinIdentity, peer(secondTwinEvents));
+  hub.receive(leaderId, JSON.stringify({ type: "party", action: "invite", recipient: "Twin" }));
+  const secondInvitation = (eventList(secondTwinEvents, "party-state").at(-1)?.invitations as Array<{ id: string }>)[0];
+  hub.disconnect(secondTwinId);
+
+  const reconnectedFirstTwinId = hub.connect(firstTwinIdentity, peer(firstTwinEvents));
+  hub.receive(reconnectedFirstTwinId, JSON.stringify({
+    type: "party",
+    action: "join",
+    invitationId: firstInvitation.id,
+  }));
+  const reconnectedSecondTwinId = hub.connect(secondTwinIdentity, peer(secondTwinEvents));
+  hub.receive(reconnectedSecondTwinId, JSON.stringify({
+    type: "party",
+    action: "join",
+    invitationId: secondInvitation.id,
+  }));
+
+  const partyState = eventList(leaderEvents, "party-state").at(-1)?.party as {
+    members: Array<{ id: string; name: string }>;
+  };
+  const twinMembers = partyState.members.filter(({ name }) => name === "Twin");
+  assert.equal(twinMembers.length, 2);
+  assert.notEqual(twinMembers[0].id, twinMembers[1].id);
+
+  leaderEvents.length = 0;
+  firstTwinEvents.length = 0;
+  secondTwinEvents.length = 0;
+  hub.receive(reconnectedFirstTwinId, JSON.stringify({
+    type: "party",
+    action: "remove",
+    memberId: twinMembers[1].id,
+  }));
+  assert.match(String(eventList(firstTwinEvents, "error").at(-1)?.text), /only the party leader/i);
+  assert.equal(eventList(secondTwinEvents, "party-state").length, 0);
+
+  hub.receive(leaderId, JSON.stringify({
+    type: "party",
+    action: "remove",
+    memberId: twinMembers[1].id,
+  }));
+  assert.equal(eventList(secondTwinEvents, "party-state").at(-1)?.party, null);
+  assert.equal(
+    (eventList(firstTwinEvents, "party-state").at(-1)?.party as { members: Array<{ name: string }> })
+      .members.filter(({ name }) => name === "Twin").length,
+    1,
+  );
+  assert.equal(
+    (eventList(leaderEvents, "party-state").at(-1)?.party as { members: Array<{ name: string }> })
+      .members.filter(({ name }) => name === "Twin").length,
+    1,
+  );
+});
+
 test("party leaders can transfer leadership to a current member and all controls update", () => {
   const hub = new DistrictChatHub(() => 3_750);
   const leaderEvents: Event[] = [];
