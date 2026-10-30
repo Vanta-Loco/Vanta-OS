@@ -99,25 +99,152 @@ test("private chat is routed to its named online player, never the wider world",
   assert.match(String(eventList(senderEvents, "error").at(-1)?.text), /unavailable or not online/i);
 });
 
-test("party messages are rejected without broadcasting", () => {
-  const hub = new DistrictChatHub();
-  const sender: Event[] = [];
-  const other: Event[] = [];
-  const senderId = hub.connect(
-    { kind: "guest", guestId: "11111111-aaaa", displayName: "Guest-11111111" },
-    peer(sender),
+test("party membership requires a targeted invitation and routes only to party members", () => {
+  const hub = new DistrictChatHub(() => 3_000);
+  const leader: Event[] = [];
+  const invitee: Event[] = [];
+  const outsider: Event[] = [];
+  const leaderId = hub.connect(
+    { kind: "member", userId: "member-1", displayName: "Leader" },
+    peer(leader),
   );
-  hub.connect(
-    { kind: "guest", guestId: "22222222-bbbb", displayName: "Guest-22222222" },
+  const inviteeId = hub.connect(
+    { kind: "member", userId: "member-2", displayName: "Invitee" },
+    peer(invitee),
+  );
+  const outsiderId = hub.connect(
+    { kind: "member", userId: "member-3", displayName: "Outsider" },
+    peer(outsider),
+  );
+  leader.length = 0;
+  invitee.length = 0;
+  outsider.length = 0;
+
+  hub.receive(leaderId, JSON.stringify({ type: "send", channel: "party", text: "not yet" }));
+  assert.match(String(eventList(leader, "error")[0]?.text), /not in a party/i);
+  hub.receive(leaderId, JSON.stringify({ type: "party", action: "create" }));
+  const leaderState = eventList(leader, "party-state").at(-1);
+  assert.equal((leaderState?.party as { members: string[] }).members[0], "Leader");
+
+  hub.receive(leaderId, JSON.stringify({ type: "party", action: "invite", recipient: "Invitee" }));
+  const invitation = (eventList(invitee, "party-state").at(-1)?.invitations as Array<{ id: string }>)[0];
+  assert.ok(invitation?.id);
+  hub.receive(inviteeId, JSON.stringify({ type: "party", action: "join", invitationId: invitation.id }));
+  leader.length = 0;
+  invitee.length = 0;
+  outsider.length = 0;
+
+  hub.receive(leaderId, JSON.stringify({ type: "send", channel: "party", text: "members only" }));
+  assert.equal(eventList(leader, "message").length, 1);
+  assert.equal(eventList(invitee, "message").length, 1);
+  assert.equal(eventList(outsider, "message").length, 0);
+  assert.equal(eventList(invitee, "message")[0].channel, "party");
+
+  hub.receive(inviteeId, JSON.stringify({ type: "party", action: "leave" }));
+  assert.equal(eventList(invitee, "party-state").at(-1)?.party, null);
+  leader.length = 0;
+  invitee.length = 0;
+  outsider.length = 0;
+  hub.receive(leaderId, JSON.stringify({ type: "send", channel: "party", text: "after leave" }));
+  assert.equal(eventList(leader, "message").length, 1);
+  assert.equal(eventList(invitee, "message").length, 0);
+  assert.equal(eventList(outsider, "message").length, 0);
+});
+
+test("party invitations reject invalid recipients and cannot be accepted by another identity", () => {
+  const hub = new DistrictChatHub();
+  const leader: Event[] = [];
+  const target: Event[] = [];
+  const other: Event[] = [];
+  const leaderId = hub.connect(
+    { kind: "member", userId: "member-1", displayName: "Leader" },
+    peer(leader),
+  );
+  const targetId = hub.connect(
+    { kind: "member", userId: "member-2", displayName: "Target" },
+    peer(target),
+  );
+  const otherId = hub.connect(
+    { kind: "member", userId: "member-3", displayName: "Other" },
     peer(other),
   );
-  sender.length = 0;
-  other.length = 0;
+  hub.receive(leaderId, JSON.stringify({ type: "party", action: "create" }));
+  leader.length = 0;
+  hub.receive(leaderId, JSON.stringify({ type: "party", action: "invite", recipient: "nobody" }));
+  assert.match(String(eventList(leader, "error").at(-1)?.text), /unavailable or not online/i);
 
-  hub.receive(senderId, JSON.stringify({ type: "send", channel: "party", text: "hello" }));
+  hub.receive(leaderId, JSON.stringify({ type: "party", action: "invite", recipient: "Target" }));
+  const invitation = (eventList(target, "party-state").at(-1)?.invitations as Array<{ id: string }>)[0];
+  hub.receive(otherId, JSON.stringify({ type: "party", action: "join", invitationId: invitation.id }));
+  assert.match(String(eventList(other, "error").at(-1)?.text), /no longer valid/i);
+  hub.receive(targetId, JSON.stringify({ type: "party", action: "join", invitationId: "not-a-uuid" }));
+  assert.match(String(eventList(target, "error").at(-1)?.text), /invalid chat message/i);
+});
 
-  assert.match(String(eventList(sender, "error")[0]?.text), /join a party/i);
-  assert.equal(eventList(other, "message").length, 0);
+test("party delivery excludes disconnected members and guest disconnects remove membership", () => {
+  const hub = new DistrictChatHub();
+  const leader: Event[] = [];
+  const guest: Event[] = [];
+  const outsider: Event[] = [];
+  const leaderId = hub.connect(
+    { kind: "member", userId: "member-1", displayName: "Leader" },
+    peer(leader),
+  );
+  const guestId = hub.connect(
+    { kind: "guest", guestId: "guest-2", displayName: "Guest-guest2" },
+    peer(guest),
+  );
+  const outsiderId = hub.connect(
+    { kind: "member", userId: "member-3", displayName: "Outsider" },
+    peer(outsider),
+  );
+  hub.receive(leaderId, JSON.stringify({ type: "party", action: "create" }));
+  hub.receive(leaderId, JSON.stringify({ type: "party", action: "invite", recipient: "Guest-guest2" }));
+  const invitation = (eventList(guest, "party-state").at(-1)?.invitations as Array<{ id: string }>)[0];
+  hub.receive(guestId, JSON.stringify({ type: "party", action: "join", invitationId: invitation.id }));
+  hub.disconnect(guestId);
+  leader.length = 0;
+  guest.length = 0;
+  outsider.length = 0;
+
+  hub.receive(leaderId, JSON.stringify({ type: "send", channel: "party", text: "only connected members" }));
+  assert.equal(eventList(leader, "message").length, 1);
+  assert.equal(eventList(guest, "message").length, 0);
+  assert.equal(eventList(outsider, "message").length, 0);
+  hub.disconnect(outsiderId);
+});
+
+test("member party membership survives disconnects without delivering to offline sockets", () => {
+  const hub = new DistrictChatHub();
+  const leader: Event[] = [];
+  const member: Event[] = [];
+  const leaderId = hub.connect(
+    { kind: "member", userId: "member-1", displayName: "Leader" },
+    peer(leader),
+  );
+  const memberIdentity = { kind: "member" as const, userId: "member-2", displayName: "Member" };
+  const memberId = hub.connect(memberIdentity, peer(member));
+  hub.receive(leaderId, JSON.stringify({ type: "party", action: "create" }));
+  hub.receive(leaderId, JSON.stringify({ type: "party", action: "invite", recipient: "Member" }));
+  const invitation = (eventList(member, "party-state").at(-1)?.invitations as Array<{ id: string }>)[0];
+  hub.receive(memberId, JSON.stringify({ type: "party", action: "join", invitationId: invitation.id }));
+  hub.disconnect(memberId);
+
+  leader.length = 0;
+  hub.receive(leaderId, JSON.stringify({ type: "send", channel: "party", text: "offline member" }));
+  assert.equal(eventList(leader, "message").length, 1);
+  assert.equal(eventList(member, "message").length, 0);
+
+  const reconnectedEvents: Event[] = [];
+  const reconnectedId = hub.connect(memberIdentity, peer(reconnectedEvents));
+  const state = eventList(reconnectedEvents, "party-state").at(-1);
+  assert.equal((state?.party as { members: string[] }).members.includes("Member"), true);
+  leader.length = 0;
+  reconnectedEvents.length = 0;
+  hub.receive(leaderId, JSON.stringify({ type: "send", channel: "party", text: "member returned" }));
+  assert.equal(eventList(leader, "message").length, 1);
+  assert.equal(eventList(reconnectedEvents, "message").length, 1);
+  hub.disconnect(reconnectedId);
 });
 
 test("invalid and overlong payloads are rejected and rate limits report cooldown", () => {

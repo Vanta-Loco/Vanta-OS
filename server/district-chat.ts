@@ -11,6 +11,8 @@ const TICKET_PROTOCOL = "vanta-ticket.";
 const CHAT_PROTOCOL = "vanta-chat.v1";
 const MESSAGE_WINDOW_MS = 10_000;
 const MESSAGE_LIMIT_PER_WINDOW = 6;
+const PARTY_INVITE_TTL_MS = 5 * 60_000;
+const PARTY_MEMBER_LIMIT = 8;
 export const MAX_DISTRICT_CHAT_MESSAGE_LENGTH = 500;
 
 export type ChatTicketIdentity =
@@ -29,16 +31,26 @@ type ChatClientCommand = {
   channel: "world" | "party" | "private";
   text: string;
   recipient?: string;
+} | {
+  type: "party";
+  action: "create" | "join" | "leave" | "invite";
+  invitationId?: string;
+  recipient?: string;
 };
 
 type ChatEvent =
   | { type: "welcome"; displayName: string; identityType: "member" | "guest" }
   | { type: "presence"; names: string[] }
+  | {
+      type: "party-state";
+      party: { id: string; name: string; members: string[] } | null;
+      invitations: Array<{ id: string; partyName: string; inviter: string }>;
+    }
   | { type: "system"; id: string; text: string; timestamp: string }
   | {
       type: "message";
       id: string;
-      channel: "world" | "private";
+      channel: "world" | "party" | "private";
       sender: string;
       text: string;
       timestamp: string;
@@ -65,7 +77,12 @@ const commandSchema = z.object({
   channel: z.enum(["world", "party", "private"]),
   text: z.string().max(MAX_DISTRICT_CHAT_MESSAGE_LENGTH),
   recipient: z.string().max(32).optional(),
-}).strict();
+}).strict().or(z.object({
+  type: z.literal("party"),
+  action: z.enum(["create", "join", "leave", "invite"]),
+  invitationId: z.string().uuid().optional(),
+  recipient: z.string().max(32).optional(),
+}).strict());
 
 function normalizeName(value: string): string {
   return value.normalize("NFKC").trim().replace(/^@/, "").toLocaleLowerCase("en-US");
@@ -153,6 +170,19 @@ function parseCommand(raw: string): ChatClientCommand | null {
   }
   const parsed = commandSchema.safeParse(input);
   if (!parsed.success) return null;
+  if (parsed.data.type === "party") {
+    if (parsed.data.action === "join") {
+      return parsed.data.invitationId ? { ...parsed.data } : null;
+    }
+    if (parsed.data.invitationId !== undefined) return null;
+    if (parsed.data.action === "invite") {
+      const recipient = parsed.data.recipient?.trim().replace(/^@/, "");
+      if (!recipient || recipient.length > 32 || /[\u0000-\u001F\u007F]/.test(recipient)) return null;
+      return { ...parsed.data, recipient };
+    }
+    if (parsed.data.recipient !== undefined) return null;
+    return { ...parsed.data };
+  }
   const text = sanitizeDistrictChatText(parsed.data.text);
   if (!text || text.length > MAX_DISTRICT_CHAT_MESSAGE_LENGTH) return null;
   if (parsed.data.channel === "private") {
@@ -166,6 +196,22 @@ function parseCommand(raw: string): ChatClientCommand | null {
 
 export class DistrictChatHub {
   private clients = new Map<string, ConnectedClient>();
+  private parties = new Map<string, {
+    id: string;
+    name: string;
+    leaderIdentityKey: string;
+    members: Set<string>;
+    memberNames: Map<string, string>;
+  }>();
+  private partyByIdentity = new Map<string, string>();
+  private partyInvitations = new Map<string, {
+    id: string;
+    partyId: string;
+    targetIdentityKey: string;
+    inviterIdentityKey: string;
+    inviterName: string;
+    expiresAt: number;
+  }>();
 
   constructor(private readonly clock: () => number = () => Date.now()) {}
 
@@ -202,12 +248,34 @@ export class DistrictChatHub {
       identityType: identity.kind,
     });
     this.system(connectionId, "Connected to Vanta District chat. Messages are temporary and clear when the server restarts.");
+    const partyId = this.partyByIdentity.get(identityKey);
+    const party = partyId ? this.parties.get(partyId) : undefined;
+    if (party) {
+      party.memberNames.set(identityKey, displayName);
+      this.broadcastPartyState(Array.from(party.members));
+    } else {
+      this.sendPartyState(identityKey);
+    }
     this.broadcastPresence();
     return connectionId;
   }
 
   disconnect(connectionId: string): void {
+    const client = this.clients.get(connectionId);
     if (!this.clients.delete(connectionId)) return;
+    let changedPartyMembers: string[] = [];
+    if (client?.kind === "guest" && !this.hasConnectedIdentity(client.identityKey)) {
+      const partyId = this.partyByIdentity.get(client.identityKey);
+      const party = partyId ? this.parties.get(partyId) : undefined;
+      changedPartyMembers = party ? Array.from(party.members).filter((key) => key !== client.identityKey) : [];
+      changedPartyMembers.push(...this.removePartyIdentity(client.identityKey));
+      changedPartyMembers.push(...this.removeInvitationsForIdentity(client.identityKey));
+    } else if (client) {
+      const partyId = this.partyByIdentity.get(client.identityKey);
+      const party = partyId ? this.parties.get(partyId) : undefined;
+      if (party) changedPartyMembers = Array.from(party.members);
+    }
+    this.broadcastPartyState(changedPartyMembers);
     this.broadcastPresence();
   }
 
@@ -219,8 +287,8 @@ export class DistrictChatHub {
       this.error(connectionId, `Invalid chat message. Keep messages under ${MAX_DISTRICT_CHAT_MESSAGE_LENGTH} characters.`);
       return;
     }
-    if (command.channel === "party") {
-      this.error(connectionId, "Party chat is unavailable. Join a party to chat.");
+    if (command.type === "party") {
+      this.handlePartyCommand(sender, command);
       return;
     }
 
@@ -235,6 +303,26 @@ export class DistrictChatHub {
 
     const timestamp = new Date(now).toISOString();
     const id = randomUUID();
+    if (command.channel === "party") {
+      const partyId = this.partyByIdentity.get(sender.identityKey);
+      const party = partyId ? this.parties.get(partyId) : undefined;
+      if (!party || !party.members.has(sender.identityKey)) {
+        this.error(connectionId, "You are not in a party. Create one or accept an invitation first.");
+        return;
+      }
+      const event: ChatEvent = {
+        type: "message",
+        id,
+        channel: "party",
+        sender: sender.displayName,
+        text: command.text,
+        timestamp,
+      };
+      for (const client of Array.from(this.clients.values())) {
+        if (party.members.has(client.identityKey)) this.safeSend(client, event);
+      }
+      return;
+    }
     if (command.channel === "world") {
       const event: ChatEvent = {
         type: "message",
@@ -281,6 +369,162 @@ export class DistrictChatHub {
         timestamp,
       });
     }
+  }
+
+  private handlePartyCommand(
+    client: ConnectedClient,
+    command: Extract<ChatClientCommand, { type: "party" }>,
+  ): void {
+    this.expirePartyInvitations();
+    const currentPartyId = this.partyByIdentity.get(client.identityKey);
+    const currentParty = currentPartyId ? this.parties.get(currentPartyId) : undefined;
+    if (command.action === "create") {
+      if (currentParty) return this.error(client.connectionId, "Leave your current party before creating another.");
+      const id = randomUUID();
+      const party = {
+        id,
+        name: `${client.displayName}'s party`,
+        leaderIdentityKey: client.identityKey,
+        members: new Set([client.identityKey]),
+        memberNames: new Map([[client.identityKey, client.displayName]]),
+      };
+      this.parties.set(id, party);
+      this.partyByIdentity.set(client.identityKey, id);
+      this.broadcastPartyState([client.identityKey]);
+      return;
+    }
+    if (command.action === "leave") {
+      if (!currentParty) return this.error(client.connectionId, "You are not currently in a party.");
+      const remainingMembers = Array.from(currentParty.members).filter((key) => key !== client.identityKey);
+      const affectedInvitees = this.removePartyIdentity(client.identityKey);
+      affectedInvitees.push(...this.removeInvitationsForIdentity(client.identityKey));
+      this.broadcastPartyState([...remainingMembers, client.identityKey, ...affectedInvitees]);
+      return;
+    }
+    if (command.action === "invite") {
+      if (!currentParty) return this.error(client.connectionId, "Create or join a party before inviting players.");
+      const recipientKey = normalizeName(command.recipient!);
+      const recipientIdentities = new Map<string, ConnectedClient>();
+      for (const connected of Array.from(this.clients.values())) {
+        if (normalizeName(connected.displayName) === recipientKey && connected.identityKey !== client.identityKey) {
+          recipientIdentities.set(connected.identityKey, connected);
+        }
+      }
+      if (recipientIdentities.size === 0) {
+        return this.error(client.connectionId, "That player is unavailable or not online.");
+      }
+      if (recipientIdentities.size > 1) {
+        return this.error(client.connectionId, "More than one online player has that name. Use a unique player name.");
+      }
+      const [targetIdentityKey, target] = Array.from(recipientIdentities.entries())[0];
+      if (this.partyByIdentity.has(targetIdentityKey)) {
+        return this.error(client.connectionId, "That player is already in a party.");
+      }
+      const invitation = Array.from(this.partyInvitations.values()).find((item) =>
+        item.partyId === currentParty.id && item.targetIdentityKey === targetIdentityKey
+      );
+      const id = invitation?.id ?? randomUUID();
+      this.partyInvitations.set(id, {
+        id,
+        partyId: currentParty.id,
+        targetIdentityKey,
+        inviterIdentityKey: client.identityKey,
+        inviterName: client.displayName,
+        expiresAt: this.clock() + PARTY_INVITE_TTL_MS,
+      });
+      this.sendPartyState(targetIdentityKey);
+      this.system(client.connectionId, `Party invitation sent to ${target.displayName}.`);
+      return;
+    }
+
+    if (currentParty) return this.error(client.connectionId, "Leave your current party before joining another.");
+    const invitation = this.partyInvitations.get(command.invitationId!);
+    if (!invitation || invitation.targetIdentityKey !== client.identityKey || invitation.expiresAt <= this.clock()) {
+      if (invitation?.targetIdentityKey === client.identityKey) this.partyInvitations.delete(invitation.id);
+      this.sendPartyState(client.identityKey);
+      return this.error(client.connectionId, "That party invitation is no longer valid.");
+    }
+    const party = this.parties.get(invitation.partyId);
+    if (!party || party.members.size >= PARTY_MEMBER_LIMIT) {
+      this.partyInvitations.delete(invitation.id);
+      this.sendPartyState(client.identityKey);
+      return this.error(client.connectionId, party ? "That party is full." : "That party no longer exists.");
+    }
+    party.members.add(client.identityKey);
+    this.partyByIdentity.set(client.identityKey, party.id);
+    const affectedInvitees = this.removeInvitationsForIdentity(client.identityKey);
+    this.broadcastPartyState([...Array.from(party.members), ...affectedInvitees]);
+  }
+
+  private removePartyIdentity(identityKey: string): string[] {
+    const partyId = this.partyByIdentity.get(identityKey);
+    const party = partyId ? this.parties.get(partyId) : undefined;
+    this.partyByIdentity.delete(identityKey);
+    if (!party) return [];
+    party.members.delete(identityKey);
+    party.memberNames.delete(identityKey);
+    if (party.leaderIdentityKey === identityKey) {
+      party.leaderIdentityKey = party.members.values().next().value ?? "";
+    }
+    const affectedInvitees: string[] = [];
+    if (party.members.size === 0) {
+      this.parties.delete(party.id);
+      for (const [id, invite] of Array.from(this.partyInvitations.entries())) {
+        if (invite.partyId === party.id) {
+          affectedInvitees.push(invite.targetIdentityKey);
+          this.partyInvitations.delete(id);
+        }
+      }
+    }
+    return affectedInvitees;
+  }
+
+  private removeInvitationsForIdentity(identityKey: string): string[] {
+    const affectedInvitees: string[] = [];
+    for (const [id, invitation] of Array.from(this.partyInvitations.entries())) {
+      if (invitation.targetIdentityKey === identityKey || invitation.inviterIdentityKey === identityKey) {
+        if (invitation.targetIdentityKey !== identityKey) affectedInvitees.push(invitation.targetIdentityKey);
+        this.partyInvitations.delete(id);
+      }
+    }
+    return affectedInvitees;
+  }
+
+  private expirePartyInvitations(): void {
+    const now = this.clock();
+    for (const [id, invitation] of Array.from(this.partyInvitations.entries())) {
+      if (invitation.expiresAt <= now || !this.parties.has(invitation.partyId)) this.partyInvitations.delete(id);
+    }
+  }
+
+  private hasConnectedIdentity(identityKey: string): boolean {
+    return Array.from(this.clients.values()).some((client) => client.identityKey === identityKey);
+  }
+
+  private sendPartyState(identityKey: string): void {
+    const partyId = this.partyByIdentity.get(identityKey);
+    const party = partyId ? this.parties.get(partyId) : undefined;
+    const members = party ? Array.from(party.memberNames.values()) : [];
+    const invitations = Array.from(this.partyInvitations.values())
+      .filter((invitation) => invitation.targetIdentityKey === identityKey)
+      .flatMap((invitation) => {
+        const invitedParty = this.parties.get(invitation.partyId);
+        return invitedParty
+          ? [{ id: invitation.id, partyName: invitedParty.name, inviter: invitation.inviterName }]
+          : [];
+      });
+    const event: ChatEvent = {
+      type: "party-state",
+      party: party ? { id: party.id, name: party.name, members } : null,
+      invitations,
+    };
+    for (const connected of Array.from(this.clients.values())) {
+      if (connected.identityKey === identityKey) this.safeSend(connected, event);
+    }
+  }
+
+  private broadcastPartyState(identityKeys: string[]): void {
+    Array.from(new Set(identityKeys)).forEach((identityKey) => this.sendPartyState(identityKey));
   }
 
   private hasName(displayName: string): boolean {

@@ -16,6 +16,15 @@ export interface DistrictChatMessage {
 }
 
 export type DistrictChatUnreadCounts = Partial<Record<DistrictChatChannel, number>>;
+export interface DistrictChatParty {
+  name: string;
+  members: string[];
+}
+export interface DistrictChatInvitation {
+  id: string;
+  partyName: string;
+  inviter: string;
+}
 
 export interface VantaDistrictChatProps {
   messages: readonly DistrictChatMessage[];
@@ -26,6 +35,12 @@ export interface VantaDistrictChatProps {
   onlineNames?: readonly string[];
   connectionStatus: DistrictChatConnectionStatus;
   partyAvailable?: boolean;
+  party?: DistrictChatParty | null;
+  partyInvitations?: readonly DistrictChatInvitation[];
+  onCreateParty?: () => void;
+  onLeaveParty?: () => void;
+  onInviteToParty?: (recipient: string) => void;
+  onAcceptPartyInvitation?: (invitationId: string) => void;
   onToggle?: (open: boolean) => void;
   onSelectChannel: (channel: DistrictChatChannel) => void;
   onSendText: (text: string) => void;
@@ -86,6 +101,12 @@ export function VantaDistrictChat({
   onlineNames = [],
   connectionStatus,
   partyAvailable = true,
+  party = null,
+  partyInvitations = [],
+  onCreateParty,
+  onLeaveParty,
+  onInviteToParty,
+  onAcceptPartyInvitation,
   onToggle,
   onSelectChannel,
   onSendText,
@@ -102,6 +123,7 @@ export function VantaDistrictChat({
   const [internalOpen, setInternalOpen] = useState(initiallyOpen);
   const open = controlledOpen ?? internalOpen;
   const [draft, setDraft] = useState("");
+  const [invitee, setInvitee] = useState("");
   const [helpOpen, setHelpOpen] = useState(false);
   const [size, setSize] = useState({ width: 354, height: 442 });
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -278,13 +300,59 @@ export function VantaDistrictChat({
             >{isMuted ? "UNMUTE" : "MUTE"}</button>
           </div>
 
+          <section className="vdc-chat__party" aria-label="Party membership">
+            {party ? (
+              <>
+                <div className="vdc-chat__party-status">
+                  <strong>{party.name}</strong>
+                  <span>{party.members.length} / 8 members · {party.members.join(", ")}</span>
+                </div>
+                <form
+                  className="vdc-chat__party-invite"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    if (!invitee.trim()) return;
+                    onInviteToParty?.(invitee.trim());
+                    setInvitee("");
+                  }}
+                >
+                  <input
+                    value={invitee}
+                    maxLength={32}
+                    autoComplete="off"
+                    aria-label="Player name to invite"
+                    placeholder="Invite online player"
+                    onChange={(event) => setInvitee(event.target.value)}
+                  />
+                  <button type="submit" disabled={!invitee.trim()}>INVITE</button>
+                  <button type="button" onClick={onLeaveParty}>LEAVE</button>
+                </form>
+              </>
+            ) : (
+              <div className="vdc-chat__party-empty">
+                <span>You are not in a party. Party chat stays disabled until you join one.</span>
+                <button type="button" onClick={onCreateParty}>CREATE PARTY</button>
+              </div>
+            )}
+            {partyInvitations.length > 0 && (
+              <ul className="vdc-chat__party-invitations" aria-label="Party invitations">
+                {partyInvitations.map((invitation) => (
+                  <li key={invitation.id}>
+                    <span>{invitation.inviter} invited you to {invitation.partyName}</span>
+                    <button type="button" onClick={() => onAcceptPartyInvitation?.(invitation.id)}>JOIN</button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
           {helpOpen && (
             <section className="vdc-chat__help" aria-label="Chat help">
               <strong>Chat commands</strong>
               <p><code>/world &lt;message&gt;</code> · <code>/party &lt;message&gt;</code></p>
               <p><code>/private &lt;player&gt; &lt;message&gt;</code></p>
               <p><code>/reply &lt;message&gt;</code> · alias <code>/r</code> · <code>/help</code></p>
-              <span>Party is unavailable until a party system exists. Blocked senders are hidden on this device for this session.</span>
+              <span>Use party controls to create, join, leave, or invite. Party messages reach current members only. Blocked senders are hidden on this device for this session.</span>
             </section>
           )}
 

@@ -26,11 +26,16 @@ const TICKET_PROTOCOL_PREFIX = "vanta-ticket.";
 type ServerEvent =
   | { type: "welcome"; displayName: string; identityType: "member" | "guest" }
   | { type: "presence"; names: string[] }
+  | {
+      type: "party-state";
+      party: { id: string; name: string; members: string[] } | null;
+      invitations: Array<{ id: string; partyName: string; inviter: string }>;
+    }
   | { type: "system"; id: string; text: string; timestamp: string }
   | {
       type: "message";
       id: string;
-      channel: "world" | "private";
+      channel: "world" | "party" | "private";
       sender: string;
       text: string;
       timestamp: string;
@@ -38,6 +43,8 @@ type ServerEvent =
       direction?: "incoming" | "outgoing";
     }
   | { type: "error"; text: string; cooldownMs?: number };
+
+type PartyAction = "create" | "join" | "leave" | "invite";
 
 type TicketResponse = {
   ticket: string;
@@ -79,6 +86,8 @@ export const DistrictChat = forwardRef<DistrictChatHandle, DistrictChatProps>(
     const [mutedChannels, setMutedChannels] = useState<DistrictChatChannel[]>([]);
     const [blockedSenders, setBlockedSenders] = useState<string[]>([]);
     const [onlineNames, setOnlineNames] = useState<string[]>([]);
+    const [party, setParty] = useState<{ name: string; members: string[] } | null>(null);
+    const [partyInvitations, setPartyInvitations] = useState<Array<{ id: string; partyName: string; inviter: string }>>([]);
     const [connectionStatus, setConnectionStatus] = useState<DistrictChatConnectionStatus>("connecting");
     const [identityLabel, setIdentityLabel] = useState("District comms");
     const lastPrivatePeerRef = useRef<string | null>(null);
@@ -165,6 +174,10 @@ export const DistrictChat = forwardRef<DistrictChatHandle, DistrictChatProps>(
           }
         } else if (event.type === "presence") {
           setOnlineNames(event.names.filter((name) => typeof name === "string").slice(0, 100));
+        } else if (event.type === "party-state") {
+          setParty(event.party ? { name: event.party.name, members: event.party.members } : null);
+          setPartyInvitations(event.invitations);
+          if (!event.party) setActiveChannel((current) => current === "party" ? "world" : current);
         } else if (event.type === "system") {
           appendMessage({
             id: event.id,
@@ -272,16 +285,12 @@ export const DistrictChat = forwardRef<DistrictChatHandle, DistrictChatProps>(
       if (parsed.kind === "help") {
         appendMessage(makeLocalMessage(
           "system",
-          "Commands: /world <message>, /party <message>, /private <player> <message>, /reply <message> or /r. Party is unavailable until a party system exists.",
+          "Commands: /world <message>, /party <message>, /private <player> <message>, /reply <message> or /r. Create or join a party using the party controls.",
         ));
         return;
       }
       if (parsed.kind === "error") {
         appendMessage(makeLocalMessage("system", parsed.text));
-        return;
-      }
-      if (parsed.channel === "party") {
-        appendMessage(makeLocalMessage("system", "Party chat is unavailable. Join a party to chat."));
         return;
       }
       const socket = socketRef.current;
@@ -296,6 +305,15 @@ export const DistrictChat = forwardRef<DistrictChatHandle, DistrictChatProps>(
         text: parsed.text,
         ...(parsed.channel === "private" ? { recipient: parsed.recipient } : {}),
       }));
+    }, [appendMessage]);
+
+    const sendPartyAction = useCallback((action: PartyAction, details: { recipient?: string; invitationId?: string } = {}) => {
+      const socket = socketRef.current;
+      if (!socket || socket.readyState !== WebSocket.OPEN) {
+        appendMessage(makeLocalMessage("system", "Not connected. Party changes will be available when chat reconnects."));
+        return;
+      }
+      socket.send(JSON.stringify({ type: "party", action, ...details }));
     }, [appendMessage]);
 
     const toggleMuteChannel = useCallback((channel: DistrictChatChannel) => {
@@ -326,7 +344,13 @@ export const DistrictChat = forwardRef<DistrictChatHandle, DistrictChatProps>(
         onlineNames={onlineNames}
         connectionStatus={connectionStatus}
         identityLabel={identityLabel}
-        partyAvailable={false}
+        partyAvailable={Boolean(party)}
+        party={party}
+        partyInvitations={partyInvitations}
+        onCreateParty={() => sendPartyAction("create")}
+        onLeaveParty={() => sendPartyAction("leave")}
+        onInviteToParty={(recipient) => sendPartyAction("invite", { recipient })}
+        onAcceptPartyInvitation={(invitationId) => sendPartyAction("join", { invitationId })}
         open={open}
         onToggle={onToggle}
         onSelectChannel={selectChannel}

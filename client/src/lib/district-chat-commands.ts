@@ -11,7 +11,7 @@ export type DistrictChatParseResult =
   | { kind: "error"; text: string };
 
 const HELP_TEXT =
-  "Commands: /world <message>, /party <message>, /private <player> <message>, /reply <message> (/r). Party chat is unavailable until a party system exists.";
+  "Commands: /world <message>, /party <message>, /private <player> <message>, /reply <message> (/r). Use the party controls to create, join, leave, or invite.";
 
 function validateText(text: string): { value: string } | { error: string } {
   const trimmed = text.trim();

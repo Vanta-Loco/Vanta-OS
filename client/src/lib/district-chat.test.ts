@@ -22,7 +22,7 @@ test("chat commands parse world, private, and reply aliases", () => {
   });
 });
 
-test("party remains unavailable and local/system channels are read-only", () => {
+test("party messages are parsed for server authorization and local/system channels stay read-only", () => {
   assert.deepEqual(parseDistrictChatInput("/party hi", "world", null), {
     kind: "send",
     channel: "party",
