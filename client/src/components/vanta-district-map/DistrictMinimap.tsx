@@ -153,6 +153,10 @@ export function DistrictMinimap({
           />
         )}
         {routePath && <path className="vdm-minimap__route" d={routePath} />}
+        {routePath && route && (() => {
+          const arrival = projectDistrictWorldPoint(route.arrivalPoint.x, route.arrivalPoint.z, bounds);
+          return <circle className="vdm-minimap__route-arrival" cx={arrival.x} cy={arrival.y} r="4" aria-label="Destination entrance" />;
+        })()}
         {locations.map((location) => {
           const point = projectDistrictWorldPoint(location.x, location.z, bounds);
           const important = IMPORTANT_DESTINATIONS.has(location.id);
@@ -195,7 +199,7 @@ export function DistrictMinimap({
           <span className="vdm-minimap__route-status" aria-live="polite">
             {route
               ? `${Math.max(0, Math.round(route.distance))} m · ${route.direction}`
-              : playerDestinationId ? "OBJECTIVE ROUTE" : "OPEN MAP TO SET A ROUTE"}
+              : playerDestinationId ? "SAFE ROUTE UNAVAILABLE · MOVE TO A CLEAR STREET" : "OPEN MAP TO SET A ROUTE"}
           </span>
           {onOpenMap && (
             <button

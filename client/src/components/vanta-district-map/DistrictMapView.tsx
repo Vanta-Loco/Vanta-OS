@@ -239,6 +239,10 @@ export function DistrictMapView({
                       return `${index === 0 ? "M" : "L"}${projected.x} ${projected.y}`;
                     }).join(" ")}
                   />
+                  {(() => {
+                    const arrival = toPoint(route.arrivalPoint.x, route.arrivalPoint.z);
+                    return <circle className="vdm-route-arrival" cx={arrival.x} cy={arrival.y} r="4.5" />;
+                  })()}
                 </svg>
               ) : null}
 
@@ -347,6 +351,12 @@ export function DistrictMapView({
                 <div className="vdm-route-summary" aria-live="polite">
                   <span>ACTIVE OBJECTIVE</span>
                   <strong>{Math.max(0, Math.round(route.distance))} m · {route.direction}</strong>
+                </div>
+              )}
+              {selectedIsObjective && !route && !selectedIsLocked && (
+                <div className="vdm-route-unavailable" role="status" aria-live="polite">
+                  <strong>SAFE ROUTE UNAVAILABLE</strong>
+                  <span>Move onto a clear street or bridge and the route will recalculate.</span>
                 </div>
               )}
               {selectedIsLocked ? (

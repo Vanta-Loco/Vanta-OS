@@ -5,8 +5,12 @@ import {
   DISTRICT_ZONES,
 } from "./district-map-geometry";
 import {
+  DISTRICT_BRIDGE_MARK_PATHS,
   DISTRICT_DESTINATION_ACCESS_ROADS,
+  DISTRICT_PARK_POLYGONS,
   DISTRICT_ROAD_LINES,
+  DISTRICT_RIVER_TOP_SHORELINE,
+  DISTRICT_WATER_POLYGON,
   districtRoadPath,
 } from "./district-navigation-geometry";
 
@@ -14,6 +18,9 @@ type Props = {
   className?: string;
   viewBox?: string;
 };
+
+const mapPoints = (points: Array<{ x: number; y: number }>) =>
+  points.map((point) => `${point.x.toFixed(2)},${point.y.toFixed(2)}`).join(" ");
 
 export function DistrictMapArtwork({ className = "vdm-map-art", viewBox = `0 0 ${DISTRICT_MAP_WIDTH} ${DISTRICT_MAP_HEIGHT}` }: Props) {
   return (
@@ -39,11 +46,12 @@ export function DistrictMapArtwork({ className = "vdm-map-art", viewBox = `0 0 $
           <text className="vdm-district-name" x={district.labelX} y={district.labelY}>{district.name}</text>
         </g>
       ))}
-      <path className="vdm-water" d="M-10 251 C112 225 172 268 258 256 C344 244 402 230 476 256 C555 284 606 320 691 305 C803 286 875 242 1010 268 L1010 294 C875 268 803 311 694 332 C600 350 551 312 466 284 C398 262 344 278 262 288 C166 300 112 258 -10 282 Z" />
-      <path className="vdm-water-highlight" d="M-10 265 C112 239 172 282 258 270 C344 258 402 244 476 270 C555 298 606 334 691 319 C803 300 875 256 1010 282" />
-      <path className="vdm-park" d="M73 557 L197 541 L232 618 L179 670 L54 663 Z" />
+      <polygon className="vdm-water" points={mapPoints(DISTRICT_WATER_POLYGON)} />
+      <polyline className="vdm-water-highlight" points={mapPoints(DISTRICT_RIVER_TOP_SHORELINE)} />
+      {DISTRICT_PARK_POLYGONS.map((polygon, index) => (
+        <polygon key={`park-${index}`} className="vdm-park" points={mapPoints(polygon)} />
+      ))}
       <path className="vdm-park-detail" d="M85 575 L124 614 L177 565 M124 614 L163 652 M124 614 L75 645" />
-      <path className="vdm-park" d="M786 447 L865 431 L933 458 L916 520 L837 532 L776 499 Z" />
       <path className="vdm-park-detail" d="M798 471 L844 487 L891 452 M844 487 L858 521 M844 487 L803 510" />
       {DISTRICT_BLOCKS.map(([x, y, width, height], index) => (
         <g key={`block-${index}`} className="vdm-city-block">
@@ -70,14 +78,9 @@ export function DistrictMapArtwork({ className = "vdm-map-art", viewBox = `0 0 $
             <path className={road.roadClass === "bridge" ? "vdm-bridge-access-fill" : "vdm-alley-fill"} d={districtRoadPath(road.points)} />
           </g>
         ))}
-        {[155, 365, 652, 856].map((x) => (
-          <g key={`bridge-${x}`} className="vdm-bridge-mark" aria-hidden="true">
-            <path d={`M${x - 4} 263v21 M${x} 263v21 M${x + 4} 263v21`} />
-          </g>
+        {DISTRICT_BRIDGE_MARK_PATHS.map((path, index) => (
+          <path key={`bridge-${index}`} className="vdm-bridge-mark" d={path} aria-hidden="true" />
         ))}
-        <g className="vdm-bridge-mark" aria-hidden="true">
-          <path d="M488 278h14 M488 284h14 M488 290h14" />
-        </g>
       </g>
       <g className="vdm-road-labels">
         <text x="66" y="108">WESTLINE AVE</text><text x="667" y="358">CROWN CIRCUIT</text>

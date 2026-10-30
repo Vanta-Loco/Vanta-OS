@@ -101,7 +101,7 @@ const indexSpinePoint = pointOnPolylineAtY(northSouthSpine, 288);
 export const DISTRICT_DESTINATION_ENTRANCES: Record<string, DistrictMapGeometryPoint> = {
   "black-index": { x: 578, y: 288 },
   "music-hub": { x: 395, y: 264 },
-  "vault-gate": { x: 669, y: 362 },
+  "vault-gate": { x: 652, y: 374 },
   wireline: { x: 358, y: 400 },
   fract: { x: 522, y: 202 },
   subway: { x: 468, y: 442 },
@@ -119,10 +119,10 @@ export const DISTRICT_DESTINATION_ACCESS_ROADS: DistrictRoadLine[] = [
   { id: "fract-approach", roadClass: "alley", points: [DISTRICT_DESTINATION_ENTRANCES.fract, fractArterialPoint] },
   { id: "metro-approach", roadClass: "alley", points: [DISTRICT_DESTINATION_ENTRANCES.subway, { x: 468, y: 450 }] },
   { id: "vanta-core-approach", roadClass: "alley", points: [DISTRICT_DESTINATION_ENTRANCES["vanta-os"], coreArterialPoint] },
-  { id: "vault-approach", roadClass: "alley", points: [DISTRICT_DESTINATION_ENTRANCES["vault-gate"], { x: 669, y: 365 }] },
+  { id: "vault-approach", roadClass: "alley", points: [DISTRICT_DESTINATION_ENTRANCES["vault-gate"], { x: 652, y: 365 }] },
 ];
 
-/** Approximation follows the same shoreline control points as DistrictMapArtwork's water shape. */
+/** Shared shoreline samples are rendered directly and also constrain route edges. */
 function cubicBoundary(curves: Cubic[], steps = 16): DistrictMapGeometryPoint[] {
   return sampleCubics(curves, steps);
 }
@@ -140,9 +140,54 @@ const riverBottom = cubicBoundary([
   [{ x: 262, y: 288 }, { x: 166, y: 300 }, { x: 112, y: 258 }, { x: -10, y: 282 }],
 ]);
 
+export const DISTRICT_RIVER_TOP_SHORELINE = riverTop;
+
 export const DISTRICT_WATER_POLYGON: DistrictMapGeometryPoint[] = [
   ...riverTop,
   ...riverBottom,
+];
+
+function isInsideWater(point: DistrictMapGeometryPoint): boolean {
+  let inside = false;
+  for (let i = 0, j = DISTRICT_WATER_POLYGON.length - 1; i < DISTRICT_WATER_POLYGON.length; j = i++) {
+    const a = DISTRICT_WATER_POLYGON[i], b = DISTRICT_WATER_POLYGON[j];
+    if (((a.y > point.y) !== (b.y > point.y)) &&
+      point.x < ((b.x - a.x) * (point.y - a.y)) / (b.y - a.y || 1e-12) + a.x) inside = !inside;
+  }
+  return inside;
+}
+
+function bridgeMarkPath(road: DistrictRoadLine): string | null {
+  const samples: Array<{ point: DistrictMapGeometryPoint; tangent: DistrictMapGeometryPoint }> = [];
+  for (let index = 1; index < road.points.length; index++) {
+    const a = road.points[index - 1], b = road.points[index];
+    const length = Math.hypot(b.x - a.x, b.y - a.y);
+    const count = Math.max(1, Math.ceil(length / 1.5));
+    for (let step = 0; step <= count; step++) {
+      if (index > 1 && step === 0) continue;
+      const t = step / count;
+      const point = { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
+      if (isInsideWater(point)) samples.push({ point, tangent: { x: b.x - a.x, y: b.y - a.y } });
+    }
+  }
+  if (samples.length < 4) return null;
+  return [0.28, 0.72].map((fraction) => {
+    const sample = samples[Math.round((samples.length - 1) * fraction)];
+    const length = Math.hypot(sample.tangent.x, sample.tangent.y) || 1;
+    const nx = -sample.tangent.y / length * 5;
+    const ny = sample.tangent.x / length * 5;
+    return `M${(sample.point.x - nx).toFixed(2)} ${(sample.point.y - ny).toFixed(2)}L${(sample.point.x + nx).toFixed(2)} ${(sample.point.y + ny).toFixed(2)}`;
+  }).join(" ");
+}
+
+export const DISTRICT_BRIDGE_MARK_PATHS = DISTRICT_ROAD_LINES
+  .filter((road) => road.bridgeAllowed)
+  .map(bridgeMarkPath)
+  .filter((path): path is string => Boolean(path));
+
+export const DISTRICT_PARK_POLYGONS: DistrictMapGeometryPoint[][] = [
+  [{ x: 73, y: 557 }, { x: 197, y: 541 }, { x: 232, y: 618 }, { x: 179, y: 670 }, { x: 54, y: 663 }],
+  [{ x: 786, y: 447 }, { x: 865, y: 431 }, { x: 933, y: 458 }, { x: 916, y: 520 }, { x: 837, y: 532 }, { x: 776, y: 499 }],
 ];
 
 export const DISTRICT_BUILDING_BLOCKS = DISTRICT_BLOCKS;

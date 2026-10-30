@@ -9,6 +9,7 @@ import {
   DISTRICT_BUILDING_BLOCKS,
   DISTRICT_DESTINATION_ACCESS_ROADS,
   DISTRICT_DESTINATION_ENTRANCES,
+  DISTRICT_PARK_POLYGONS,
   DISTRICT_ROAD_LINES,
   DISTRICT_WATER_POLYGON,
   type DistrictMapGeometryPoint,
@@ -199,8 +200,15 @@ function routeDirection(from: DistrictWorldPoint, to: DistrictWorldPoint): strin
 
 function directionForRoute(points: DistrictWorldPoint[], destination: DistrictWorldPoint): string {
   if (points.length <= 1 || distance(points[0], destination) <= DISTRICT_ARRIVAL_RADIUS) return "ARRIVED";
-  const next = points.find((point, index) => index > 0 && distance(points[0], point) > 0.5);
-  return next ? routeDirection(points[0], next) : "ARRIVED";
+  const firstIndex = points.findIndex((point, index) => index > 0 && distance(points[0], point) > 0.5);
+  if (firstIndex < 0) return "ARRIVED";
+  const firstDirection = routeDirection(points[0], points[firstIndex]);
+  for (let index = firstIndex + 1; index < points.length; index++) {
+    if (distance(points[index - 1], points[index]) <= 0.5) continue;
+    const nextDirection = routeDirection(points[index - 1], points[index]);
+    if (nextDirection !== firstDirection) return `${firstDirection} → ${nextDirection}`;
+  }
+  return firstDirection;
 }
 
 function projectOntoSegment<T extends { x: number; y?: number; z?: number }>(
@@ -299,6 +307,10 @@ function segmentCrossesWater(a: DistrictMapGeometryPoint, b: DistrictMapGeometry
   return segmentIntersectsPolygon(a, b, DISTRICT_WATER_POLYGON);
 }
 
+function segmentCrossesPark(a: DistrictMapGeometryPoint, b: DistrictMapGeometryPoint): boolean {
+  return DISTRICT_PARK_POLYGONS.some((polygon) => segmentIntersectsPolygon(a, b, polygon));
+}
+
 function pointToSegmentDistance(point: DistrictMapGeometryPoint, a: DistrictMapGeometryPoint, b: DistrictMapGeometryPoint) {
   return mapDistance(point, projectOntoSegment(point, a, b).point as DistrictMapGeometryPoint);
 }
@@ -321,12 +333,26 @@ function isAlongApprovedBridge(a: DistrictMapGeometryPoint, b: DistrictMapGeomet
   });
 }
 
+function isAlongWalkableRoad(a: DistrictMapGeometryPoint, b: DistrictMapGeometryPoint): boolean {
+  const lines = [...DISTRICT_ROAD_LINES, ...DISTRICT_DESTINATION_ACCESS_ROADS];
+  const samples = Array.from({ length: 9 }, (_, index) => ({
+    x: a.x + (b.x - a.x) * index / 8,
+    y: a.y + (b.y - a.y) * index / 8,
+  }));
+  return lines.some((road) => samples.every((sample) =>
+    road.points.slice(1).some((point, index) =>
+      pointToSegmentDistance(sample, road.points[index], point) <= 2.5,
+    ),
+  ));
+}
+
 function isSafeMapSegment(
   a: DistrictMapGeometryPoint,
   b: DistrictMapGeometryPoint,
   allowBridge = false,
 ): boolean {
   if (segmentHitsBuilding(a, b)) return false;
+  if (segmentCrossesPark(a, b) && !isAlongWalkableRoad(a, b)) return false;
   if (!segmentCrossesWater(a, b)) return true;
   return allowBridge || isAlongApprovedBridge(a, b);
 }
@@ -339,6 +365,7 @@ type RawSegment = {
   road: DistrictRoadLine;
   cuts: number[];
 };
+const districtGraphCache = new Map<string, RoadGraph>();
 
 function densifyRoad(road: DistrictRoadLine): DistrictMapGeometryPoint[] {
   const points: DistrictMapGeometryPoint[] = [];
@@ -384,7 +411,7 @@ function intersectionParameters(
     : null;
 }
 
-function buildRoadGraph(bounds: DistrictMapBounds): RoadGraph {
+function buildRoadGraphUncached(bounds: DistrictMapBounds): RoadGraph {
   const segments = makeRawSegments();
   for (let first = 0; first < segments.length; first++) {
     for (let second = first + 1; second < segments.length; second++) {
@@ -435,7 +462,11 @@ function buildRoadGraph(bounds: DistrictMapBounds): RoadGraph {
       });
       const a = at(t0), b = at(t1);
       const crossesWater = segmentCrossesWater(a, b);
-      if (segmentHitsBuilding(a, b) || (crossesWater && !segment.road.bridgeAllowed)) continue;
+      if (
+        segmentHitsBuilding(a, b) ||
+        (segmentCrossesPark(a, b) && !isAlongWalkableRoad(a, b)) ||
+        (crossesWater && !segment.road.bridgeAllowed)
+      ) continue;
       const kind: DistrictRouteSegmentKind = crossesWater || segment.road.roadClass === "bridge"
         ? "bridge"
         : segment.road.roadClass;
@@ -447,13 +478,23 @@ function buildRoadGraph(bounds: DistrictMapBounds): RoadGraph {
   return { mapNodes, worldNodes, edges };
 }
 
-function nearestSafeGraphNode(
+function buildRoadGraph(bounds: DistrictMapBounds): RoadGraph {
+  const cacheKey = [bounds.minX, bounds.maxX, bounds.minZ, bounds.maxZ]
+    .map((value) => value.toFixed(3)).join(":");
+  const cached = districtGraphCache.get(cacheKey);
+  if (cached) return cached;
+  const graph = buildRoadGraphUncached(bounds);
+  districtGraphCache.set(cacheKey, graph);
+  return graph;
+}
+
+function reachableSafeGraphNodes(
   point: DistrictMapGeometryPoint,
   graph: RoadGraph,
   maxDistanceWorld: number,
   bounds: DistrictMapBounds,
-): { index: number; mapPoint: DistrictMapGeometryPoint } | null {
-  let best: { index: number; mapPoint: DistrictMapGeometryPoint; distance: number } | null = null;
+): Array<{ index: number; mapPoint: DistrictMapGeometryPoint; distance: number }> {
+  const candidates: Array<{ index: number; mapPoint: DistrictMapGeometryPoint; distance: number }> = [];
   for (let index = 0; index < graph.mapNodes.length; index++) {
     const node = graph.mapNodes[index];
     if (!isSafeMapSegment(point, node)) continue;
@@ -462,11 +503,9 @@ function nearestSafeGraphNode(
       graph.worldNodes[index],
     );
     if (worldDistance > maxDistanceWorld) continue;
-    if (!best || worldDistance < best.distance - 1e-7) {
-      best = { index, mapPoint: node, distance: worldDistance };
-    }
+    candidates.push({ index, mapPoint: node, distance: worldDistance });
   }
-  return best;
+  return candidates.sort((a, b) => a.distance - b.distance || a.index - b.index);
 }
 
 type SearchState = {
@@ -493,31 +532,80 @@ function turnPenalty(
   return 0;
 }
 
-function shortestRoadPath(graph: RoadGraph, start: number, goal: number): {
+function shortestRoadPath(
+  graph: RoadGraph,
+  starts: Array<{ index: number; distance: number }>,
+  goals: Array<{ index: number; distance: number }>,
+): {
   nodes: number[];
   edgeKinds: DistrictRouteSegmentKind[];
 } | null {
-  const initialKey = `-1:${start}:start`;
-  const states = new Map<string, SearchState>([[
-    initialKey,
-    { key: initialKey, previous: -1, current: start, lastKind: "start", cost: 0, priority: distance(graph.worldNodes[start], graph.worldNodes[goal]) },
-  ]]);
+  if (!starts.length || !goals.length) return null;
+  const goalIndices = new Set(goals.map((goal) => goal.index));
+  const goalHeuristic = (nodeIndex: number) => Math.min(...goals.map((goal) =>
+    distance(graph.worldNodes[nodeIndex], graph.worldNodes[goal.index]) + goal.distance,
+  ));
+  const states = new Map<string, SearchState>();
   const parents = new Map<string, { key: string; kind: DistrictRouteSegmentKind }>();
-  const bestCosts = new Map<string, number>([[initialKey, 0]]);
-  const open = [initialKey];
+  const bestCosts = new Map<string, number>();
+  const open: SearchState[] = [];
+  const compare = (left: SearchState, right: SearchState) =>
+    left.priority - right.priority || left.cost - right.cost ||
+    left.current - right.current || left.previous - right.previous || left.key.localeCompare(right.key);
+  const push = (state: SearchState) => {
+    open.push(state);
+    let index = open.length - 1;
+    while (index > 0) {
+      const parent = Math.floor((index - 1) / 2);
+      if (compare(open[parent], open[index]) <= 0) break;
+      [open[parent], open[index]] = [open[index], open[parent]];
+      index = parent;
+    }
+  };
+  const pop = () => {
+    const first = open[0];
+    const last = open.pop()!;
+    if (open.length) {
+      open[0] = last;
+      let index = 0;
+      while (true) {
+        const left = index * 2 + 1;
+        const right = left + 1;
+        let smallest = index;
+        if (left < open.length && compare(open[left], open[smallest]) < 0) smallest = left;
+        if (right < open.length && compare(open[right], open[smallest]) < 0) smallest = right;
+        if (smallest === index) break;
+        [open[index], open[smallest]] = [open[smallest], open[index]];
+        index = smallest;
+      }
+    }
+    return first;
+  };
+  for (const start of starts) {
+    const key = `-1:${start.index}:connector`;
+    const state: SearchState = {
+      key,
+      previous: -1,
+      current: start.index,
+      lastKind: "connector",
+      cost: start.distance,
+      priority: start.distance + goalHeuristic(start.index),
+    };
+    const existing = bestCosts.get(key);
+    if (existing === undefined || state.cost < existing) {
+      bestCosts.set(key, state.cost);
+      states.set(key, state);
+      push(state);
+    }
+  }
   let resultKey: string | null = null;
 
   while (open.length) {
-    open.sort((leftKey, rightKey) => {
-      const left = states.get(leftKey)!;
-      const right = states.get(rightKey)!;
-      return left.priority - right.priority || left.cost - right.cost ||
-        left.current - right.current || left.previous - right.previous || left.key.localeCompare(right.key);
-    });
-    const key = open.shift()!;
-    const state = states.get(key)!;
-    if (state.cost > (bestCosts.get(key) ?? Number.POSITIVE_INFINITY) + 1e-7) continue;
-    if (state.current === goal) { resultKey = key; break; }
+    const queued = pop();
+    const key = queued.key;
+    if (queued.cost > (bestCosts.get(key) ?? Number.POSITIVE_INFINITY) + 1e-7) continue;
+    const state = queued;
+    if (goalIndices.has(state.current)) { resultKey = key; break; }
 
     for (const edge of graph.edges[state.current]) {
       const nextPoint = graph.worldNodes[edge.to];
@@ -540,10 +628,10 @@ function shortestRoadPath(graph: RoadGraph, start: number, goal: number): {
         current: edge.to,
         lastKind: edge.kind,
         cost: nextCost,
-        priority: nextCost + distance(nextPoint, graph.worldNodes[goal]),
+        priority: nextCost + goalHeuristic(edge.to),
       };
       states.set(nextKey, nextState);
-      open.push(nextKey);
+      push(nextState);
     }
   }
   if (!resultKey) return null;
@@ -637,11 +725,18 @@ export function buildDistrictRoute(
   }
 
   const graph = buildRoadGraph(bounds);
-  const startSnap = nearestSafeGraphNode(startMap, graph, 52, bounds);
-  const endSnap = nearestSafeGraphNode(entranceMap, graph, 2, bounds);
-  if (!startSnap || !endSnap) return null;
-  const path = shortestRoadPath(graph, startSnap.index, endSnap.index);
+  const startSnaps = reachableSafeGraphNodes(startMap, graph, 52, bounds);
+  const endSnaps = reachableSafeGraphNodes(entranceMap, graph, 2, bounds);
+  if (!startSnaps.length || !endSnaps.length) return null;
+  const path = shortestRoadPath(
+    graph,
+    startSnaps.map(({ index, distance: snapDistance }) => ({ index, distance: snapDistance })),
+    endSnaps.map(({ index, distance: snapDistance }) => ({ index, distance: snapDistance })),
+  );
   if (!path) return null;
+  const pathEndIndex = path.nodes[path.nodes.length - 1];
+  const endSnap = endSnaps.find((candidate) => candidate.index === pathEndIndex);
+  if (!endSnap) return null;
 
   const points: DistrictWorldPoint[] = [start];
   const segmentTypes: DistrictRouteSegmentKind[] = [];
@@ -651,7 +746,7 @@ export function buildDistrictRoute(
     points.push(point);
     segmentTypes.push(kind);
   };
-  append(graph.worldNodes[startSnap.index], "connector");
+  append(graph.worldNodes[path.nodes[0]], "connector");
   for (let index = 1; index < path.nodes.length; index++) {
     append(graph.worldNodes[path.nodes[index]], path.edgeKinds[index - 1]);
   }
@@ -674,6 +769,7 @@ export function isDistrictRouteGeometrySafe(
     const b = projectDistrictWorldPoint(route.points[index].x, route.points[index].z, bounds);
     const kind = route.segmentTypes[index - 1];
     if (segmentHitsBuilding(a, b)) return false;
+    if (segmentCrossesPark(a, b) && !isAlongWalkableRoad(a, b)) return false;
     if (segmentCrossesWater(a, b) && kind !== "bridge" && !isAlongApprovedBridge(a, b)) return false;
   }
   return true;
@@ -736,8 +832,7 @@ export function trimDistrictRoute(
   const bounds = getDistrictMapBounds(DISTRICT_LANDMARKS);
   const playerMap = projectDistrictWorldPoint(position.x, position.z, bounds);
   const projectedMap = projectDistrictWorldPoint(nearestPoint.x, nearestPoint.z, bounds);
-  const onBridge = route.segmentTypes[segmentIndex] === "bridge";
-  if (!isSafeMapSegment(playerMap, projectedMap, onBridge)) {
+  if (!isSafeMapSegment(playerMap, projectedMap)) {
     return buildDistrictRoute(position, destinationId, bounds, unlockedDestinationIds);
   }
 
@@ -748,7 +843,7 @@ export function trimDistrictRoute(
     points.push(point);
     segmentTypes.push(kind);
   };
-  append(nearestPoint, onBridge ? "bridge" : "connector");
+  append(nearestPoint, "connector");
   for (let index = segmentIndex + 1; index < route.points.length; index++) {
     append(route.points[index], route.segmentTypes[index - 1]);
   }

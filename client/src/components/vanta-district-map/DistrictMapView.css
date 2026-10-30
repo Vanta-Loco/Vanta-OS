@@ -87,10 +87,12 @@
   transform-origin: 50% 50%;
   will-change: transform;
 }
-.vdm-map-art { width: 100%; height: 100%; display: block; overflow: visible; }
+.vdm-map-art { width: 100%; height: 100%; display: block; overflow: visible; pointer-events: none; }
 .vdm-route-overlay { position: absolute; inset: 0; z-index: 2; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
-.vdm-route-shadow { fill: none; stroke: rgba(9, 6, 15, .96); stroke-width: 13; stroke-linecap: round; stroke-linejoin: round; }
-.vdm-route-line { fill: none; stroke: #d6b3ff; stroke-width: 6; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 7px rgba(190, 133, 255, .8)); }
+.vdm-route-shadow { fill: none; stroke: rgba(9, 6, 15, .96); stroke-width: 6; stroke-linecap: round; stroke-linejoin: round; }
+.vdm-route-line { fill: none; stroke: #d6b3ff; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 3px rgba(190, 133, 255, .65)); }
+.vdm-route-arrival { fill: #e8d8ff; stroke: #2a1c38; stroke-width: 2; }
+.vdm-route-unavailable { margin-top: 14px; padding: 10px; border: 1px solid rgba(234, 179, 8, .42); color: #f3d991; background: rgba(73, 51, 17, .28); font-size: 9px; line-height: 1.6; letter-spacing: .06em; }
 .vdm-district-zone { stroke-width: 1.3; stroke-dasharray: 4 7; }
 .zone-violet { fill: rgba(95, 59, 130, .11); stroke: rgba(176, 120, 220, .17); }
 .zone-rose { fill: rgba(119, 54, 92, .09); stroke: rgba(216, 119, 169, .17); }
@@ -107,6 +109,11 @@
 .vdm-road-edge { fill: none; stroke: rgba(138, 121, 156, .32); stroke-width: 21; }
 .vdm-road-fill { fill: none; stroke: #27232f; stroke-width: 17; }
 .vdm-road-center { fill: none; stroke: rgba(183, 163, 196, .25); stroke-width: 1; stroke-dasharray: 7 11; }
+.vdm-alley-edge, .vdm-bridge-access-edge { fill: none; stroke: rgba(138, 121, 156, .34); stroke-width: 9; stroke-linecap: round; stroke-linejoin: round; }
+.vdm-alley-fill { fill: none; stroke: #332d3b; stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; }
+.vdm-bridge-access-edge { stroke: rgba(132, 160, 181, .45); stroke-dasharray: 3 2; }
+.vdm-bridge-access-fill { fill: none; stroke: #34424e; stroke-width: 5; stroke-dasharray: 4 2; stroke-linecap: round; stroke-linejoin: round; }
+.vdm-bridge-mark { fill: none; stroke: rgba(198, 174, 215, .78); stroke-width: 1; }
 .vdm-arterial-edge { fill: none; stroke: rgba(198, 154, 218, .32); stroke-width: 27; }
 .vdm-arterial { fill: none; stroke: #332a3c; stroke-width: 21; }
 .vdm-road-labels { fill: rgba(202, 183, 210, .56); font: 8px "Space Mono", monospace; letter-spacing: 1.5px; }
