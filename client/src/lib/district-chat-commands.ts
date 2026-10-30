@@ -3,6 +3,28 @@ export const DISTRICT_CHAT_MAX_LENGTH = 500;
 export const DISTRICT_CHAT_INPUT_LIMIT = DISTRICT_CHAT_MAX_LENGTH + 64;
 
 export type DistrictChatChannel = "system" | "local" | "world" | "party" | "private";
+export const DISTRICT_CHAT_REPORT_CATEGORIES = [
+  { id: "harassment", label: "Harassment" },
+  { id: "hate", label: "Hate or slurs" },
+  { id: "threats", label: "Threats" },
+  { id: "spam", label: "Spam" },
+  { id: "other", label: "Other" },
+] as const;
+export type DistrictChatReportCategory = typeof DISTRICT_CHAT_REPORT_CATEGORIES[number]["id"];
+
+export function isOwnDistrictChatMessage(sender: string, identityLabel?: string): boolean {
+  const displayName = identityLabel?.replace(/^@/, "").split(" ·")[0]?.trim();
+  return Boolean(displayName && sender.normalize("NFKC").toLocaleLowerCase() === displayName.normalize("NFKC").toLocaleLowerCase());
+}
+
+export function canReportDistrictChatMessage(
+  message: { channel: DistrictChatChannel; sender: string; direction?: "incoming" | "outgoing" },
+  identityLabel?: string,
+): boolean {
+  return (message.channel === "world" || message.channel === "party" || message.channel === "private") &&
+    message.direction !== "outgoing" &&
+    !isOwnDistrictChatMessage(message.sender, identityLabel);
+}
 
 export type DistrictChatParseResult =
   | { kind: "send"; channel: "world" | "party"; text: string }

@@ -9,6 +9,7 @@ import {
 import { getUserToken } from "@/hooks/use-user";
 import {
   DISTRICT_CHAT_HISTORY_LIMIT,
+  type DistrictChatReportCategory,
   parseDistrictChatInput,
   type DistrictChatChannel,
 } from "@/lib/district-chat-commands";
@@ -26,6 +27,7 @@ const TICKET_PROTOCOL_PREFIX = "vanta-ticket.";
 type ServerEvent =
   | { type: "welcome"; displayName: string; identityType: "member" | "guest" }
   | { type: "presence"; names: string[] }
+  | { type: "block-state"; senders: string[] }
   | {
       type: "party-state";
       party: { id: string; name: string; members: string[] } | null;
@@ -174,6 +176,8 @@ export const DistrictChat = forwardRef<DistrictChatHandle, DistrictChatProps>(
           }
         } else if (event.type === "presence") {
           setOnlineNames(event.names.filter((name) => typeof name === "string").slice(0, 100));
+        } else if (event.type === "block-state") {
+          setBlockedSenders(event.senders.filter((name) => typeof name === "string").slice(0, 100));
         } else if (event.type === "party-state") {
           setParty(event.party ? { name: event.party.name, members: event.party.members } : null);
           setPartyInvitations(event.invitations);
@@ -322,12 +326,24 @@ export const DistrictChat = forwardRef<DistrictChatHandle, DistrictChatProps>(
         : [...current, channel]);
     }, []);
 
-    const toggleBlockedSender = useCallback((sender: string) => {
-      const key = sender.toLocaleLowerCase();
-      setBlockedSenders((current) => current.some((name) => name.toLocaleLowerCase() === key)
-        ? current.filter((name) => name.toLocaleLowerCase() !== key)
-        : [...current, sender]);
-    }, []);
+    const setBlockedSender = useCallback((sender: string) => {
+      const socket = socketRef.current;
+      if (!socket || socket.readyState !== WebSocket.OPEN) {
+        appendMessage(makeLocalMessage("system", "Not connected. Block changes will be available when chat reconnects."));
+        return;
+      }
+      const alreadyBlocked = blockedSenders.some((name) => name.toLocaleLowerCase() === sender.toLocaleLowerCase());
+      socket.send(JSON.stringify({ type: "block", sender, blocked: !alreadyBlocked }));
+    }, [appendMessage, blockedSenders]);
+
+    const reportMessage = useCallback((messageId: string, category: DistrictChatReportCategory) => {
+      const socket = socketRef.current;
+      if (!socket || socket.readyState !== WebSocket.OPEN) {
+        appendMessage(makeLocalMessage("system", "Not connected. Reports will be available when chat reconnects."));
+        return;
+      }
+      socket.send(JSON.stringify({ type: "report", messageId, category }));
+    }, [appendMessage]);
 
     const selectChannel = useCallback((channel: DistrictChatChannel) => {
       setActiveChannel(channel);
@@ -358,7 +374,8 @@ export const DistrictChat = forwardRef<DistrictChatHandle, DistrictChatProps>(
         onFocus={() => onInputFocus(true)}
         onBlur={() => onInputFocus(false)}
         onMuteChannel={toggleMuteChannel}
-        onBlockSender={toggleBlockedSender}
+        onBlockSender={setBlockedSender}
+        onReportMessage={reportMessage}
         initiallyOpen={false}
         keyboardShortcutEnabled={keyboardShortcutEnabled}
       />

@@ -11,9 +11,15 @@ const TICKET_PROTOCOL = "vanta-ticket.";
 const CHAT_PROTOCOL = "vanta-chat.v1";
 const MESSAGE_WINDOW_MS = 10_000;
 const MESSAGE_LIMIT_PER_WINDOW = 6;
+const REPORT_WINDOW_MS = 15 * 60_000;
+const REPORT_LIMIT_PER_WINDOW = 3;
+const REPORTABLE_MESSAGE_LIMIT = 500;
+const BLOCKED_SENDER_LIMIT = 100;
 const PARTY_INVITE_TTL_MS = 5 * 60_000;
 const PARTY_MEMBER_LIMIT = 8;
 export const MAX_DISTRICT_CHAT_MESSAGE_LENGTH = 500;
+export const DISTRICT_CHAT_REPORT_CATEGORIES = ["harassment", "hate", "threats", "spam", "other"] as const;
+type DistrictChatReportCategory = typeof DISTRICT_CHAT_REPORT_CATEGORIES[number];
 
 export type ChatTicketIdentity =
   | { kind: "member"; userId: string; displayName: string }
@@ -36,11 +42,20 @@ type ChatClientCommand = {
   action: "create" | "join" | "leave" | "invite";
   invitationId?: string;
   recipient?: string;
+} | {
+  type: "block";
+  sender: string;
+  blocked: boolean;
+} | {
+  type: "report";
+  messageId: string;
+  category: DistrictChatReportCategory;
 };
 
 type ChatEvent =
   | { type: "welcome"; displayName: string; identityType: "member" | "guest" }
   | { type: "presence"; names: string[] }
+  | { type: "block-state"; senders: string[] }
   | {
       type: "party-state";
       party: { id: string; name: string; members: string[] } | null;
@@ -72,6 +87,13 @@ type ConnectedClient = {
   sentAt: number[];
 };
 
+type ReportableMessage = {
+  channel: "world" | "party" | "private";
+  senderIdentityKey: string;
+  senderName: string;
+  recipientIdentityKeys: Set<string>;
+};
+
 const commandSchema = z.object({
   type: z.literal("send"),
   channel: z.enum(["world", "party", "private"]),
@@ -82,6 +104,14 @@ const commandSchema = z.object({
   action: z.enum(["create", "join", "leave", "invite"]),
   invitationId: z.string().uuid().optional(),
   recipient: z.string().max(32).optional(),
+}).strict()).or(z.object({
+  type: z.literal("block"),
+  sender: z.string().min(1).max(32),
+  blocked: z.boolean(),
+}).strict()).or(z.object({
+  type: z.literal("report"),
+  messageId: z.string().uuid(),
+  category: z.enum(DISTRICT_CHAT_REPORT_CATEGORIES),
 }).strict());
 
 function normalizeName(value: string): string {
@@ -170,6 +200,12 @@ function parseCommand(raw: string): ChatClientCommand | null {
   }
   const parsed = commandSchema.safeParse(input);
   if (!parsed.success) return null;
+  if (parsed.data.type === "block") {
+    const sender = parsed.data.sender.trim().replace(/^@/, "");
+    if (!sender || /[\u0000-\u001F\u007F]/.test(sender)) return null;
+    return { ...parsed.data, sender };
+  }
+  if (parsed.data.type === "report") return { ...parsed.data };
   if (parsed.data.type === "party") {
     if (parsed.data.action === "join") {
       return parsed.data.invitationId ? { ...parsed.data } : null;
@@ -212,8 +248,20 @@ export class DistrictChatHub {
     inviterName: string;
     expiresAt: number;
   }>();
+  private blockedSenders = new Map<string, Map<string, string>>();
+  private reportTimes = new Map<string, number[]>();
+  private reportableMessages = new Map<string, ReportableMessage>();
 
-  constructor(private readonly clock: () => number = () => Date.now()) {}
+  constructor(
+    private readonly clock: () => number = () => Date.now(),
+    private readonly reportSink: (report: {
+      messageId: string;
+      channel: "world" | "party" | "private";
+      category: DistrictChatReportCategory;
+      reportedSender: string;
+      reporterKind: "member" | "guest";
+    }) => void = (report) => console.warn("[district-chat] message report:", JSON.stringify(report)),
+  ) {}
 
   connect(identity: ChatTicketIdentity, peer: ChatPeer): string {
     const connectionId = randomUUID();
@@ -247,6 +295,7 @@ export class DistrictChatHub {
       displayName,
       identityType: identity.kind,
     });
+    this.sendBlockState(identityKey);
     this.system(connectionId, "Connected to Vanta District chat. Messages are temporary and clear when the server restarts.");
     const partyId = this.partyByIdentity.get(identityKey);
     const party = partyId ? this.parties.get(partyId) : undefined;
@@ -291,6 +340,14 @@ export class DistrictChatHub {
       this.handlePartyCommand(sender, command);
       return;
     }
+    if (command.type === "block") {
+      this.setBlockedSender(sender, command.sender, command.blocked);
+      return;
+    }
+    if (command.type === "report") {
+      this.reportMessage(sender, command.messageId, command.category);
+      return;
+    }
 
     const now = this.clock();
     sender.sentAt = sender.sentAt.filter((time) => now - time < MESSAGE_WINDOW_MS);
@@ -318,9 +375,17 @@ export class DistrictChatHub {
         text: command.text,
         timestamp,
       };
-      for (const client of Array.from(this.clients.values())) {
-        if (party.members.has(client.identityKey)) this.safeSend(client, event);
-      }
+      const recipients = Array.from(this.clients.values()).filter((client) =>
+        party.members.has(client.identityKey) &&
+        !this.isBlocked(client.identityKey, sender.displayName)
+      );
+      this.rememberMessage(id, {
+        channel: "party",
+        senderIdentityKey: sender.identityKey,
+        senderName: sender.displayName,
+        recipientIdentityKeys: new Set(recipients.map((client) => client.identityKey)),
+      });
+      for (const client of recipients) this.safeSend(client, event);
       return;
     }
     if (command.channel === "world") {
@@ -332,7 +397,16 @@ export class DistrictChatHub {
         text: command.text,
         timestamp,
       };
-      for (const client of Array.from(this.clients.values())) this.safeSend(client, event);
+      const recipients = Array.from(this.clients.values()).filter((client) =>
+        !this.isBlocked(client.identityKey, sender.displayName)
+      );
+      this.rememberMessage(id, {
+        channel: "world",
+        senderIdentityKey: sender.identityKey,
+        senderName: sender.displayName,
+        recipientIdentityKeys: new Set(recipients.map((client) => client.identityKey)),
+      });
+      for (const client of recipients) this.safeSend(client, event);
       return;
     }
 
@@ -346,18 +420,29 @@ export class DistrictChatHub {
       this.error(connectionId, "That player is unavailable or not online.");
       return;
     }
+    const deliverableTargets = targets.filter((target) => !this.isBlocked(target.identityKey, sender.displayName));
+    if (deliverableTargets.length === 0) {
+      this.error(connectionId, "That player has blocked messages from this sender.");
+      return;
+    }
+    this.rememberMessage(id, {
+      channel: "private",
+      senderIdentityKey: sender.identityKey,
+      senderName: sender.displayName,
+      recipientIdentityKeys: new Set(deliverableTargets.map((target) => target.identityKey)),
+    });
 
     this.safeSend(sender, {
       type: "message",
       id,
       channel: "private",
       sender: sender.displayName,
-      recipient: targets[0].displayName,
+      recipient: deliverableTargets[0].displayName,
       direction: "outgoing",
       text: command.text,
       timestamp,
     });
-    for (const target of targets) {
+    for (const target of deliverableTargets) {
       this.safeSend(target, {
         type: "message",
         id,
@@ -369,6 +454,91 @@ export class DistrictChatHub {
         timestamp,
       });
     }
+  }
+
+  private setBlockedSender(client: ConnectedClient, senderName: string, blocked: boolean): void {
+    const normalized = normalizeName(senderName);
+    if (!normalized || normalized === normalizeName(client.displayName)) {
+      return this.error(client.connectionId, "You cannot block your own sender name.");
+    }
+    let blockedByIdentity = this.blockedSenders.get(client.identityKey);
+    if (!blockedByIdentity) {
+      blockedByIdentity = new Map();
+      this.blockedSenders.set(client.identityKey, blockedByIdentity);
+    }
+    if (blocked && !blockedByIdentity.has(normalized) && blockedByIdentity.size >= BLOCKED_SENDER_LIMIT) {
+      return this.error(client.connectionId, "Your block list is full. Unblock a sender before adding another.");
+    }
+    if (blocked) blockedByIdentity.set(normalized, senderName);
+    else blockedByIdentity.delete(normalized);
+    if (blockedByIdentity.size === 0) this.blockedSenders.delete(client.identityKey);
+    this.sendBlockState(client.identityKey);
+    this.system(client.connectionId, blocked
+      ? `Messages from ${senderName} are blocked.`
+      : `Messages from ${senderName} are unblocked.`);
+  }
+
+  private sendBlockState(identityKey: string): void {
+    const senders = Array.from(this.blockedSenders.get(identityKey)?.values() ?? []);
+    for (const client of Array.from(this.clients.values())) {
+      if (client.identityKey === identityKey) this.safeSend(client, { type: "block-state", senders });
+    }
+  }
+
+  private isBlocked(recipientIdentityKey: string, senderName: string): boolean {
+    return this.blockedSenders.get(recipientIdentityKey)?.has(normalizeName(senderName)) ?? false;
+  }
+
+  private rememberMessage(id: string, message: ReportableMessage): void {
+    this.reportableMessages.set(id, message);
+    while (this.reportableMessages.size > REPORTABLE_MESSAGE_LIMIT) {
+      const oldestId = this.reportableMessages.keys().next().value;
+      if (!oldestId) break;
+      this.reportableMessages.delete(oldestId);
+    }
+  }
+
+  private reportMessage(
+    reporter: ConnectedClient,
+    messageId: string,
+    category: DistrictChatReportCategory,
+  ): void {
+    const message = this.reportableMessages.get(messageId);
+    if (
+      !message ||
+      message.senderIdentityKey === reporter.identityKey ||
+      !message.recipientIdentityKeys.has(reporter.identityKey)
+    ) {
+      return this.error(reporter.connectionId, "That message is no longer available to report.");
+    }
+
+    const now = this.clock();
+    const recentReports = (this.reportTimes.get(reporter.identityKey) ?? [])
+      .filter((time) => now - time < REPORT_WINDOW_MS);
+    if (this.reportTimes.size > 10_000) {
+      for (const [identityKey, times] of Array.from(this.reportTimes.entries())) {
+        if (times.every((time) => now - time >= REPORT_WINDOW_MS)) this.reportTimes.delete(identityKey);
+      }
+    }
+    if (recentReports.length >= REPORT_LIMIT_PER_WINDOW) {
+      this.reportTimes.set(reporter.identityKey, recentReports);
+      const cooldownMs = Math.max(250, REPORT_WINDOW_MS - (now - recentReports[0]));
+      return this.error(reporter.connectionId, "Report limit reached. Try again later.", cooldownMs);
+    }
+    recentReports.push(now);
+    this.reportTimes.set(reporter.identityKey, recentReports);
+    try {
+      this.reportSink({
+        messageId,
+        channel: message.channel,
+        category,
+        reportedSender: message.senderName,
+        reporterKind: reporter.kind,
+      });
+    } catch {
+      return this.error(reporter.connectionId, "The report could not be submitted. Please try again.");
+    }
+    this.system(reporter.connectionId, "Report received. Message content is not included in the report.");
   }
 
   private handlePartyCommand(

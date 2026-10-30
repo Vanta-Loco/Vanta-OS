@@ -410,6 +410,30 @@
 .vdc-chat__block:focus-visible { opacity: 1; }
 .vdc-chat__block:hover { border-color: rgba(208, 139, 139, .45); color: #e3a7a7 !important; }
 .vdc-chat__message p { margin: 4px 0 0; color: #d2cbd8; font-size: 9px; line-height: 1.55; overflow-wrap: anywhere; white-space: pre-wrap; }
+.vdc-chat__report-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+  color: #82788a;
+  font-size: 6px;
+}
+.vdc-chat__report-actions button {
+  min-height: 20px;
+  padding: 2px 5px;
+  border: 1px solid rgba(190, 164, 220, .2);
+  background: rgba(20, 16, 26, .72);
+  color: #c3b2ce;
+  font-size: 6px;
+  letter-spacing: .035em;
+  cursor: pointer;
+}
+.vdc-chat__report-actions button:hover,
+.vdc-chat__report-actions button:focus-visible {
+  border-color: rgba(208, 139, 139, .55);
+  color: #efb5b5;
+}
 
 .vdc-chat__empty {
   display: flex;

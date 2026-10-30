@@ -14,3 +14,4 @@
 - [Package firewall blocks](package-firewall.md) — when a vulnerable transitive npm package is blocked, update its direct parent and lockfile to a patched resolution; never bypass the firewall.
 - [Vault media privacy](vault-media-privacy.md) — Keep unreleased media off public upload paths; require access-checked delivery except for the startup-radio track.
 - [GODFORSAKEN coordinate spaces](gfp-coordinate-spaces.md) — Keep station-local gameplay coordinates separate from the Vanta District city grid; bridge only through the station landmark.
+- [District chat report privacy](district-chat-report-privacy.md) — Reports should reference validated delivered messages but retain only moderation metadata, never private message text or recipients.

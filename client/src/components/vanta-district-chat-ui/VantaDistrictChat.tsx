@@ -1,6 +1,12 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type PointerEvent as ReactPointerEvent } from "react";
 import "./VantaDistrictChat.css";
-import { DISTRICT_CHAT_INPUT_LIMIT } from "@/lib/district-chat-commands";
+import {
+  canReportDistrictChatMessage,
+  DISTRICT_CHAT_INPUT_LIMIT,
+  DISTRICT_CHAT_REPORT_CATEGORIES,
+  isOwnDistrictChatMessage,
+  type DistrictChatReportCategory,
+} from "@/lib/district-chat-commands";
 
 export type DistrictChatChannel = "system" | "local" | "world" | "party" | "private";
 export type DistrictChatConnectionStatus = "connected" | "connecting" | "disconnected" | "error" | (string & {});
@@ -48,6 +54,7 @@ export interface VantaDistrictChatProps {
   onBlur?: () => void;
   onMuteChannel: (channel: DistrictChatChannel) => void;
   onBlockSender: (sender: string) => void;
+  onReportMessage: (messageId: string, category: DistrictChatReportCategory) => void;
   open?: boolean;
   identityLabel?: string;
   initiallyOpen?: boolean;
@@ -114,6 +121,7 @@ export function VantaDistrictChat({
   onBlur,
   onMuteChannel,
   onBlockSender,
+  onReportMessage,
   open: controlledOpen,
   identityLabel,
   initiallyOpen = true,
@@ -125,6 +133,7 @@ export function VantaDistrictChat({
   const [draft, setDraft] = useState("");
   const [invitee, setInvitee] = useState("");
   const [helpOpen, setHelpOpen] = useState(false);
+  const [reportingMessageId, setReportingMessageId] = useState<string | number | null>(null);
   const [size, setSize] = useState({ width: 354, height: 442 });
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -352,13 +361,13 @@ export function VantaDistrictChat({
               <p><code>/world &lt;message&gt;</code> · <code>/party &lt;message&gt;</code></p>
               <p><code>/private &lt;player&gt; &lt;message&gt;</code></p>
               <p><code>/reply &lt;message&gt;</code> · alias <code>/r</code> · <code>/help</code></p>
-              <span>Use party controls to create, join, leave, or invite. Party messages reach current members only. Blocked senders are hidden on this device for this session.</span>
+              <span>Use party controls to create, join, leave, or invite. Party messages reach current members only. Blocking a sender is enforced by chat and follows your player identity.</span>
             </section>
           )}
 
           {blockedSenders.length > 0 && (
-            <div className="vdc-chat__blocked-list" aria-label="Blocked senders for this session">
-              <span>HIDDEN</span>
+            <div className="vdc-chat__blocked-list" aria-label="Blocked senders">
+              <span>BLOCKED</span>
               {blockedSenders.map((sender) => (
                 <button
                   key={sender.toLocaleLowerCase()}
@@ -389,16 +398,45 @@ export function VantaDistrictChat({
                       <time className="vdc-chat__timestamp" dateTime={timestampDateTime(message.timestamp)}>
                         {formatTimestamp(message.timestamp)}
                       </time>
-                      {(message.channel === "world" || message.channel === "private") && (
+                      {(message.channel === "world" || message.channel === "party" || message.channel === "private") &&
+                        !isOwnDistrictChatMessage(message.sender, identityLabel) && (
                       <button
                         className="vdc-chat__block"
                         type="button"
-                        aria-label={`Block ${message.sender}`}
+                        aria-label={blockedLookup.has(message.sender.toLocaleLowerCase())
+                          ? `Unblock ${message.sender}`
+                          : `Block ${message.sender}`}
                         onClick={() => onBlockSender(message.sender)}
-                      >BLOCK</button>
+                      >{blockedLookup.has(message.sender.toLocaleLowerCase()) ? "UNBLOCK" : "BLOCK"}</button>
                       )}
                     </div>
                     <p>{message.text}</p>
+                    {canReportDistrictChatMessage(message, identityLabel) && (
+                      <div className="vdc-chat__report-actions">
+                        {reportingMessageId === message.id ? (
+                          <>
+                            <span>REPORT AS</span>
+                            {DISTRICT_CHAT_REPORT_CATEGORIES.map(({ id, label }) => (
+                              <button
+                                key={id}
+                                type="button"
+                                onClick={() => {
+                                  onReportMessage(String(message.id), id);
+                                  setReportingMessageId(null);
+                                }}
+                              >{label}</button>
+                            ))}
+                            <button type="button" onClick={() => setReportingMessageId(null)}>CANCEL</button>
+                          </>
+                        ) : (
+                          <button
+                            type="button"
+                            aria-label={`Report message from ${message.sender}`}
+                            onClick={() => setReportingMessageId(message.id)}
+                          >REPORT</button>
+                        )}
+                      </div>
+                    )}
                   </li>
                 ))}
               </ol>

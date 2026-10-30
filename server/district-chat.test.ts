@@ -99,6 +99,169 @@ test("private chat is routed to its named online player, never the wider world",
   assert.match(String(eventList(senderEvents, "error").at(-1)?.text), /unavailable or not online/i);
 });
 
+test("blocks are server-enforced for world and private delivery and can be removed", () => {
+  const hub = new DistrictChatHub(() => 2_500);
+  const senderEvents: Event[] = [];
+  const targetEvents: Event[] = [];
+  const otherEvents: Event[] = [];
+  const senderId = hub.connect(
+    { kind: "guest", guestId: "11111111-aaaa", displayName: "Guest-11111111" },
+    peer(senderEvents),
+  );
+  const targetId = hub.connect(
+    { kind: "member", userId: "member-2", displayName: "TargetUser" },
+    peer(targetEvents),
+  );
+  hub.connect(
+    { kind: "member", userId: "member-3", displayName: "OtherUser" },
+    peer(otherEvents),
+  );
+  targetEvents.length = 0;
+  hub.receive(targetId, JSON.stringify({
+    type: "block",
+    sender: "Guest-11111111",
+    blocked: true,
+  }));
+  assert.deepEqual(eventList(targetEvents, "block-state").at(-1)?.senders, ["Guest-11111111"]);
+  targetEvents.length = 0;
+
+  hub.receive(senderId, JSON.stringify({
+    type: "send",
+    channel: "world",
+    text: "not for the blocker",
+  }));
+  assert.equal(eventList(targetEvents, "message").length, 0);
+  assert.equal(eventList(otherEvents, "message").length, 1);
+
+  hub.receive(senderId, JSON.stringify({
+    type: "send",
+    channel: "private",
+    recipient: "TargetUser",
+    text: "private blocked message",
+  }));
+  assert.equal(eventList(targetEvents, "message").length, 0);
+  assert.match(String(eventList(senderEvents, "error").at(-1)?.text), /blocked messages/i);
+
+  hub.receive(targetId, JSON.stringify({
+    type: "block",
+    sender: "Guest-11111111",
+    blocked: false,
+  }));
+  assert.deepEqual(eventList(targetEvents, "block-state").at(-1)?.senders, []);
+  targetEvents.length = 0;
+  hub.receive(senderId, JSON.stringify({
+    type: "send",
+    channel: "private",
+    recipient: "TargetUser",
+    text: "allowed after unblock",
+  }));
+  assert.equal(eventList(targetEvents, "message").length, 1);
+  assert.equal(eventList(targetEvents, "message")[0].text, "allowed after unblock");
+});
+
+test("reports validate message delivery and omit private content and recipient metadata", () => {
+  const hubReports: Array<Record<string, unknown>> = [];
+  const hub = new DistrictChatHub(() => 4_000, (report) => hubReports.push(report));
+  const senderEvents: Event[] = [];
+  const targetEvents: Event[] = [];
+  const outsiderEvents: Event[] = [];
+  const senderId = hub.connect(
+    { kind: "member", userId: "sender", displayName: "Sender" },
+    peer(senderEvents),
+  );
+  const targetId = hub.connect(
+    { kind: "member", userId: "target", displayName: "Target" },
+    peer(targetEvents),
+  );
+  const outsiderId = hub.connect(
+    { kind: "member", userId: "outsider", displayName: "Outsider" },
+    peer(outsiderEvents),
+  );
+  targetEvents.length = 0;
+  outsiderEvents.length = 0;
+  hub.receive(senderId, JSON.stringify({
+    type: "send",
+    channel: "private",
+    recipient: "Target",
+    text: "private message text must not be retained",
+  }));
+  const privateMessageId = eventList(targetEvents, "message")[0]?.id as string;
+
+  hub.receive(outsiderId, JSON.stringify({
+    type: "report",
+    messageId: privateMessageId,
+    category: "harassment",
+  }));
+  assert.equal(hubReports.length, 0);
+  assert.match(String(eventList(outsiderEvents, "error").at(-1)?.text), /no longer available/i);
+
+  hub.receive(targetId, JSON.stringify({
+    type: "report",
+    messageId: privateMessageId,
+    category: "threats",
+  }));
+  assert.equal(hubReports.length, 1);
+  assert.deepEqual(hubReports[0], {
+    messageId: privateMessageId,
+    channel: "private",
+    category: "threats",
+    reportedSender: "Sender",
+    reporterKind: "member",
+  });
+  assert.equal("text" in hubReports[0], false);
+  assert.equal("recipient" in hubReports[0], false);
+
+  targetEvents.length = 0;
+  hub.receive(targetId, JSON.stringify({
+    type: "report",
+    messageId: "not-a-uuid",
+    category: "other",
+  }));
+  assert.match(String(eventList(targetEvents, "error").at(-1)?.text), /invalid chat message/i);
+  hub.receive(targetId, JSON.stringify({
+    type: "report",
+    messageId: privateMessageId,
+    category: "unrecognized",
+  }));
+  assert.match(String(eventList(targetEvents, "error").at(-1)?.text), /invalid chat message/i);
+});
+
+test("reports have a separate per-player rate limit", () => {
+  let now = 6_000;
+  const reports: Array<Record<string, unknown>> = [];
+  const hub = new DistrictChatHub(() => now, (report) => reports.push(report));
+  const senderEvents: Event[] = [];
+  const reporterEvents: Event[] = [];
+  const senderId = hub.connect(
+    { kind: "member", userId: "sender", displayName: "Sender" },
+    peer(senderEvents),
+  );
+  const reporterId = hub.connect(
+    { kind: "member", userId: "reporter", displayName: "Reporter" },
+    peer(reporterEvents),
+  );
+  senderEvents.length = 0;
+  reporterEvents.length = 0;
+  for (let i = 0; i < 4; i++) {
+    hub.receive(senderId, JSON.stringify({
+      type: "send",
+      channel: "world",
+      text: `message ${i}`,
+    }));
+    const messageId = eventList(reporterEvents, "message").at(-1)?.id as string;
+    hub.receive(reporterId, JSON.stringify({
+      type: "report",
+      messageId,
+      category: "spam",
+    }));
+    now += 1;
+  }
+  assert.equal(reports.length, 3);
+  const [limitError] = eventList(reporterEvents, "error");
+  assert.match(String(limitError?.text), /report limit/i);
+  assert.ok(Number(limitError?.cooldownMs) > 0);
+});
+
 test("party membership requires a targeted invitation and routes only to party members", () => {
   const hub = new DistrictChatHub(() => 3_000);
   const leader: Event[] = [];
