@@ -1,4 +1,13 @@
-import { Component, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  Component,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type MouseEvent as ReactMouseEvent,
+  type PointerEvent as ReactPointerEvent,
+  type ReactNode,
+} from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { useLocation } from "wouter";
 import * as THREE from "three";
@@ -1158,6 +1167,8 @@ export default function World() {
   const gamePausedRef = useRef(false);
   const chatInputFocusedRef = useRef(false);
   const chatRef = useRef<DistrictChatHandle | null>(null);
+  const secondaryTouchButtonPointersRef = useRef(new Map<number, HTMLButtonElement>());
+  const suppressSecondaryTouchClickRef = useRef(false);
   const [liveRoute, setLiveRoute] = useState<DistrictRoute | null>(() =>
     initialNavigationSave.selectedDestinationId
       ? buildDistrictRoute(
@@ -1243,6 +1254,7 @@ export default function World() {
     const paused = rotateDevice || hubMenuOpen;
     gamePausedRef.current = paused;
     if (paused || mapOpen) {
+      secondaryTouchButtonPointersRef.current.clear();
       touchAxesRef.current = { ...NEUTRAL_JOYSTICK };
       chatInputFocusedRef.current = false;
     }
@@ -1482,6 +1494,39 @@ export default function World() {
     chatInputFocusedRef.current = focused;
     if (focused) touchAxesRef.current = { ...NEUTRAL_JOYSTICK };
   }, []);
+  const rememberSecondaryTouchPointer = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    if (event.pointerType === "touch" && !event.isPrimary) {
+      secondaryTouchButtonPointersRef.current.set(event.pointerId, event.currentTarget);
+    }
+  };
+  const clearSecondaryTouchPointer = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    if (secondaryTouchButtonPointersRef.current.get(event.pointerId) === event.currentTarget) {
+      secondaryTouchButtonPointersRef.current.delete(event.pointerId);
+    }
+  };
+  const handleSecondaryTouchPointerUp = (
+    event: ReactPointerEvent<HTMLButtonElement>,
+    action: () => void,
+  ) => {
+    if (
+      event.pointerType !== "touch" ||
+      event.isPrimary ||
+      secondaryTouchButtonPointersRef.current.get(event.pointerId) !== event.currentTarget
+    ) return;
+    secondaryTouchButtonPointersRef.current.delete(event.pointerId);
+    event.preventDefault();
+    suppressSecondaryTouchClickRef.current = true;
+    window.setTimeout(() => { suppressSecondaryTouchClickRef.current = false; }, 0);
+    action();
+  };
+  const handleControlClick = (event: ReactMouseEvent<HTMLButtonElement>, action: () => void) => {
+    if (suppressSecondaryTouchClickRef.current) {
+      suppressSecondaryTouchClickRef.current = false;
+      event.preventDefault();
+      return;
+    }
+    action();
+  };
   const mapLocations = DISTRICT_LANDMARKS.map((landmark) => ({
     id: landmark.id,
     name: landmark.name,
@@ -1573,13 +1618,19 @@ export default function World() {
         <button
           type="button"
           data-testid="button-open-district-map"
-          onClick={openDistrictMap}
+          onClick={(event) => handleControlClick(event, openDistrictMap)}
+          onPointerDown={rememberSecondaryTouchPointer}
+          onPointerUp={(event) => handleSecondaryTouchPointerUp(event, openDistrictMap)}
+          onPointerCancel={clearSecondaryTouchPointer}
           aria-label="Open the Vanta District map. Keyboard shortcut M."
         >MAP · M</button>
         <button
           type="button"
           data-testid="button-toggle-district-chat"
-          onClick={() => setChatOpen((value) => !value)}
+          onClick={(event) => handleControlClick(event, () => setChatOpen((value) => !value))}
+          onPointerDown={rememberSecondaryTouchPointer}
+          onPointerUp={(event) => handleSecondaryTouchPointerUp(event, () => setChatOpen((value) => !value))}
+          onPointerCancel={clearSecondaryTouchPointer}
           aria-label={chatOpen ? "Close District chat" : `Open District chat${chatUnreadCount ? `, ${chatUnreadCount} unread` : ""}`}
           aria-expanded={chatOpen}
         >
@@ -1591,10 +1642,16 @@ export default function World() {
         <button
           type="button"
           className="vanta-city-objective"
-          onClick={() => {
+          onClick={(event) => handleControlClick(event, () => {
             setSelectedMapId(navigationSave.selectedDestinationId ?? "black-index");
             openDistrictMap();
-          }}
+          })}
+          onPointerDown={rememberSecondaryTouchPointer}
+          onPointerUp={(event) => handleSecondaryTouchPointerUp(event, () => {
+            setSelectedMapId(navigationSave.selectedDestinationId ?? "black-index");
+            openDistrictMap();
+          })}
+          onPointerCancel={clearSecondaryTouchPointer}
           aria-label={navigationSave.selectedDestinationId
             ? `Change current objective ${DISTRICT_LANDMARKS.find((landmark) => landmark.id === navigationSave.selectedDestinationId)?.name ?? ""}. ${liveRoute ? `${Math.round(liveRoute.distance)} meters remaining, ${liveRoute.direction}.` : ""}`
             : "Choose a District destination and set an objective"}
@@ -1621,7 +1678,10 @@ export default function World() {
           data-vanta-city-controls=""
           data-testid="button-context-action"
           disabled={contextActionDisabled}
-          onClick={handlePrimaryAction}
+          onClick={(event) => handleControlClick(event, handlePrimaryAction)}
+          onPointerDown={rememberSecondaryTouchPointer}
+          onPointerUp={(event) => handleSecondaryTouchPointerUp(event, handlePrimaryAction)}
+          onPointerCancel={clearSecondaryTouchPointer}
           aria-label={contextActionDisabled ? `${contextActionLabel}. This location is locked.` : contextActionLabel}
         >{contextActionLabel}</button>
       )}
@@ -1653,7 +1713,13 @@ export default function World() {
           ) : lm.id === "fractured-godhead-portal" ? (
             <>
               <strong>PORTAL ARRIVAL · E ENTER FRACTURED GODHEAD</strong>
-              <button type="button" onClick={() => handleEnter("/godforsaken-paradise")}>
+              <button
+                type="button"
+                onClick={(event) => handleControlClick(event, () => handleEnter("/godforsaken-paradise"))}
+                onPointerDown={rememberSecondaryTouchPointer}
+                onPointerUp={(event) => handleSecondaryTouchPointerUp(event, () => handleEnter("/godforsaken-paradise"))}
+                onPointerCancel={clearSecondaryTouchPointer}
+              >
                 CONTINUE TO GODFORSAKEN PARADISE
               </button>
             </>
