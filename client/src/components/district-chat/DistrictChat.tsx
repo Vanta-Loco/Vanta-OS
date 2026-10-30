@@ -345,6 +345,18 @@ export const DistrictChat = forwardRef<DistrictChatHandle, DistrictChatProps>(
       socket.send(JSON.stringify({ type: "party", action, ...details }));
     }, [appendMessage]);
 
+    const removePartyMember = useCallback((memberId: string) => {
+      if (!party?.isLeader) {
+        appendMessage(makeLocalMessage("system", "Only the party leader can remove members."));
+        return;
+      }
+      if (memberId === party.leaderMemberId || !party.members.some((member) => member.id === memberId)) {
+        appendMessage(makeLocalMessage("system", "That party member is no longer available to remove."));
+        return;
+      }
+      sendPartyAction("remove", { memberId });
+    }, [appendMessage, party, sendPartyAction]);
+
     const toggleMuteChannel = useCallback((channel: DistrictChatChannel) => {
       setMutedChannels((current) => current.includes(channel)
         ? current.filter((item) => item !== channel)
@@ -391,7 +403,7 @@ export const DistrictChat = forwardRef<DistrictChatHandle, DistrictChatProps>(
         onCreateParty={() => sendPartyAction("create")}
         onLeaveParty={() => sendPartyAction("leave")}
         onInviteToParty={(recipient) => sendPartyAction("invite", { recipient })}
-        onRemovePartyMember={(memberId) => sendPartyAction("remove", { memberId })}
+        onRemovePartyMember={removePartyMember}
         onTransferPartyLeadership={(memberId) => sendPartyAction("transfer-leadership", { memberId })}
         onAcceptPartyInvitation={(invitationId) => sendPartyAction("join", { invitationId })}
         onDismissPartyInvitation={(invitationId) => sendPartyAction("dismiss", { invitationId })}

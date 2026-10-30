@@ -7,6 +7,10 @@ import {
   isOwnDistrictChatMessage,
   type DistrictChatReportCategory,
 } from "@/lib/district-chat-commands";
+import {
+  canStartPartyRemoval,
+  getConfirmablePartyRemoval,
+} from "@/lib/district-party-removal";
 
 export type DistrictChatChannel = "system" | "local" | "world" | "party" | "private";
 export type DistrictChatConnectionStatus = "connected" | "connecting" | "disconnected" | "error" | (string & {});
@@ -143,9 +147,12 @@ export function VantaDistrictChat({
   const [invitee, setInvitee] = useState("");
   const [helpOpen, setHelpOpen] = useState(false);
   const [reportingMessageId, setReportingMessageId] = useState<string | number | null>(null);
+  const [pendingPartyRemovalMemberId, setPendingPartyRemovalMemberId] = useState<string | null>(null);
   const [size, setSize] = useState({ width: 354, height: 442 });
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const removalConfirmButtonRef = useRef<HTMLButtonElement>(null);
+  const removalTriggerRefs = useRef(new Map<string, HTMLButtonElement>());
   const resizeStart = useRef<{ x: number; y: number; width: number; height: number } | null>(null);
   const channelMessages = useMemo(
     () => messages.filter((message) => message.channel === activeChannel),
@@ -181,6 +188,18 @@ export function VantaDistrictChat({
       };
     });
   }, [party?.members]);
+
+  useEffect(() => {
+    if (!getConfirmablePartyRemoval(party, pendingPartyRemovalMemberId)) {
+      setPendingPartyRemovalMemberId(null);
+    } else {
+      removalConfirmButtonRef.current?.focus();
+    }
+  }, [party, pendingPartyRemovalMemberId]);
+
+  useEffect(() => {
+    if (!open) setPendingPartyRemovalMemberId(null);
+  }, [open]);
 
   function setPanelOpen(nextOpen: boolean) {
     if (controlledOpen === undefined) setInternalOpen(nextOpen);
@@ -355,12 +374,43 @@ export function VantaDistrictChat({
                           onClick={() => onTransferPartyLeadership?.(member.id)}
                         >MAKE LEADER</button>
                       )}
-                      {party.isLeader && member.id !== party.leaderMemberId && (
+                      {canStartPartyRemoval(party, member.id) && (
+                        pendingPartyRemovalMemberId === member.id ? (
+                          <div
+                            className="vdc-chat__party-remove-confirm"
+                            role="group"
+                            aria-label={`Confirm removing ${label} from the party`}
+                          >
+                            <span aria-live="polite">Remove {label}?</span>
+                            <button
+                              ref={removalConfirmButtonRef}
+                              type="button"
+                              aria-label={`Confirm removal of ${label}`}
+                              onClick={() => {
+                                const selected = getConfirmablePartyRemoval(party, pendingPartyRemovalMemberId);
+                                if (selected?.id === member.id) onRemovePartyMember?.(selected.id);
+                                setPendingPartyRemovalMemberId(null);
+                              }}
+                            >CONFIRM</button>
+                            <button
+                              type="button"
+                              aria-label={`Cancel removing ${label}`}
+                              onClick={() => {
+                                setPendingPartyRemovalMemberId(null);
+                                window.requestAnimationFrame(() => removalTriggerRefs.current.get(member.id)?.focus());
+                              }}
+                            >CANCEL</button>
+                          </div>
+                        ) : (
                         <button
+                          ref={(node) => {
+                            if (node) removalTriggerRefs.current.set(member.id, node);
+                          }}
                           type="button"
-                          aria-label={`Remove ${label} from party`}
-                          onClick={() => onRemovePartyMember?.(member.id)}
+                          aria-label={`Review removal of ${label} from party`}
+                          onClick={() => setPendingPartyRemovalMemberId(member.id)}
                         >REMOVE</button>
+                        )
                       )}
                     </li>
                   ))}

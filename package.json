@@ -8,7 +8,7 @@
     "build": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "start": "NODE_ENV=production node dist/index.js",
     "check": "tsc",
-    "test": "tsx --test server/image-upload-policy.test.ts server/district-chat.test.ts client/src/lib/district-chat.test.ts client/src/lib/district-joystick.test.ts client/src/lib/district-chat-events.test.ts client/src/lib/transmission-image-upload.test.ts client/src/games/godforsaken-paradise/progression.test.ts client/src/games/godforsaken-paradise/station-world.test.ts client/src/lib/district-player-location.test.ts client/src/lib/district-navigation.test.ts client/src/data/district-landmarks.test.ts",
+    "test": "tsx --test server/image-upload-policy.test.ts server/district-chat.test.ts client/src/lib/district-chat.test.ts client/src/lib/district-joystick.test.ts client/src/lib/district-chat-events.test.ts client/src/lib/transmission-image-upload.test.ts client/src/games/godforsaken-paradise/progression.test.ts client/src/games/godforsaken-paradise/station-world.test.ts client/src/lib/district-player-location.test.ts client/src/lib/district-navigation.test.ts client/src/lib/district-party-removal.test.ts client/src/data/district-landmarks.test.ts",
     "db:push": "drizzle-kit push",
     "db:migrate": "tsx server/migrate.ts",
     "db:seed:dev": "NODE_ENV=development tsx server/seed-dev.ts",

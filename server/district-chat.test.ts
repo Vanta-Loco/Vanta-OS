@@ -484,6 +484,15 @@ test("party leaders can remove the selected member when party names match", () =
   leaderEvents.length = 0;
   firstTwinEvents.length = 0;
   secondTwinEvents.length = 0;
+  hub.receive(leaderId, JSON.stringify({
+    type: "party",
+    action: "remove",
+    recipient: "Twin",
+  }));
+  assert.match(String(eventList(leaderEvents, "error").at(-1)?.text), /more than one party member/i);
+  assert.equal(eventList(secondTwinEvents, "party-state").length, 0);
+
+  leaderEvents.length = 0;
   hub.receive(reconnectedFirstTwinId, JSON.stringify({
     type: "party",
     action: "remove",

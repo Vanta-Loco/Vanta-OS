@@ -241,6 +241,7 @@
 }
 .vdc-chat__party-members li {
   display: inline-flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 3px;
   padding: 2px 4px;
@@ -250,6 +251,29 @@
 .vdc-chat__party-members button {
   padding: 2px 3px;
   font-size: 6px;
+}
+.vdc-chat__party-remove-confirm {
+  flex: 1 0 100%;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-top: 3px;
+}
+.vdc-chat__party-remove-confirm span {
+  flex: 1;
+  color: #f3d5a0;
+  font-size: 7px;
+  line-height: 1.4;
+}
+.vdc-chat__party-remove-confirm button:first-of-type {
+  border-color: rgba(238, 117, 142, .55);
+  background: rgba(119, 37, 58, .38);
+  color: #ffe1e7;
+}
+.vdc-chat__party-remove-confirm button:last-of-type {
+  border-color: rgba(183, 173, 195, .28);
+  background: rgba(40, 36, 47, .5);
+  color: #d8d1df;
 }
 .vdc-chat__party-invite { display: flex; gap: 5px; }
 .vdc-chat__party-invite input {
