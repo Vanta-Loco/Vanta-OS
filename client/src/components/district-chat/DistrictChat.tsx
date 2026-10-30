@@ -53,7 +53,7 @@ type ServerEvent =
     }
   | { type: "error"; text: string; cooldownMs?: number };
 
-type PartyAction = "create" | "join" | "leave" | "invite" | "remove" | "transfer-leadership";
+type PartyAction = "create" | "join" | "dismiss" | "leave" | "invite" | "remove" | "transfer-leadership";
 
 type TicketResponse = {
   ticket: string;
@@ -394,6 +394,7 @@ export const DistrictChat = forwardRef<DistrictChatHandle, DistrictChatProps>(
         onRemovePartyMember={(memberId) => sendPartyAction("remove", { memberId })}
         onTransferPartyLeadership={(memberId) => sendPartyAction("transfer-leadership", { memberId })}
         onAcceptPartyInvitation={(invitationId) => sendPartyAction("join", { invitationId })}
+        onDismissPartyInvitation={(invitationId) => sendPartyAction("dismiss", { invitationId })}
         open={open}
         onToggle={onToggle}
         onSelectChannel={selectChannel}

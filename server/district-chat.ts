@@ -40,7 +40,7 @@ type ChatClientCommand = {
   recipient?: string;
 } | {
   type: "party";
-  action: "create" | "join" | "leave" | "invite" | "remove" | "transfer-leadership";
+  action: "create" | "join" | "dismiss" | "leave" | "invite" | "remove" | "transfer-leadership";
   invitationId?: string;
   recipient?: string;
   memberId?: string;
@@ -110,7 +110,7 @@ const commandSchema = z.object({
   recipient: z.string().max(32).optional(),
 }).strict().or(z.object({
   type: z.literal("party"),
-  action: z.enum(["create", "join", "leave", "invite", "remove", "transfer-leadership"]),
+  action: z.enum(["create", "join", "dismiss", "leave", "invite", "remove", "transfer-leadership"]),
   invitationId: z.string().uuid().optional(),
   recipient: z.string().max(32).optional(),
   memberId: z.string().uuid().optional(),
@@ -217,7 +217,7 @@ function parseCommand(raw: string): ChatClientCommand | null {
   }
   if (parsed.data.type === "report") return { ...parsed.data };
   if (parsed.data.type === "party") {
-    if (parsed.data.action === "join") {
+    if (parsed.data.action === "join" || parsed.data.action === "dismiss") {
       return parsed.data.invitationId ? { ...parsed.data } : null;
     }
     if (parsed.data.invitationId !== undefined) return null;
@@ -630,6 +630,16 @@ export class DistrictChatHub {
       this.schedulePartyInvitationExpiry(nextInvitation);
       this.sendPartyState(targetIdentityKey);
       this.system(client.connectionId, `Party invitation sent to ${target.displayName}.`);
+      return;
+    }
+    if (command.action === "dismiss") {
+      const invitation = this.partyInvitations.get(command.invitationId!);
+      if (!invitation || invitation.targetIdentityKey !== client.identityKey) {
+        this.sendPartyState(client.identityKey);
+        return this.error(client.connectionId, "That party invitation is no longer valid.");
+      }
+      this.deletePartyInvitation(invitation.id);
+      this.sendPartyState(client.identityKey);
       return;
     }
     if (command.action === "transfer-leadership") {

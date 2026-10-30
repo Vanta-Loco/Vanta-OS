@@ -314,6 +314,64 @@ test("party membership requires a targeted invitation and routes only to party m
   assert.equal(eventList(outsider, "message").length, 0);
 });
 
+test("a recipient can dismiss only their party invitation and cannot join it afterward", () => {
+  const hub = new DistrictChatHub(() => 3_250);
+  const leader: Event[] = [];
+  const firstInvitee: Event[] = [];
+  const secondInvitee: Event[] = [];
+  const leaderId = hub.connect(
+    { kind: "member", userId: "dismiss-leader", displayName: "Leader" },
+    peer(leader),
+  );
+  const firstInviteeId = hub.connect(
+    { kind: "member", userId: "dismiss-first", displayName: "First" },
+    peer(firstInvitee),
+  );
+  const secondInviteeId = hub.connect(
+    { kind: "member", userId: "dismiss-second", displayName: "Second" },
+    peer(secondInvitee),
+  );
+  hub.receive(leaderId, JSON.stringify({ type: "party", action: "create" }));
+  hub.receive(leaderId, JSON.stringify({ type: "party", action: "invite", recipient: "First" }));
+  hub.receive(leaderId, JSON.stringify({ type: "party", action: "invite", recipient: "Second" }));
+  const firstInvitation = (eventList(firstInvitee, "party-state").at(-1)?.invitations as Array<{ id: string }>)[0];
+  const secondInvitation = (eventList(secondInvitee, "party-state").at(-1)?.invitations as Array<{ id: string }>)[0];
+  assert.ok(firstInvitation?.id);
+  assert.ok(secondInvitation?.id);
+
+  hub.receive(secondInviteeId, JSON.stringify({
+    type: "party",
+    action: "dismiss",
+    invitationId: firstInvitation.id,
+  }));
+  assert.equal(
+    (eventList(firstInvitee, "party-state").at(-1)?.invitations as Array<{ id: string }>).length,
+    1,
+    "another recipient cannot dismiss the first player's invitation",
+  );
+
+  firstInvitee.length = 0;
+  hub.receive(firstInviteeId, JSON.stringify({
+    type: "party",
+    action: "dismiss",
+    invitationId: firstInvitation.id,
+  }));
+  assert.deepEqual(eventList(firstInvitee, "party-state").at(-1)?.invitations, []);
+  assert.equal(
+    (eventList(secondInvitee, "party-state").at(-1)?.invitations as Array<{ id: string }>)[0]?.id,
+    secondInvitation.id,
+  );
+
+  firstInvitee.length = 0;
+  hub.receive(firstInviteeId, JSON.stringify({
+    type: "party",
+    action: "join",
+    invitationId: firstInvitation.id,
+  }));
+  assert.match(String(eventList(firstInvitee, "error").at(-1)?.text), /no longer valid/i);
+  assert.equal(eventList(firstInvitee, "party-state").at(-1)?.party, null);
+});
+
 test("only the party leader can remove a member and the removed member loses party access", () => {
   const hub = new DistrictChatHub(() => 3_500);
   const leader: Event[] = [];

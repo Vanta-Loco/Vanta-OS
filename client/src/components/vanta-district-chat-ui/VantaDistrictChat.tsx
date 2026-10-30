@@ -52,6 +52,7 @@ export interface VantaDistrictChatProps {
   onRemovePartyMember?: (memberId: string) => void;
   onTransferPartyLeadership?: (memberId: string) => void;
   onAcceptPartyInvitation?: (invitationId: string) => void;
+  onDismissPartyInvitation?: (invitationId: string) => void;
   onToggle?: (open: boolean) => void;
   onSelectChannel: (channel: DistrictChatChannel) => void;
   onSendText: (text: string) => void;
@@ -121,6 +122,7 @@ export function VantaDistrictChat({
   onRemovePartyMember,
   onTransferPartyLeadership,
   onAcceptPartyInvitation,
+  onDismissPartyInvitation,
   onToggle,
   onSelectChannel,
   onSendText,
@@ -396,6 +398,13 @@ export function VantaDistrictChat({
                   <li key={invitation.id}>
                     <span>{invitation.inviter} invited you to {invitation.partyName}</span>
                     <button type="button" onClick={() => onAcceptPartyInvitation?.(invitation.id)}>JOIN</button>
+                    <button
+                      type="button"
+                      aria-label={`Dismiss invitation to ${invitation.partyName}`}
+                      onClick={() => onDismissPartyInvitation?.(invitation.id)}
+                    >
+                      DISMISS
+                    </button>
                   </li>
                 ))}
               </ul>
