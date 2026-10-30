@@ -63,8 +63,9 @@
   vector-effect: non-scaling-stroke;
   pointer-events: none;
 }
-.vdm-minimap__route-shadow { stroke: rgba(7, 6, 13, .98); stroke-width: 8; }
-.vdm-minimap__route { stroke: #e0c3ff; stroke-width: 3.5; filter: drop-shadow(0 0 3px rgba(191, 137, 255, .9)); }
+.vdm-minimap__route-shadow { stroke: rgba(7, 6, 13, .98); stroke-width: 5; }
+.vdm-minimap__route { stroke: #e0c3ff; stroke-width: 2.4; filter: drop-shadow(0 0 2px rgba(191, 137, 255, .75)); }
+.vdm-minimap__route-arrival { fill: #eadcff; stroke: #211a2a; stroke-width: 1.5; }
 .vdm-minimap__destination {
   fill: #160f20;
   font: 700 9px "Space Mono", monospace;

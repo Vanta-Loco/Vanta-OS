@@ -41,6 +41,7 @@ import { queueDistrictChatSystemMessage } from "@/lib/district-chat-events";
 import {
   buildDistrictRoute,
   DEFAULT_DISTRICT_NAVIGATION,
+  getDistrictDestinationEntranceWorld,
   getDistrictFastTravelSpawn,
   isFastTravelEligible,
   isSafeDistrictPosition,
@@ -1071,7 +1072,8 @@ function CityScene({
     let enterLm: LandmarkDef | null = null, eDist = ENTER_R + 1;
     let labelLm: LandmarkDef | null = null, lDist = LABEL_R + 1;
     for (const lm of LANDMARKS) {
-      const d = Math.hypot(player.position.x - lm.x, player.position.z - lm.z);
+      const entrance = getDistrictDestinationEntranceWorld(lm.id) ?? { x: lm.x, z: lm.z };
+      const d = Math.hypot(player.position.x - entrance.x, player.position.z - entrance.z);
       if (d < eDist) { eDist = d; enterLm = d < ENTER_R ? lm : null; }
       if (d < lDist) { lDist = d; labelLm = lm; }
     }
@@ -1179,7 +1181,12 @@ export default function World() {
       )
       : null,
   );
-  const baseRouteRef = useRef<DistrictWorldPoint[] | null>(liveRoute?.points ?? null);
+  const baseRouteRef = useRef<DistrictRoute | null>(liveRoute);
+  const failedRouteAttemptRef = useRef<{
+    destinationId: string;
+    position: DistrictWorldPoint;
+    at: number;
+  } | null>(null);
 
   useEffect(() => {
     const refreshOrientation = () => setRotateDevice(isSmallTouchPortrait());
@@ -1303,7 +1310,12 @@ export default function World() {
       undefined,
       navigationSaveRef.current.unlockedDestinationIds,
     );
-    baseRouteRef.current = route?.points ?? null;
+    baseRouteRef.current = route;
+    failedRouteAttemptRef.current = route ? null : {
+      destinationId: destination.id,
+      position: { x: playerPosRef.current.x, z: playerPosRef.current.z },
+      at: Date.now(),
+    };
     setLiveRoute(route);
       chatRef.current?.system(`Objective set: ${destination.name}. Follow the route on your District map.`);
   }, [persistNavigation]);
@@ -1332,7 +1344,8 @@ export default function World() {
       undefined,
       navigationSaveRef.current.unlockedDestinationIds,
     );
-    baseRouteRef.current = route?.points ?? null;
+    baseRouteRef.current = route;
+    failedRouteAttemptRef.current = null;
     setLiveRoute(route);
     setSelectedMapId(id);
     saveWorldState({ ...worldSaveRef.current });
@@ -1344,6 +1357,7 @@ export default function World() {
     resetDistrictNavigationSave();
     clearDistrictPlayerLocation();
     baseRouteRef.current = null;
+    failedRouteAttemptRef.current = null;
     setLiveRoute(null);
     persistNavigation({ ...DEFAULT_DISTRICT_NAVIGATION });
     playerPosRef.current = { x: 0, z: 0, angle: 0 };
@@ -1398,15 +1412,27 @@ export default function World() {
       const destinationId = navigationSaveRef.current.selectedDestinationId;
       if (destinationId) {
         let baseRoute = baseRouteRef.current;
-        if (!baseRoute || shouldRecalculateDistrictRoute(position, baseRoute)) {
+        const failedAttempt = failedRouteAttemptRef.current;
+        const retryFailedRoute = !baseRoute && (
+          !failedAttempt ||
+          failedAttempt.destinationId !== destinationId ||
+          Math.hypot(position.x - failedAttempt.position.x, position.z - failedAttempt.position.z) >= 8 ||
+          Date.now() - failedAttempt.at >= 1500
+        );
+        if (retryFailedRoute || (baseRoute && shouldRecalculateDistrictRoute(position, baseRoute))) {
           const recalculated = buildDistrictRoute(
             position,
             destinationId,
             undefined,
             navigationSaveRef.current.unlockedDestinationIds,
           );
-          baseRoute = recalculated?.points ?? null;
+          baseRoute = recalculated;
           baseRouteRef.current = baseRoute;
+          failedRouteAttemptRef.current = baseRoute ? null : {
+            destinationId,
+            position,
+            at: Date.now(),
+          };
         }
         setLiveRoute(baseRoute
           ? trimDistrictRoute(baseRoute, position, destinationId, navigationSaveRef.current.unlockedDestinationIds)

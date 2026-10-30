@@ -5,8 +5,19 @@ import {
   unprojectDistrictMapPoint,
   type DistrictMapBounds,
 } from "@/components/vanta-district-map/district-map-geometry";
+import {
+  DISTRICT_BUILDING_BLOCKS,
+  DISTRICT_DESTINATION_ACCESS_ROADS,
+  DISTRICT_DESTINATION_ENTRANCES,
+  DISTRICT_ROAD_LINES,
+  DISTRICT_WATER_POLYGON,
+  type DistrictMapGeometryPoint,
+  type DistrictRoadClass,
+  type DistrictRoadLine,
+} from "@/components/vanta-district-map/district-navigation-geometry";
 
 export type DistrictWorldPoint = { x: number; z: number };
+export type DistrictRouteSegmentKind = DistrictRoadClass | "connector";
 export type DistrictNavigationSave = {
   version: 1;
   coordinateSpace: "district-world-xz";
@@ -16,8 +27,11 @@ export type DistrictNavigationSave = {
 };
 export type DistrictRoute = {
   points: DistrictWorldPoint[];
+  /** One entry per adjacent point pair; bridge segments are the only routes allowed across water. */
+  segmentTypes: DistrictRouteSegmentKind[];
   distance: number;
   direction: string;
+  arrivalPoint: DistrictWorldPoint;
 };
 
 const STORAGE_KEY = "vanta.district-navigation.v1";
@@ -26,8 +40,8 @@ export const DISTRICT_METRO_UNLOCK_REQUIREMENT =
 const METRO_PREREQUISITE_IDS = ["black-index", "wireline"] as const;
 const METRO_DESTINATION_ID = "subway";
 export const DISTRICT_SAFE_POSITION_LIMIT = 500;
-const ROAD_XS = [155, 365, 652, 856] as const;
-const ROAD_YS = [116, 365, 450] as const;
+export const DISTRICT_ARRIVAL_RADIUS = 8;
+export const DISTRICT_ROUTE_OFF_PATH_THRESHOLD = 16;
 
 export const DEFAULT_DISTRICT_NAVIGATION: DistrictNavigationSave = {
   version: 1,
@@ -173,68 +187,430 @@ function distance(a: DistrictWorldPoint, b: DistrictWorldPoint) {
   return Math.hypot(a.x - b.x, a.z - b.z);
 }
 
+function mapDistance(a: DistrictMapGeometryPoint, b: DistrictMapGeometryPoint) {
+  return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
 function routeDirection(from: DistrictWorldPoint, to: DistrictWorldPoint): string {
   const angle = Math.atan2(to.x - from.x, -(to.z - from.z));
   const directions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
   return directions[Math.round(((angle + Math.PI * 2) % (Math.PI * 2)) / (Math.PI / 4)) % 8];
 }
 
-function makeRoadNetwork(bounds: DistrictMapBounds) {
-  const nodes: DistrictWorldPoint[] = [];
-  const index = new Map<string, number>();
-  for (const y of ROAD_YS) {
-    for (const x of ROAD_XS) {
-      index.set(`${x},${y}`, nodes.length);
-      nodes.push(unprojectDistrictMapPoint(x, y, bounds));
-    }
-  }
-  const edges: Array<Array<{ to: number; weight: number }>> = nodes.map(() => []);
-  const connect = (a: number, b: number) => {
-    const weight = distance(nodes[a], nodes[b]);
-    edges[a].push({ to: b, weight });
-    edges[b].push({ to: a, weight });
-  };
-  ROAD_YS.forEach((y) => ROAD_XS.slice(0, -1).forEach((x, column) => {
-    connect(index.get(`${x},${y}`)!, index.get(`${ROAD_XS[column + 1]},${y}`)!);
-  }));
-  ROAD_XS.forEach((x) => ROAD_YS.slice(0, -1).forEach((y, row) => {
-    connect(index.get(`${x},${y}`)!, index.get(`${x},${ROAD_YS[row + 1]}`)!);
-  }));
-  return { nodes, edges };
+function directionForRoute(points: DistrictWorldPoint[], destination: DistrictWorldPoint): string {
+  if (points.length <= 1 || distance(points[0], destination) <= DISTRICT_ARRIVAL_RADIUS) return "ARRIVED";
+  const next = points.find((point, index) => index > 0 && distance(points[0], point) > 0.5);
+  return next ? routeDirection(points[0], next) : "ARRIVED";
 }
 
-function shortestRoadPath(
-  nodes: DistrictWorldPoint[],
-  edges: Array<Array<{ to: number; weight: number }>>,
-  start: number,
-  end: number,
-): DistrictWorldPoint[] {
-  const costs = nodes.map(() => Number.POSITIVE_INFINITY);
-  const previous = nodes.map(() => -1);
-  const visited = new Set<number>();
-  costs[start] = 0;
-  while (visited.size < nodes.length) {
-    let current = -1;
-    for (let i = 0; i < nodes.length; i++) {
-      if (!visited.has(i) && (current === -1 || costs[i] < costs[current])) current = i;
+function projectOntoSegment<T extends { x: number; y?: number; z?: number }>(
+  point: T,
+  a: T,
+  b: T,
+) {
+  const px = point.x;
+  const py = point.y ?? point.z ?? 0;
+  const ax = a.x;
+  const ay = a.y ?? a.z ?? 0;
+  const bx = b.x;
+  const by = b.y ?? b.z ?? 0;
+  const dx = bx - ax;
+  const dy = by - ay;
+  const lengthSquared = dx * dx + dy * dy;
+  const t = lengthSquared === 0 ? 0 : Math.max(0, Math.min(1,
+    ((px - ax) * dx + (py - ay) * dy) / lengthSquared,
+  ));
+  return {
+    point: { x: ax + dx * t, y: ay + dy * t },
+    t,
+  };
+}
+
+function orientation(a: DistrictMapGeometryPoint, b: DistrictMapGeometryPoint, c: DistrictMapGeometryPoint) {
+  return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
+}
+
+function segmentsIntersect(
+  a: DistrictMapGeometryPoint,
+  b: DistrictMapGeometryPoint,
+  c: DistrictMapGeometryPoint,
+  d: DistrictMapGeometryPoint,
+): boolean {
+  const epsilon = 1e-7;
+  const abC = orientation(a, b, c);
+  const abD = orientation(a, b, d);
+  const cdA = orientation(c, d, a);
+  const cdB = orientation(c, d, b);
+  return abC * abD <= epsilon && cdA * cdB <= epsilon &&
+    Math.max(Math.min(a.x, b.x), Math.min(c.x, d.x)) <= Math.min(Math.max(a.x, b.x), Math.max(c.x, d.x)) + epsilon &&
+    Math.max(Math.min(a.y, b.y), Math.min(c.y, d.y)) <= Math.min(Math.max(a.y, b.y), Math.max(c.y, d.y)) + epsilon;
+}
+
+function pointInsidePolygon(point: DistrictMapGeometryPoint, polygon: DistrictMapGeometryPoint[]): boolean {
+  let inside = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const a = polygon[i], b = polygon[j];
+    const intersects = ((a.y > point.y) !== (b.y > point.y)) &&
+      point.x < ((b.x - a.x) * (point.y - a.y)) / (b.y - a.y || 1e-12) + a.x;
+    if (intersects) inside = !inside;
+  }
+  return inside;
+}
+
+function segmentIntersectsPolygon(
+  a: DistrictMapGeometryPoint,
+  b: DistrictMapGeometryPoint,
+  polygon: DistrictMapGeometryPoint[],
+): boolean {
+  if (pointInsidePolygon(a, polygon) || pointInsidePolygon(b, polygon)) return true;
+  for (let index = 0; index < polygon.length; index++) {
+    if (segmentsIntersect(a, b, polygon[index], polygon[(index + 1) % polygon.length])) return true;
+  }
+  return false;
+}
+
+function segmentIntersectsBlock(
+  a: DistrictMapGeometryPoint,
+  b: DistrictMapGeometryPoint,
+  block: readonly number[],
+  clearance = 2,
+): boolean {
+  const [x, y, width, height] = block;
+  const left = x - clearance, right = x + width + clearance;
+  const top = y - clearance, bottom = y + height + clearance;
+  if (
+    (a.x >= left && a.x <= right && a.y >= top && a.y <= bottom) ||
+    (b.x >= left && b.x <= right && b.y >= top && b.y <= bottom)
+  ) return true;
+  const corners: DistrictMapGeometryPoint[] = [
+    { x: left, y: top }, { x: right, y: top },
+    { x: right, y: bottom }, { x: left, y: bottom },
+  ];
+  return corners.some((corner, index) =>
+    segmentsIntersect(a, b, corner, corners[(index + 1) % corners.length]),
+  );
+}
+
+function segmentHitsBuilding(a: DistrictMapGeometryPoint, b: DistrictMapGeometryPoint): boolean {
+  return DISTRICT_BUILDING_BLOCKS.some((block) => segmentIntersectsBlock(a, b, block));
+}
+
+function segmentCrossesWater(a: DistrictMapGeometryPoint, b: DistrictMapGeometryPoint): boolean {
+  return segmentIntersectsPolygon(a, b, DISTRICT_WATER_POLYGON);
+}
+
+function pointToSegmentDistance(point: DistrictMapGeometryPoint, a: DistrictMapGeometryPoint, b: DistrictMapGeometryPoint) {
+  return mapDistance(point, projectOntoSegment(point, a, b).point as DistrictMapGeometryPoint);
+}
+
+function isAlongApprovedBridge(a: DistrictMapGeometryPoint, b: DistrictMapGeometryPoint): boolean {
+  const bridgeLines: DistrictRoadLine[] = [
+    ...DISTRICT_ROAD_LINES.filter((road) => road.bridgeAllowed),
+    ...DISTRICT_DESTINATION_ACCESS_ROADS.filter((road) => road.bridgeAllowed),
+  ];
+  return bridgeLines.some((road) => {
+    const samples = Array.from({ length: 9 }, (_, index) => ({
+      x: a.x + (b.x - a.x) * index / 8,
+      y: a.y + (b.y - a.y) * index / 8,
+    }));
+    return samples.every((sample) =>
+      road.points.slice(1).some((point, index) =>
+        pointToSegmentDistance(sample, road.points[index], point) <= 2.5,
+      ),
+    );
+  });
+}
+
+function isSafeMapSegment(
+  a: DistrictMapGeometryPoint,
+  b: DistrictMapGeometryPoint,
+  allowBridge = false,
+): boolean {
+  if (segmentHitsBuilding(a, b)) return false;
+  if (!segmentCrossesWater(a, b)) return true;
+  return allowBridge || isAlongApprovedBridge(a, b);
+}
+
+type GraphEdge = { to: number; length: number; kind: DistrictRouteSegmentKind };
+type RoadGraph = { mapNodes: DistrictMapGeometryPoint[]; worldNodes: DistrictWorldPoint[]; edges: GraphEdge[][] };
+type RawSegment = {
+  a: DistrictMapGeometryPoint;
+  b: DistrictMapGeometryPoint;
+  road: DistrictRoadLine;
+  cuts: number[];
+};
+
+function densifyRoad(road: DistrictRoadLine): DistrictMapGeometryPoint[] {
+  const points: DistrictMapGeometryPoint[] = [];
+  for (let index = 1; index < road.points.length; index++) {
+    const a = road.points[index - 1];
+    const b = road.points[index];
+    const count = Math.max(1, Math.ceil(mapDistance(a, b) / 24));
+    for (let step = index === 1 ? 0 : 1; step <= count; step++) {
+      const t = step / count;
+      points.push({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
     }
-    if (current === -1 || !Number.isFinite(costs[current])) break;
-    if (current === end) break;
-    visited.add(current);
-    for (const edge of edges[current]) {
-      const candidate = costs[current] + edge.weight;
-      if (candidate < costs[edge.to]) {
-        costs[edge.to] = candidate;
-        previous[edge.to] = current;
+  }
+  return points;
+}
+
+function makeRawSegments(): RawSegment[] {
+  const roads = [...DISTRICT_ROAD_LINES, ...DISTRICT_DESTINATION_ACCESS_ROADS];
+  const segments: RawSegment[] = [];
+  for (const road of roads) {
+    const points = densifyRoad(road);
+    for (let index = 1; index < points.length; index++) {
+      segments.push({ a: points[index - 1], b: points[index], road, cuts: [0, 1] });
+    }
+  }
+  return segments;
+}
+
+function intersectionParameters(
+  a: DistrictMapGeometryPoint,
+  b: DistrictMapGeometryPoint,
+  c: DistrictMapGeometryPoint,
+  d: DistrictMapGeometryPoint,
+): { t: number; u: number } | null {
+  const rx = b.x - a.x, ry = b.y - a.y;
+  const sx = d.x - c.x, sy = d.y - c.y;
+  const denominator = rx * sy - ry * sx;
+  if (Math.abs(denominator) < 1e-8) return null;
+  const qx = c.x - a.x, qy = c.y - a.y;
+  const t = (qx * sy - qy * sx) / denominator;
+  const u = (qx * ry - qy * rx) / denominator;
+  return t >= -1e-7 && t <= 1 + 1e-7 && u >= -1e-7 && u <= 1 + 1e-7
+    ? { t: Math.max(0, Math.min(1, t)), u: Math.max(0, Math.min(1, u)) }
+    : null;
+}
+
+function buildRoadGraph(bounds: DistrictMapBounds): RoadGraph {
+  const segments = makeRawSegments();
+  for (let first = 0; first < segments.length; first++) {
+    for (let second = first + 1; second < segments.length; second++) {
+      const a = segments[first], b = segments[second];
+      const hit = intersectionParameters(a.a, a.b, b.a, b.b);
+      if (hit) {
+        a.cuts.push(hit.t);
+        b.cuts.push(hit.u);
       }
     }
   }
-  const path: number[] = [];
-  for (let current = end; current !== -1; current = previous[current]) {
-    path.unshift(current);
-    if (current === start) break;
+
+  const mapNodes: DistrictMapGeometryPoint[] = [];
+  const nodeByKey = new Map<string, number>();
+  const edges: GraphEdge[][] = [];
+  const getNode = (point: DistrictMapGeometryPoint) => {
+    const key = `${point.x.toFixed(2)},${point.y.toFixed(2)}`;
+    const existing = nodeByKey.get(key);
+    if (existing !== undefined) return existing;
+    const index = mapNodes.length;
+    nodeByKey.set(key, index);
+    mapNodes.push({ x: Number(point.x.toFixed(2)), y: Number(point.y.toFixed(2)) });
+    edges.push([]);
+    return index;
+  };
+  const addEdge = (from: number, to: number, kind: DistrictRouteSegmentKind) => {
+    if (from === to) return;
+    const length = distance(
+      unprojectDistrictMapPoint(mapNodes[from].x, mapNodes[from].y, bounds),
+      unprojectDistrictMapPoint(mapNodes[to].x, mapNodes[to].y, bounds),
+    );
+    if (!Number.isFinite(length) || length < 0.001) return;
+    const existing = edges[from].find((edge) => edge.to === to && edge.kind === kind);
+    if (!existing) edges[from].push({ to, length, kind });
+    const reverse = edges[to].find((edge) => edge.to === from && edge.kind === kind);
+    if (!reverse) edges[to].push({ to: from, length, kind });
+  };
+
+  for (const segment of segments) {
+    const cuts = segment.cuts.sort((a, b) => a - b)
+      .filter((value, index, all) => index === 0 || value - all[index - 1] > 1e-5);
+    for (let index = 1; index < cuts.length; index++) {
+      const t0 = cuts[index - 1], t1 = cuts[index];
+      if (t1 - t0 < 1e-5) continue;
+      const at = (t: number): DistrictMapGeometryPoint => ({
+        x: segment.a.x + (segment.b.x - segment.a.x) * t,
+        y: segment.a.y + (segment.b.y - segment.a.y) * t,
+      });
+      const a = at(t0), b = at(t1);
+      const crossesWater = segmentCrossesWater(a, b);
+      if (segmentHitsBuilding(a, b) || (crossesWater && !segment.road.bridgeAllowed)) continue;
+      const kind: DistrictRouteSegmentKind = crossesWater || segment.road.roadClass === "bridge"
+        ? "bridge"
+        : segment.road.roadClass;
+      addEdge(getNode(a), getNode(b), kind);
+    }
   }
-  return path.map((node) => nodes[node]);
+
+  const worldNodes = mapNodes.map((point) => unprojectDistrictMapPoint(point.x, point.y, bounds));
+  return { mapNodes, worldNodes, edges };
+}
+
+function nearestSafeGraphNode(
+  point: DistrictMapGeometryPoint,
+  graph: RoadGraph,
+  maxDistanceWorld: number,
+  bounds: DistrictMapBounds,
+): { index: number; mapPoint: DistrictMapGeometryPoint } | null {
+  let best: { index: number; mapPoint: DistrictMapGeometryPoint; distance: number } | null = null;
+  for (let index = 0; index < graph.mapNodes.length; index++) {
+    const node = graph.mapNodes[index];
+    if (!isSafeMapSegment(point, node)) continue;
+    const worldDistance = distance(
+      unprojectDistrictMapPoint(point.x, point.y, bounds),
+      graph.worldNodes[index],
+    );
+    if (worldDistance > maxDistanceWorld) continue;
+    if (!best || worldDistance < best.distance - 1e-7) {
+      best = { index, mapPoint: node, distance: worldDistance };
+    }
+  }
+  return best;
+}
+
+type SearchState = {
+  key: string;
+  previous: number;
+  current: number;
+  lastKind: DistrictRouteSegmentKind | "start";
+  cost: number;
+  priority: number;
+};
+
+function turnPenalty(
+  previous: DistrictWorldPoint,
+  current: DistrictWorldPoint,
+  next: DistrictWorldPoint,
+): number {
+  const ax = current.x - previous.x, az = current.z - previous.z;
+  const bx = next.x - current.x, bz = next.z - current.z;
+  const denominator = Math.hypot(ax, az) * Math.hypot(bx, bz);
+  if (!denominator) return 0;
+  const cosine = Math.max(-1, Math.min(1, (ax * bx + az * bz) / denominator));
+  if (cosine < -0.65) return 9;
+  if (cosine < 0.25) return 2.4;
+  return 0;
+}
+
+function shortestRoadPath(graph: RoadGraph, start: number, goal: number): {
+  nodes: number[];
+  edgeKinds: DistrictRouteSegmentKind[];
+} | null {
+  const initialKey = `-1:${start}:start`;
+  const states = new Map<string, SearchState>([[
+    initialKey,
+    { key: initialKey, previous: -1, current: start, lastKind: "start", cost: 0, priority: distance(graph.worldNodes[start], graph.worldNodes[goal]) },
+  ]]);
+  const parents = new Map<string, { key: string; kind: DistrictRouteSegmentKind }>();
+  const bestCosts = new Map<string, number>([[initialKey, 0]]);
+  const open = [initialKey];
+  let resultKey: string | null = null;
+
+  while (open.length) {
+    open.sort((leftKey, rightKey) => {
+      const left = states.get(leftKey)!;
+      const right = states.get(rightKey)!;
+      return left.priority - right.priority || left.cost - right.cost ||
+        left.current - right.current || left.previous - right.previous || left.key.localeCompare(right.key);
+    });
+    const key = open.shift()!;
+    const state = states.get(key)!;
+    if (state.cost > (bestCosts.get(key) ?? Number.POSITIVE_INFINITY) + 1e-7) continue;
+    if (state.current === goal) { resultKey = key; break; }
+
+    for (const edge of graph.edges[state.current]) {
+      const nextPoint = graph.worldNodes[edge.to];
+      const currentPoint = graph.worldNodes[state.current];
+      const previousPoint = state.previous >= 0 ? graph.worldNodes[state.previous] : currentPoint;
+      const turn = state.previous >= 0
+        ? turnPenalty(previousPoint, currentPoint, nextPoint)
+        : 0;
+      const classChange = state.lastKind !== "start" && state.lastKind !== edge.kind ? 1.25 : 0;
+      const narrowAlley = edge.kind === "alley" ? 1.7 + edge.length * 0.018 : 0;
+      const bridgePenalty = edge.kind === "bridge" ? 0.8 : 0;
+      const nextCost = state.cost + edge.length + turn + classChange + narrowAlley + bridgePenalty;
+      const nextKey = `${state.current}:${edge.to}:${edge.kind}`;
+      if (nextCost + 1e-7 >= (bestCosts.get(nextKey) ?? Number.POSITIVE_INFINITY)) continue;
+      bestCosts.set(nextKey, nextCost);
+      parents.set(nextKey, { key, kind: edge.kind });
+      const nextState: SearchState = {
+        key: nextKey,
+        previous: state.current,
+        current: edge.to,
+        lastKind: edge.kind,
+        cost: nextCost,
+        priority: nextCost + distance(nextPoint, graph.worldNodes[goal]),
+      };
+      states.set(nextKey, nextState);
+      open.push(nextKey);
+    }
+  }
+  if (!resultKey) return null;
+
+  const nodes: number[] = [];
+  const edgeKinds: DistrictRouteSegmentKind[] = [];
+  let key = resultKey;
+  while (true) {
+    nodes.unshift(states.get(key)!.current);
+    const parent = parents.get(key);
+    if (!parent) break;
+    edgeKinds.unshift(parent.kind);
+    key = parent.key;
+  }
+  return { nodes, edgeKinds };
+}
+
+function simplifyCollinearRoute(
+  points: DistrictWorldPoint[],
+  segmentTypes: DistrictRouteSegmentKind[],
+): { points: DistrictWorldPoint[]; segmentTypes: DistrictRouteSegmentKind[] } {
+  if (points.length < 3) return { points, segmentTypes };
+  const compactPoints = [points[0]];
+  const compactTypes: DistrictRouteSegmentKind[] = [];
+  for (let index = 1; index < points.length - 1; index++) {
+    const a = compactPoints[compactPoints.length - 1];
+    const b = points[index];
+    const c = points[index + 1];
+    const before = segmentTypes[index - 1];
+    const after = segmentTypes[index];
+    const cross = (b.x - a.x) * (c.z - b.z) - (b.z - a.z) * (c.x - b.x);
+    const sameDirection = (b.x - a.x) * (c.x - b.x) + (b.z - a.z) * (c.z - b.z) >= 0;
+    if (before === after && sameDirection && Math.abs(cross) < 0.002) continue;
+    compactTypes.push(before);
+    compactPoints.push(b);
+  }
+  compactTypes.push(segmentTypes[segmentTypes.length - 1]);
+  compactPoints.push(points[points.length - 1]);
+  return { points: compactPoints, segmentTypes: compactTypes };
+}
+
+function routeLength(points: DistrictWorldPoint[]): number {
+  return points.slice(1).reduce((sum, point, index) => sum + distance(points[index], point), 0);
+}
+
+function createRoute(
+  points: DistrictWorldPoint[],
+  segmentTypes: DistrictRouteSegmentKind[],
+  arrivalPoint: DistrictWorldPoint,
+): DistrictRoute {
+  const simplified = simplifyCollinearRoute(points, segmentTypes);
+  return {
+    ...simplified,
+    distance: routeLength(simplified.points),
+    direction: routeLength(simplified.points) <= DISTRICT_ARRIVAL_RADIUS
+      ? "ARRIVED"
+      : directionForRoute(simplified.points, arrivalPoint),
+    arrivalPoint,
+  };
+}
+
+export function getDistrictDestinationEntranceWorld(
+  destinationId: string,
+  bounds = getDistrictMapBounds(DISTRICT_LANDMARKS),
+): DistrictWorldPoint | null {
+  const entrance = DISTRICT_DESTINATION_ENTRANCES[destinationId];
+  return entrance ? unprojectDistrictMapPoint(entrance.x, entrance.y, bounds) : null;
 }
 
 export function buildDistrictRoute(
@@ -244,46 +620,85 @@ export function buildDistrictRoute(
   unlockedDestinationIds: string[] = [],
 ): DistrictRoute | null {
   const destination = landmarkById.get(destinationId);
-  if (!destination || !isDistrictDestinationAvailable(destinationId, unlockedDestinationIds) ||
+  const entranceMap = DISTRICT_DESTINATION_ENTRANCES[destinationId];
+  if (!destination || !entranceMap ||
+    !isDistrictDestinationAvailable(destinationId, unlockedDestinationIds) ||
     !isSafeDistrictPosition(start)) return null;
-  const goal = { x: destination.x, z: destination.z };
-  const directDistance = distance(start, goal);
-  if (directDistance <= 18) {
-    return {
-      points: directDistance > 0.01 ? [start, goal] : [start],
-      distance: directDistance,
-      direction: directDistance <= 1 ? "ARRIVED" : routeDirection(start, goal),
-    };
+
+  const arrivalPoint = unprojectDistrictMapPoint(entranceMap.x, entranceMap.y, bounds);
+  const startMap = projectDistrictWorldPoint(start.x, start.z, bounds);
+  if (distance(start, arrivalPoint) <= DISTRICT_ARRIVAL_RADIUS &&
+    isSafeMapSegment(startMap, entranceMap)) {
+    return createRoute(
+      distance(start, arrivalPoint) > 0.01 ? [start, arrivalPoint] : [start],
+      distance(start, arrivalPoint) > 0.01 ? ["connector"] : [],
+      arrivalPoint,
+    );
   }
-  const network = makeRoadNetwork(bounds);
-  const nearest = (point: DistrictWorldPoint) => {
-    let best = 0;
-    let bestDistance = Number.POSITIVE_INFINITY;
-    for (let i = 0; i < network.nodes.length; i++) {
-      const candidate = distance(point, network.nodes[i]);
-      if (candidate < bestDistance) { best = i; bestDistance = candidate; }
-    }
-    return best;
+
+  const graph = buildRoadGraph(bounds);
+  const startSnap = nearestSafeGraphNode(startMap, graph, 52, bounds);
+  const endSnap = nearestSafeGraphNode(entranceMap, graph, 2, bounds);
+  if (!startSnap || !endSnap) return null;
+  const path = shortestRoadPath(graph, startSnap.index, endSnap.index);
+  if (!path) return null;
+
+  const points: DistrictWorldPoint[] = [start];
+  const segmentTypes: DistrictRouteSegmentKind[] = [];
+  const append = (point: DistrictWorldPoint, kind: DistrictRouteSegmentKind) => {
+    const previous = points[points.length - 1];
+    if (distance(previous, point) <= 0.001) return;
+    points.push(point);
+    segmentTypes.push(kind);
   };
-  const roadPath = shortestRoadPath(
-    network.nodes,
-    network.edges,
-    nearest(start),
-    nearest(goal),
-  );
-  const points = [start, ...roadPath, goal].filter((point, index, all) =>
-    index === 0 || distance(point, all[index - 1]) > 0.01,
-  );
-  const total = points.slice(1).reduce((sum, point, index) =>
-    sum + distance(points[index], point), 0);
-  return {
-    points,
-    distance: total,
-    direction: routeDirection(start, goal),
-  };
+  append(graph.worldNodes[startSnap.index], "connector");
+  for (let index = 1; index < path.nodes.length; index++) {
+    append(graph.worldNodes[path.nodes[index]], path.edgeKinds[index - 1]);
+  }
+  append(arrivalPoint, endSnap.index === path.nodes[path.nodes.length - 1]
+    ? (DISTRICT_DESTINATION_ACCESS_ROADS.find((road) =>
+      road.points.some((point) => mapDistance(point, entranceMap) < 0.01),
+    )?.roadClass ?? "connector")
+    : "connector");
+  const route = createRoute(points, segmentTypes, arrivalPoint);
+  return isDistrictRouteGeometrySafe(route, bounds) ? route : null;
 }
 
-function projectOntoSegment(point: DistrictWorldPoint, a: DistrictWorldPoint, b: DistrictWorldPoint) {
+export function isDistrictRouteGeometrySafe(
+  route: DistrictRoute,
+  bounds = getDistrictMapBounds(DISTRICT_LANDMARKS),
+): boolean {
+  if (route.points.length < 1 || route.segmentTypes.length !== route.points.length - 1) return false;
+  for (let index = 1; index < route.points.length; index++) {
+    const a = projectDistrictWorldPoint(route.points[index - 1].x, route.points[index - 1].z, bounds);
+    const b = projectDistrictWorldPoint(route.points[index].x, route.points[index].z, bounds);
+    const kind = route.segmentTypes[index - 1];
+    if (segmentHitsBuilding(a, b)) return false;
+    if (segmentCrossesWater(a, b) && kind !== "bridge" && !isAlongApprovedBridge(a, b)) return false;
+  }
+  return true;
+}
+
+export function distanceToDistrictRoute(
+  position: DistrictWorldPoint,
+  route: DistrictRoute | DistrictWorldPoint[],
+): number {
+  const points = Array.isArray(route) ? route : route.points;
+  if (!points.length) return Number.POSITIVE_INFINITY;
+  if (points.length === 1) return distance(position, points[0]);
+  let nearestDistance = Number.POSITIVE_INFINITY;
+  for (let index = 1; index < points.length; index++) {
+    const projected = projectWorldOntoSegment(position, points[index - 1], points[index]).point;
+    nearestDistance = Math.min(nearestDistance, distance(position, projected));
+  }
+  return nearestDistance;
+}
+
+function projectWorldOntoSegment(
+  point: DistrictWorldPoint,
+  a: DistrictWorldPoint,
+  b: DistrictWorldPoint,
+): { point: DistrictWorldPoint; t: number } {
   const dx = b.x - a.x;
   const dz = b.z - a.z;
   const lengthSquared = dx * dx + dz * dz;
@@ -293,61 +708,58 @@ function projectOntoSegment(point: DistrictWorldPoint, a: DistrictWorldPoint, b:
   return { point: { x: a.x + dx * t, z: a.z + dz * t }, t };
 }
 
-export function distanceToDistrictRoute(position: DistrictWorldPoint, route: DistrictWorldPoint[]): number {
-  if (!route.length) return Number.POSITIVE_INFINITY;
-  if (route.length === 1) return distance(position, route[0]);
-  let nearestDistance = Number.POSITIVE_INFINITY;
-  for (let i = 1; i < route.length; i++) {
-    const projected = projectOntoSegment(position, route[i - 1], route[i]).point;
-    nearestDistance = Math.min(nearestDistance, distance(position, projected));
-  }
-  return nearestDistance;
-}
-
 export function trimDistrictRoute(
-  route: DistrictWorldPoint[],
+  route: DistrictRoute,
   position: DistrictWorldPoint,
   destinationId: string,
   unlockedDestinationIds: string[] = [],
 ): DistrictRoute | null {
-  const destination = landmarkById.get(destinationId);
-  if (!route.length || !destination ||
+  if (!route.points.length || !landmarkById.has(destinationId) ||
     !isDistrictDestinationAvailable(destinationId, unlockedDestinationIds)) return null;
-  if (route.length === 1) {
+  if (route.points.length === 1) {
     return buildDistrictRoute(position, destinationId, undefined, unlockedDestinationIds);
   }
 
-  let nearestIndex = 1;
+  let segmentIndex = 0;
   let nearestDistance = Number.POSITIVE_INFINITY;
-  let nearestPoint = route[0];
-  for (let i = 1; i < route.length; i++) {
-    const projection = projectOntoSegment(position, route[i - 1], route[i]);
+  let nearestPoint: { x: number; z: number } = route.points[0];
+  for (let index = 1; index < route.points.length; index++) {
+    const projection = projectWorldOntoSegment(position, route.points[index - 1], route.points[index]);
     const candidateDistance = distance(position, projection.point);
     if (candidateDistance < nearestDistance) {
       nearestDistance = candidateDistance;
-      nearestIndex = i;
+      segmentIndex = index - 1;
       nearestPoint = projection.point;
     }
   }
-  const points = [position];
-  if (distance(position, nearestPoint) > 0.1) points.push(nearestPoint);
-  points.push(...route.slice(nearestIndex));
-  const compact = points.filter((point, index, all) =>
-    index === 0 || distance(point, all[index - 1]) > 0.01,
-  );
-  const total = compact.slice(1).reduce((sum, point, index) =>
-    sum + distance(compact[index], point), 0);
-  return {
-    points: compact,
-    distance: total,
-    direction: routeDirection(position, { x: destination.x, z: destination.z }),
+
+  const bounds = getDistrictMapBounds(DISTRICT_LANDMARKS);
+  const playerMap = projectDistrictWorldPoint(position.x, position.z, bounds);
+  const projectedMap = projectDistrictWorldPoint(nearestPoint.x, nearestPoint.z, bounds);
+  const onBridge = route.segmentTypes[segmentIndex] === "bridge";
+  if (!isSafeMapSegment(playerMap, projectedMap, onBridge)) {
+    return buildDistrictRoute(position, destinationId, bounds, unlockedDestinationIds);
+  }
+
+  const points: DistrictWorldPoint[] = [position];
+  const segmentTypes: DistrictRouteSegmentKind[] = [];
+  const append = (point: DistrictWorldPoint, kind: DistrictRouteSegmentKind) => {
+    if (distance(points[points.length - 1], point) <= 0.001) return;
+    points.push(point);
+    segmentTypes.push(kind);
   };
+  append(nearestPoint, onBridge ? "bridge" : "connector");
+  for (let index = segmentIndex + 1; index < route.points.length; index++) {
+    append(route.points[index], route.segmentTypes[index - 1]);
+  }
+  const trimmed = createRoute(points, segmentTypes, route.arrivalPoint);
+  return isDistrictRouteGeometrySafe(trimmed, bounds) ? trimmed : null;
 }
 
 export function shouldRecalculateDistrictRoute(
   position: DistrictWorldPoint,
-  route: DistrictWorldPoint[],
-  offRouteThreshold = 16,
+  route: DistrictRoute | DistrictWorldPoint[],
+  offRouteThreshold = DISTRICT_ROUTE_OFF_PATH_THRESHOLD,
 ): boolean {
   return distanceToDistrictRoute(position, route) > offRouteThreshold;
 }

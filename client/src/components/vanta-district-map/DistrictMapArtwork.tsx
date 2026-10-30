@@ -4,6 +4,11 @@ import {
   DISTRICT_MAP_WIDTH,
   DISTRICT_ZONES,
 } from "./district-map-geometry";
+import {
+  DISTRICT_DESTINATION_ACCESS_ROADS,
+  DISTRICT_ROAD_LINES,
+  districtRoadPath,
+} from "./district-navigation-geometry";
 
 type Props = {
   className?: string;
@@ -48,11 +53,31 @@ export function DistrictMapArtwork({ className = "vdm-map-art", viewBox = `0 0 $
         </g>
       ))}
       <g className="vdm-roads">
-        <path className="vdm-road-edge" d="M-20 116 H1020 M-20 365 H1020 M-20 450 H1020 M155 -20 V720 M365 -20 V720 M652 -20 V720 M856 -20 V720" />
-        <path className="vdm-road-fill" d="M-20 116 H1020 M-20 365 H1020 M-20 450 H1020 M155 -20 V720 M365 -20 V720 M652 -20 V720 M856 -20 V720" />
-        <path className="vdm-road-center" d="M-20 116 H1020 M-20 365 H1020 M-20 450 H1020 M155 -20 V720 M365 -20 V720 M652 -20 V720 M856 -20 V720" />
-        <path className="vdm-arterial-edge" d="M-20 211 C167 191 282 212 424 208 S689 220 1020 190 M489 -20 C472 128 501 224 491 341 S514 559 548 720" />
-        <path className="vdm-arterial" d="M-20 211 C167 191 282 212 424 208 S689 220 1020 190 M489 -20 C472 128 501 224 491 341 S514 559 548 720" />
+        {DISTRICT_ROAD_LINES.map((road) => {
+          const path = districtRoadPath(road.points);
+          const arterial = road.roadClass === "arterial";
+          return (
+            <g key={road.id} data-road-id={road.id}>
+              <path className={arterial ? "vdm-arterial-edge" : "vdm-road-edge"} d={path} />
+              <path className={arterial ? "vdm-arterial" : "vdm-road-fill"} d={path} />
+              {!arterial && <path className="vdm-road-center" d={path} />}
+            </g>
+          );
+        })}
+        {DISTRICT_DESTINATION_ACCESS_ROADS.map((road) => (
+          <g key={road.id} data-road-id={road.id} data-road-class={road.roadClass}>
+            <path className={road.roadClass === "bridge" ? "vdm-bridge-access-edge" : "vdm-alley-edge"} d={districtRoadPath(road.points)} />
+            <path className={road.roadClass === "bridge" ? "vdm-bridge-access-fill" : "vdm-alley-fill"} d={districtRoadPath(road.points)} />
+          </g>
+        ))}
+        {[155, 365, 652, 856].map((x) => (
+          <g key={`bridge-${x}`} className="vdm-bridge-mark" aria-hidden="true">
+            <path d={`M${x - 4} 263v21 M${x} 263v21 M${x + 4} 263v21`} />
+          </g>
+        ))}
+        <g className="vdm-bridge-mark" aria-hidden="true">
+          <path d="M488 278h14 M488 284h14 M488 290h14" />
+        </g>
       </g>
       <g className="vdm-road-labels">
         <text x="66" y="108">WESTLINE AVE</text><text x="667" y="358">CROWN CIRCUIT</text>
