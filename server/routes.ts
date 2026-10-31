@@ -22,6 +22,7 @@ import { registerCreatorWorkRoutes } from "./creator-work-routes";
 import { registerMemberManagementRoutes } from "./member-management-routes";
 import { registerSearchRoutes } from "./search-routes";
 import { registerActivityRoutes } from "./activity-routes";
+import { registerSocialRoutes } from "./social-routes";
 import { installDistrictChat } from "./district-chat";
 
 declare module "express-session" {
@@ -130,6 +131,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerMemberManagementRoutes(app);
   registerSearchRoutes(app);
   registerActivityRoutes(app);
+  registerSocialRoutes(app);
 
   // ── Admin Auth ───────────────────────────────────────────────────
   app.get("/api/admin/me", async (req, res) => {

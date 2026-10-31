@@ -136,6 +136,75 @@ const migrations: Migration[] = [
       `);
     },
   },
+  {
+    id: "0006_vanta_social_mvp",
+    apply: async () => {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS social_follows (
+          follower_user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          followed_user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          PRIMARY KEY (follower_user_id, followed_user_id),
+          CHECK (follower_user_id <> followed_user_id)
+        );
+        CREATE INDEX IF NOT EXISTS social_follows_followed_created_idx
+          ON social_follows(followed_user_id, created_at DESC);
+
+        CREATE TABLE IF NOT EXISTS member_transmissions (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          author_user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          body TEXT NOT NULL CHECK (char_length(btrim(body)) BETWEEN 1 AND 3000),
+          moderation_status TEXT NOT NULL DEFAULT 'published'
+            CHECK (moderation_status IN ('published', 'pending', 'hidden', 'removed')),
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
+        CREATE INDEX IF NOT EXISTS member_transmissions_public_created_idx
+          ON member_transmissions(moderation_status, created_at DESC);
+        CREATE INDEX IF NOT EXISTS member_transmissions_author_created_idx
+          ON member_transmissions(author_user_id, created_at DESC);
+
+        CREATE TABLE IF NOT EXISTS social_comments (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          transmission_id UUID NOT NULL REFERENCES member_transmissions(id) ON DELETE CASCADE,
+          author_user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          body TEXT NOT NULL CHECK (char_length(btrim(body)) BETWEEN 1 AND 1500),
+          moderation_status TEXT NOT NULL DEFAULT 'published'
+            CHECK (moderation_status IN ('published', 'pending', 'hidden', 'removed')),
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
+        CREATE INDEX IF NOT EXISTS social_comments_public_created_idx
+          ON social_comments(transmission_id, moderation_status, created_at ASC);
+        CREATE INDEX IF NOT EXISTS social_comments_author_created_idx
+          ON social_comments(author_user_id, created_at DESC);
+
+        CREATE TABLE IF NOT EXISTS social_reports (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          reporter_user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          target_type TEXT NOT NULL CHECK (target_type IN ('transmission', 'comment', 'project')),
+          target_id UUID NOT NULL,
+          reason TEXT NOT NULL CHECK (char_length(btrim(reason)) BETWEEN 1 AND 1000),
+          status TEXT NOT NULL DEFAULT 'open'
+            CHECK (status IN ('open', 'reviewed', 'dismissed', 'actioned')),
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          reviewed_at TIMESTAMPTZ,
+          UNIQUE (reporter_user_id, target_type, target_id)
+        );
+        CREATE INDEX IF NOT EXISTS social_reports_status_created_idx
+          ON social_reports(status, created_at DESC);
+
+        ALTER TABLE creator_work_items
+          ADD COLUMN IF NOT EXISTS visibility_status TEXT NOT NULL DEFAULT 'published'
+            CHECK (visibility_status IN ('draft', 'published'));
+        ALTER TABLE creator_work_items
+          ADD COLUMN IF NOT EXISTS moderation_status TEXT NOT NULL DEFAULT 'published'
+            CHECK (moderation_status IN ('published', 'pending', 'hidden', 'removed'));
+        CREATE INDEX IF NOT EXISTS creator_work_public_idx
+          ON creator_work_items(visibility_status, moderation_status, creator_user_id);
+      `);
+    },
+  },
 ];
 
 async function runMigrations() {

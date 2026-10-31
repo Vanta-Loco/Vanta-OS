@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Link, useRoute } from "wouter";
 import {
   ArrowLeft,
@@ -17,6 +18,8 @@ import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
 import { deliveryLabel, priceLabel } from "./marketplace";
 import { WorkCard, type WorkItem } from "@/components/creator-work";
+import { FollowButton } from "@/components/social/FollowButton";
+import { getUserToken } from "@/hooks/use-user";
 
 type Listing = {
   id: string;
@@ -62,6 +65,18 @@ export default function CreatorPublic() {
   const [tab, setTab] = useState<TabKey>("overview");
   const [work, setWork] = useState<WorkItem[]>([]);
   const [workLoading, setWorkLoading] = useState(true);
+  const { data: socialState } = useQuery<{ follower_count: number; following_count: number; is_following: boolean }>({
+    queryKey: ["/api/social/follow-state", profile?.username],
+    enabled: Boolean(profile?.username),
+    queryFn: async () => {
+      const token = getUserToken();
+      const response = await fetch(`/api/social/follow-state/${encodeURIComponent(profile?.username || "")}`, {
+        headers: token ? { "X-User-Token": token } : {},
+      });
+      if (!response.ok) throw new Error("Could not load creator connections");
+      return response.json();
+    },
+  });
 
   useEffect(() => {
     if (!params?.username) return;
@@ -191,6 +206,11 @@ export default function CreatorPublic() {
                   {item}
                 </span>
               ))}
+            </div>
+            <div className="mt-5 flex flex-wrap items-center gap-4">
+              <span className="text-xs text-muted-foreground"><strong className="text-foreground">{socialState?.follower_count ?? 0}</strong> followers</span>
+              <span className="text-xs text-muted-foreground"><strong className="text-foreground">{socialState?.following_count ?? 0}</strong> following</span>
+              <FollowButton username={profile.username} initialFollowing={socialState?.is_following ?? false} />
             </div>
             {profile.bio && <p className="mt-7 max-w-3xl text-base leading-relaxed text-muted-foreground md:text-lg">{profile.bio}</p>}
           </div>

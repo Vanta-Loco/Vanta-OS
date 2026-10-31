@@ -212,7 +212,9 @@ export function registerCreatorRoutes(app: Express) {
       const result = await pool.query(
         `SELECT c.*, u.username
          FROM creator_profiles c JOIN users u ON u.id=c.user_id
-         WHERE LOWER(u.username)=LOWER($1) LIMIT 1`,
+         WHERE LOWER(u.username)=LOWER($1)
+           AND COALESCE(u.account_status, 'active') <> 'suspended'
+         LIMIT 1`,
         [req.params.username],
       );
       const row = result.rows[0];

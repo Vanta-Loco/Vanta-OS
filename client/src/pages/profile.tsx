@@ -5,9 +5,10 @@ import { Header } from "@/components/header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useUser } from "@/hooks/use-user";
+import { getUserToken, useUser } from "@/hooks/use-user";
+import { FollowButton } from "@/components/social/FollowButton";
 import {
-  User, MapPin, Calendar, ArrowLeft, Settings, Link as LinkIcon,
+  User, MapPin, Calendar, Settings, Link as LinkIcon,
   Music, BookOpen, Leaf, Star,
 } from "lucide-react";
 
@@ -31,6 +32,13 @@ interface ProfileData {
   social_links: Record<string, string>;
 }
 
+interface MemberTransmission {
+  id: string;
+  body: string;
+  created_at: string;
+  comment_count: number;
+}
+
 export default function ProfilePage() {
   const { username } = useParams<{ username: string }>();
   const { user: currentUser, isAuthenticated } = useUser();
@@ -43,6 +51,27 @@ export default function ProfilePage() {
         if (!r.ok) throw new Error("Not found");
         return r.json();
       }),
+  });
+  const { data: socialState } = useQuery<{ follower_count: number; following_count: number; is_following: boolean }>({
+    queryKey: ["/api/social/follow-state", username],
+    enabled: Boolean(username),
+    queryFn: async () => {
+      const token = getUserToken();
+      const response = await fetch(`/api/social/follow-state/${encodeURIComponent(username || "")}`, {
+        headers: token ? { "X-User-Token": token } : {},
+      });
+      if (!response.ok) throw new Error("Could not load member connections");
+      return response.json();
+    },
+  });
+  const { data: memberTransmissions } = useQuery<{ transmissions: MemberTransmission[] }>({
+    queryKey: ["/api/social/users", username, "transmissions"],
+    enabled: Boolean(username && profile),
+    queryFn: async () => {
+      const response = await fetch(`/api/social/users/${encodeURIComponent(username || "")}/transmissions`);
+      if (!response.ok) throw new Error("Could not load Member Transmissions");
+      return response.json();
+    },
   });
 
   if (isLoading) {
@@ -122,6 +151,11 @@ export default function ProfilePage() {
             )}
           </div>
           <p className="text-sm text-muted-foreground font-mono mb-3">@{profile.username}</p>
+          <div className="mb-4 flex flex-wrap items-center gap-3">
+            <span className="text-xs text-muted-foreground"><strong className="text-foreground">{socialState?.follower_count ?? 0}</strong> followers</span>
+            <span className="text-xs text-muted-foreground"><strong className="text-foreground">{socialState?.following_count ?? 0}</strong> following</span>
+            {!isOwnProfile && <FollowButton username={profile.username} initialFollowing={socialState?.is_following ?? false} />}
+          </div>
 
           <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
             {profile.location && (
@@ -186,6 +220,7 @@ export default function ProfilePage() {
             <TabsTrigger value="music" className="text-xs">Saved Music</TabsTrigger>
             <TabsTrigger value="posts" className="text-xs">Saved Posts</TabsTrigger>
             <TabsTrigger value="interests" className="text-xs">App Interests</TabsTrigger>
+            <TabsTrigger value="transmissions" className="text-xs">Transmissions</TabsTrigger>
           </TabsList>
 
           <TabsContent value="activity" className="mt-6">
@@ -227,6 +262,27 @@ export default function ProfilePage() {
             ) : (
               <div className="border border-border/50 rounded-xl p-8 text-center">
                 <p className="text-sm text-muted-foreground/60">No interests selected yet.</p>
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="transmissions" className="mt-6">
+            {(memberTransmissions?.transmissions.length ?? 0) > 0 ? (
+              <div className="space-y-3">
+                {memberTransmissions!.transmissions.map(transmission => (
+                  <article key={transmission.id} className="rounded-xl border border-border/70 bg-card/30 p-5">
+                    <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">{transmission.body}</p>
+                    <div className="mt-4 flex items-center justify-between gap-3 border-t border-border/60 pt-3 text-[10px] font-mono text-muted-foreground/55">
+                      <time>{new Date(transmission.created_at).toLocaleString()}</time>
+                      <Link href="/community" className="text-primary/80 hover:text-primary">Open Community Feed</Link>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-xl border border-border/50 p-8 text-center">
+                <p className="text-sm text-muted-foreground/60">No public Member Transmissions yet.</p>
+                {isOwnProfile && <Link href="/community" className="mt-3 inline-block text-xs text-primary hover:underline">Publish a Transmission</Link>}
               </div>
             )}
           </TabsContent>

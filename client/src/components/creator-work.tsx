@@ -13,12 +13,13 @@ export type WorkItem = {
   external_url: string | null; thumbnail_url: string | null; room_id: string | null;
   room_name?: string | null; room_slug?: string | null; sort_order: number;
   is_featured: boolean; created_at: string; updated_at: string;
+  visibility_status?: "draft" | "published"; moderation_status?: string;
   creator_username?: string | null; creator_display_name?: string | null; creator_is_certified?: boolean;
 };
 type Room = { id: string; name: string; visibility: string; joined: boolean };
-type WorkForm = { title: string; description: string; work_type: WorkType; external_url: string; thumbnail_url: string; room_id: string; is_featured: boolean };
+type WorkForm = { title: string; description: string; work_type: WorkType; external_url: string; thumbnail_url: string; room_id: string; is_featured: boolean; visibility_status: "draft" | "published" };
 
-const emptyForm: WorkForm = { title: "", description: "", work_type: "Music", external_url: "", thumbnail_url: "", room_id: "", is_featured: false };
+const emptyForm: WorkForm = { title: "", description: "", work_type: "Music", external_url: "", thumbnail_url: "", room_id: "", is_featured: false, visibility_status: "published" };
 const iconFor = (type: string) => type === "Music" ? Music2 : type === "Photography" ? Camera : type === "Video" ? Film : type === "Fashion" ? Shirt : type === "Writing / Media" ? FileText : type === "Web / Development" ? Code2 : type === "Design" ? Palette : type === "Artwork" ? Image : SparkIcon;
 function SparkIcon(props: { className?: string }) { return <Palette {...props} />; }
 function authHeaders(): Record<string, string> { const token = getUserToken(); return token ? { "X-User-Token": token } : {}; }
@@ -34,6 +35,7 @@ export function WorkCard({ item, manage = false, onEdit, onDelete }: { item: Wor
       <div className={`relative aspect-[16/9] overflow-hidden ${item.thumbnail_url ? "bg-muted" : "bg-[radial-gradient(circle_at_70%_25%,rgba(140,92,190,.38),transparent_38%),linear-gradient(135deg,hsl(var(--muted)),hsl(var(--background)))]"}`}>
         {item.thumbnail_url ? <img src={item.thumbnail_url} alt="" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" /> : <div className="flex h-full items-center justify-center"><Icon className="h-12 w-12 text-primary/40" /></div>}
         {item.is_featured && <span className="absolute left-4 top-4 flex items-center gap-1.5 rounded-full border border-primary/60 bg-background/90 px-3 py-1.5 text-[10px] font-mono uppercase tracking-widest text-primary"><Check className="h-3 w-3" /> Featured</span>}
+        {manage && (item.visibility_status === "draft" || item.moderation_status === "hidden") && <span className="absolute right-4 top-4 rounded-full border border-amber-400/50 bg-background/90 px-3 py-1.5 text-[10px] font-mono uppercase tracking-widest text-amber-200">{item.moderation_status === "hidden" ? "Hidden by moderation" : "Draft"}</span>}
       </div>
       <div className="p-5">
         <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-widest text-muted-foreground/60"><Icon className="h-3.5 w-3.5 text-primary/75" />{item.work_type}</div>
@@ -42,6 +44,7 @@ export function WorkCard({ item, manage = false, onEdit, onDelete }: { item: Wor
         {item.description && <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-muted-foreground">{item.description}</p>}
         <div className="mt-5 flex flex-wrap items-center gap-3 text-xs">
           {item.room_id && item.room_name && <Link href={`/rooms/${item.room_id}`} className="text-primary/80 hover:text-primary">Room · {item.room_name}</Link>}
+          {item.visibility_status !== "draft" && item.moderation_status !== "hidden" && <Link href={`/projects/${item.id}`} className="text-primary/80 hover:text-primary">Open project page</Link>}
           {item.external_url && <a href={item.external_url} target="_blank" rel="noopener noreferrer" className="ml-auto inline-flex items-center gap-1.5 text-foreground hover:text-primary">View Work <ExternalLink className="h-3.5 w-3.5" /></a>}
         </div>
         {manage && <div className="mt-5 flex gap-2 border-t border-border pt-4"><Button size="sm" variant="outline" onClick={onEdit} className="gap-2"><Pencil className="h-3.5 w-3.5" /> Edit</Button><Button size="sm" variant="ghost" onClick={onDelete} className="gap-2 text-muted-foreground hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /> Delete</Button></div>}
@@ -51,7 +54,7 @@ export function WorkCard({ item, manage = false, onEdit, onDelete }: { item: Wor
 }
 
 function WorkForm({ initial, rooms, saving, onSave, onCancel }: { initial?: WorkItem; rooms: Room[]; saving: boolean; onSave: (form: WorkForm) => void; onCancel: () => void }) {
-  const [form, setForm] = useState<WorkForm>(initial ? { title: initial.title, description: initial.description || "", work_type: initial.work_type, external_url: initial.external_url || "", thumbnail_url: initial.thumbnail_url || "", room_id: initial.room_id || "", is_featured: initial.is_featured } : emptyForm);
+  const [form, setForm] = useState<WorkForm>(initial ? { title: initial.title, description: initial.description || "", work_type: initial.work_type, external_url: initial.external_url || "", thumbnail_url: initial.thumbnail_url || "", room_id: initial.room_id || "", is_featured: initial.is_featured, visibility_status: initial.visibility_status ?? "published" } : emptyForm);
   const set = (key: keyof WorkForm, value: string | boolean) => setForm(current => ({ ...current, [key]: value }));
   return <div className="rounded-2xl border border-primary/40 bg-card/50 p-6 md:p-8">
     <div className="mb-7 flex items-start justify-between border-b border-border pb-5"><div><p className="text-[10px] font-mono uppercase tracking-[.25em] text-primary/75">Creator archive</p><h3 className="mt-2 font-display text-2xl font-semibold">{initial ? "Edit Work" : "Add Work"}</h3></div><button onClick={onCancel} className="text-muted-foreground hover:text-foreground"><X className="h-5 w-5" /></button></div>
@@ -59,6 +62,7 @@ function WorkForm({ initial, rooms, saving, onSave, onCancel }: { initial?: Work
       <div className="grid gap-5 sm:grid-cols-2"><label className="text-xs text-muted-foreground">Title <span className="text-primary">*</span><Input className="mt-2" value={form.title} onChange={e => set("title", e.target.value)} placeholder="The name of the work" maxLength={200} /></label><label className="text-xs text-muted-foreground">Work type <select className="mt-2 flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground" value={form.work_type} onChange={e => set("work_type", e.target.value as WorkType)}>{WORK_TYPES.map(type => <option key={type}>{type}</option>)}</select></label></div>
       <label className="block text-xs text-muted-foreground">Description<Textarea className="mt-2 min-h-24 resize-y" value={form.description} onChange={e => set("description", e.target.value)} placeholder="A note from the archive…" maxLength={5000} /></label>
       <div className="grid gap-5 sm:grid-cols-2"><label className="text-xs text-muted-foreground">External URL<Input className="mt-2" type="url" value={form.external_url} onChange={e => set("external_url", e.target.value)} placeholder="https://…" /></label><label className="text-xs text-muted-foreground">Thumbnail URL<Input className="mt-2" type="url" value={form.thumbnail_url} onChange={e => set("thumbnail_url", e.target.value)} placeholder="https://…" /></label></div>
+      <label className="block text-xs text-muted-foreground">Project page visibility<select className="mt-2 flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground" value={form.visibility_status} onChange={e => set("visibility_status", e.target.value as "draft" | "published")}><option value="published">Published</option><option value="draft">Draft</option></select><span className="mt-1 block text-[11px] text-muted-foreground/60">Drafts stay visible only in your creator dashboard.</span></label>
       <label className="block text-xs text-muted-foreground">Room association<select className="mt-2 flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground" value={form.room_id} onChange={e => set("room_id", e.target.value)}><option value="">No Room association</option>{rooms.filter(room => room.visibility === "public" && room.joined).map(room => <option key={room.id} value={room.id}>{room.name}</option>)}</select></label>
       <label className="flex cursor-pointer items-center gap-3 text-sm text-muted-foreground"><input type="checkbox" checked={form.is_featured} onChange={e => set("is_featured", e.target.checked)} className="h-4 w-4 accent-primary" /> Mark as Featured <span className="text-xs text-muted-foreground/50">(maximum 3)</span></label>
     </div>

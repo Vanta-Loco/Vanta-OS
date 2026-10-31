@@ -193,7 +193,9 @@ export function registerUserRoutes(app: Express) {
                 p.creator_category, p.interests, p.social_links
          FROM users u
          LEFT JOIN user_profiles p ON p.user_id = u.id
-         WHERE u.username=$1 LIMIT 1`,
+         WHERE u.username=$1
+           AND COALESCE(u.account_status, 'active') <> 'suspended'
+         LIMIT 1`,
         [req.params.username.toLowerCase()],
       );
       if (!r.rows[0]) return res.status(404).json({ error: "Profile not found" });

@@ -24,6 +24,7 @@ const EDITABLE_FIELDS = [
   "room_id",
   "sort_order",
   "is_featured",
+  "visibility_status",
 ] as const;
 
 function text(value: unknown, max: number): string {
@@ -53,6 +54,12 @@ function parseWorkType(value: unknown): { value?: string; error?: string } {
   return { value: workType };
 }
 
+function parseVisibilityStatus(value: unknown): { value?: "draft" | "published"; error?: string } {
+  const status = value === undefined ? "published" : value;
+  if (status !== "draft" && status !== "published") return { error: "visibility_status is invalid" };
+  return { value: status };
+}
+
 function parseSortOrder(value: unknown): { value?: number; error?: string } {
   if (value === undefined) return { value: 0 };
   if (typeof value !== "number" || !Number.isInteger(value) || value < 0 || value > 1000000) {
@@ -69,7 +76,7 @@ function parseRoomId(value: unknown): { value?: string | null; error?: string } 
   return { value };
 }
 
-function publicWork(row: any) {
+function publicWork(row: any, includeModeration = false) {
   return {
     id: row.id,
     title: row.title,
@@ -82,6 +89,8 @@ function publicWork(row: any) {
     room_slug: row.room_slug ?? null,
     sort_order: row.sort_order,
     is_featured: row.is_featured,
+    visibility_status: row.visibility_status ?? "published",
+    ...(includeModeration ? { moderation_status: row.moderation_status ?? "published" } : {}),
     created_at: row.created_at,
     updated_at: row.updated_at,
   };
@@ -102,6 +111,8 @@ function validateCreate(body: any): { values?: Record<string, unknown>; error?: 
   if (roomId.error) return { error: roomId.error };
   const sortOrder = parseSortOrder(body.sort_order);
   if (sortOrder.error) return { error: sortOrder.error };
+  const visibilityStatus = parseVisibilityStatus(body.visibility_status);
+  if (visibilityStatus.error) return { error: visibilityStatus.error };
   if (body.is_featured !== undefined && typeof body.is_featured !== "boolean") {
     return { error: "is_featured must be a boolean" };
   }
@@ -115,6 +126,7 @@ function validateCreate(body: any): { values?: Record<string, unknown>; error?: 
       room_id: roomId.value,
       sort_order: sortOrder.value,
       is_featured: body.is_featured ?? false,
+      visibility_status: visibilityStatus.value,
     },
   };
 }
@@ -156,6 +168,11 @@ function validateUpdate(body: any): { values?: Record<string, unknown>; error?: 
   if (body.is_featured !== undefined) {
     if (typeof body.is_featured !== "boolean") return { error: "is_featured must be a boolean" };
     values.is_featured = body.is_featured;
+  }
+  if (body.visibility_status !== undefined) {
+    const visibilityStatus = parseVisibilityStatus(body.visibility_status);
+    if (visibilityStatus.error) return { error: visibilityStatus.error };
+    values.visibility_status = visibilityStatus.value;
   }
   return { values };
 }
@@ -200,7 +217,7 @@ export function registerCreatorWorkRoutes(app: Express) {
          ORDER BY w.is_featured DESC, w.sort_order ASC, w.created_at DESC`,
         [user.userId],
       );
-      return res.json(result.rows.map(publicWork));
+      return res.json(result.rows.map((row: any) => publicWork(row, true)));
     } catch (error) {
       console.error("[creator-work-routes] own list:", error);
       return res.status(500).json({ error: "Failed to fetch Creator Work" });
@@ -227,8 +244,8 @@ export function registerCreatorWorkRoutes(app: Express) {
       }
       const result = await client.query(
         `INSERT INTO creator_work_items
-          (creator_user_id, title, description, work_type, external_url, thumbnail_url, room_id, sort_order, is_featured)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+          (creator_user_id, title, description, work_type, external_url, thumbnail_url, room_id, sort_order, is_featured, visibility_status)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
          RETURNING *`,
         [user.userId, ...Object.values(parsed.values!)],
       );
@@ -265,7 +282,7 @@ export function registerCreatorWorkRoutes(app: Express) {
         }
       }
 
-      return res.status(201).json(publicWork(result.rows[0]));
+      return res.status(201).json(publicWork(result.rows[0], true));
     } catch (error) {
       await client.query("ROLLBACK").catch(() => undefined);
       console.error("[creator-work-routes] create:", error);
@@ -312,7 +329,7 @@ export function registerCreatorWorkRoutes(app: Express) {
         [req.params.id, ...values, user.userId],
       );
       await client.query("COMMIT");
-      return res.json(publicWork(result.rows[0]));
+      return res.json(publicWork(result.rows[0], true));
     } catch (error) {
       await client.query("ROLLBACK").catch(() => undefined);
       console.error("[creator-work-routes] update:", error);
@@ -346,11 +363,14 @@ export function registerCreatorWorkRoutes(app: Express) {
          JOIN creator_profiles c ON c.user_id=w.creator_user_id
          JOIN users u ON u.id=c.user_id
          LEFT JOIN rooms r ON r.id=w.room_id
-         WHERE LOWER(u.username)=LOWER($1)
+          WHERE LOWER(u.username)=LOWER($1)
+            AND COALESCE(u.account_status, 'active') <> 'suspended'
+            AND w.visibility_status='published'
+            AND w.moderation_status='published'
          ORDER BY w.is_featured DESC, w.sort_order ASC, w.created_at DESC`,
         [req.params.username],
       );
-      return res.json(result.rows.map(publicWork));
+      return res.json(result.rows.map(row => publicWork(row)));
     } catch (error) {
       console.error("[creator-work-routes] public list:", error);
       return res.status(500).json({ error: "Failed to fetch Creator Work" });

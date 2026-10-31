@@ -37,6 +37,7 @@ const NAV: NavGroup[] = [
     items: [
       { label: "Users",       href: "/admin/users",      icon: Users      },
       { label: "Creators",    href: "/admin/creators",   icon: Sparkles   },
+      { label: "Social Reports", href: "/admin/social", icon: Shield },
     ],
   },
   {

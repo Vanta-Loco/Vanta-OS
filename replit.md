@@ -168,3 +168,11 @@ Preferred communication style: Simple, everyday language.
 - Custom CSS variables for theming
 - HSL color format for dynamic color manipulation
 - Automatic border computation for interactive elements
+
+## Product roadmap
+
+- The Creative Underground is the public cultural brand; Vanta OS is the connected platform.
+- Vanta Creator is a future paid subscription product with Solo, Pro, and Studio plans.
+- Cyberdecks are paid products.
+- Vanta Studio, when developed, will offer both one-time purchase and subscription options.
+- A full Vanta DAW is planned for later and is outside the current MVP.

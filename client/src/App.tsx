@@ -17,6 +17,8 @@ import CreatePost from "@/pages/create";
 import EditPost from "@/pages/edit";
 import SearchPage from "@/pages/search";
 import About from "@/pages/about";
+import Community from "@/pages/community";
+import ProjectPage from "@/pages/project";
 import Music from "@/pages/music";
 import Releases from "@/pages/releases";
 import ReleasesNew from "@/pages/releases-new";
@@ -36,6 +38,7 @@ import AdminReleases from "@/pages/admin/releases";
 import AdminVault from "@/pages/admin/vault";
 import AdminWorld from "@/pages/admin/world";
 import AdminBlackIndex from "@/pages/admin/black-index";
+import AdminSocial from "@/pages/admin/social";
 import AdminUsers from "@/pages/admin/users";
 import AdminUserDetail from "@/pages/admin/user-detail";
 import AdminCreators from "@/pages/admin/creators";
@@ -83,6 +86,7 @@ const SKIP_BOOT_KEY     = "vanta-skip-os-boot"; // localStorage: user opted to s
 // ── Paths that bypass all startup phases ───────────────────────────────────
 const SKIP_STARTUP_PATHS = [
   "/world", "/vault", "/admin", "/stonerism", "/enter", "/godforsaken-paradise",
+  "/community", "/projects",
 ];
 function shouldSkipStartup(path: string): boolean {
   return SKIP_STARTUP_PATHS.some(p => path === p || path.startsWith(p + "/"));
@@ -139,6 +143,8 @@ function Router() {
       <Route path="/edit/:id" component={EditPost} />
       <Route path="/search" component={SearchPage} />
       <Route path="/about" component={About} />
+      <Route path="/community" component={Community} />
+      <Route path="/projects/:id" component={ProjectPage} />
       <Route path="/music" component={Music} />
       <Route path="/releases" component={Releases} />
       <Route path="/releases/new" component={ReleasesNew} />
@@ -184,6 +190,7 @@ function Router() {
       <Route path="/admin/stonerism" component={StonerismAdmin} />
       <Route path="/admin/world" component={AdminWorld} />
       <Route path="/admin/black-index" component={AdminBlackIndex} />
+      <Route path="/admin/social" component={AdminSocial} />
       <Route path="/admin/creators" component={AdminCreators} />
       <Route path="/admin/users/:id" component={AdminUserDetail} />
       <Route path="/admin/users" component={AdminUsers} />

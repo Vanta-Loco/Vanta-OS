@@ -31,6 +31,7 @@ const navLinks = [
 const compactNavLinks = navLinks.filter(({ label }) => label !== "About");
 
 const osLinks = [
+  { href: "/community",  label: "Community Feed",   desc: "Member Transmissions",  Icon: Radio },
   { href: "/world",      label: "District",         desc: "Vanta City map",       Icon: MapPin    },
   { href: "/play",       label: "Play",             desc: "Pickup sports, competitions and community activity", Icon: Trophy},
   { href: "/rooms",      label: "Rooms",            desc: "Creative spaces and community rooms", Icon: Users},
