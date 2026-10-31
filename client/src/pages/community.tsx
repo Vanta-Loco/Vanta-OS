@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { ArrowRight, MessageCircle, MoreHorizontal, Send, ShieldAlert, Trash2 } from "lucide-react";
 import { Header } from "@/components/header";
@@ -28,6 +28,10 @@ type SocialComment = {
   username: string;
   display_name: string;
   avatar_url: string | null;
+};
+type FeedPage = {
+  transmissions: Transmission[];
+  nextCursor: string | null;
 };
 
 function authHeaders(): Record<string, string> {
@@ -266,11 +270,18 @@ export default function Community() {
   const [scope, setScope] = useState<"all" | "following">("all");
   const [body, setBody] = useState("");
   const queryClient = useQueryClient();
-  const { data, isLoading, error } = useQuery<{ transmissions: Transmission[] }>({
+  const { data, isLoading, error, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery<FeedPage>({
     queryKey: ["/api/social/feed", scope],
-    queryFn: () => requestJson(`/api/social/feed?scope=${scope}`, { headers: authHeaders() }),
+    queryFn: ({ pageParam }) => {
+      const params = new URLSearchParams({ scope });
+      if (typeof pageParam === "string") params.set("cursor", pageParam);
+      return requestJson(`/api/social/feed?${params.toString()}`, { headers: authHeaders() });
+    },
+    initialPageParam: null,
+    getNextPageParam: lastPage => lastPage.nextCursor ?? undefined,
     enabled: scope === "all" || isAuthenticated,
   });
+  const transmissions = data?.pages.flatMap(page => page.transmissions) ?? [];
   const create = useMutation({
     mutationFn: () => requestJson("/api/social/transmissions", {
       method: "POST",
@@ -322,25 +333,32 @@ export default function Community() {
               <button type="button" aria-pressed={scope === "all"} onClick={() => setScope("all")} className={`rounded-full px-4 py-2 text-[10px] font-mono uppercase tracking-widest transition-colors ${scope === "all" ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground"}`}>Everyone</button>
               <button type="button" aria-pressed={scope === "following"} onClick={() => isAuthenticated ? setScope("following") : window.location.assign("/login")} className={`rounded-full px-4 py-2 text-[10px] font-mono uppercase tracking-widest transition-colors ${scope === "following" ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground"}`}>Following</button>
             </div>
-            <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/45">{data?.transmissions.length ?? 0} signals</span>
+            <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/45">{transmissions.length} signals loaded</span>
           </div>
 
           <div className="space-y-5">
             {isLoading && <div className="animate-pulse rounded-2xl border border-border p-8 text-sm text-muted-foreground">Listening for transmissions…</div>}
             {error && <div role="alert" className="rounded-xl border border-destructive/40 bg-destructive/5 p-5 text-sm text-destructive">The community feed could not be loaded.</div>}
-            {!isLoading && !error && data?.transmissions.length === 0 && (
+            {!isLoading && !error && transmissions.length === 0 && (
               <div className="rounded-2xl border border-dashed border-border px-6 py-16 text-center">
                 <p className="font-display text-2xl">No transmissions yet<span className="text-primary">.</span></p>
                 <p className="mt-2 text-sm text-muted-foreground">{scope === "following" ? "Follow a Member to see their posts here." : "Start the conversation with the first signal."}</p>
               </div>
             )}
-            {data?.transmissions.map(item => (
+            {transmissions.map(item => (
               <TransmissionCard
                 key={item.id}
                 item={item}
                 onChanged={() => queryClient.invalidateQueries({ queryKey: ["/api/social/feed"] })}
               />
             ))}
+            {hasNextPage && (
+              <div className="pt-3 text-center">
+                <Button type="button" variant="outline" disabled={isFetchingNextPage} onClick={() => fetchNextPage()}>
+                  {isFetchingNextPage ? "Listening…" : "Load older transmissions"}
+                </Button>
+              </div>
+            )}
           </div>
           <div className="mt-10 border-t border-border/60 pt-5 text-center">
             <p className="text-[10px] font-mono uppercase tracking-[.2em] text-muted-foreground/45">The Creative Underground is the public culture · Vanta OS connects the platform</p>

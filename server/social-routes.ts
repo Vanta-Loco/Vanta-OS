@@ -4,8 +4,10 @@ import { requireAdmin } from "./admin-auth";
 import { getRequestUser, requireUser } from "./user-auth";
 import {
   canFollowUser,
+  encodeSocialFeedCursor,
   parseModerationState,
   parseReportTarget,
+  parseSocialFeedCursor,
   parseSocialText,
 } from "./social-logic";
 
@@ -76,6 +78,9 @@ export function registerSocialRoutes(app: Express) {
   app.get("/api/social/feed", async (req: Request, res: Response) => {
     const scope = req.query.scope === "following" ? "following" : "all";
     const user = await getRequestUser(req);
+    const cursor = parseSocialFeedCursor(req.query.cursor);
+    if (cursor === null) return res.status(400).json({ error: "Feed cursor is invalid" });
+    const pageSize = 25;
     if (scope === "following" && !user) return res.status(401).json({ error: "Sign in to view your following feed" });
 
     try {
@@ -101,11 +106,16 @@ export function registerSocialRoutes(app: Express) {
              SELECT 1 FROM social_follows f
              WHERE f.follower_user_id=$1 AND f.followed_user_id=u.id
            ))
+           AND ($3::timestamptz IS NULL OR (t.created_at, t.id) < ($3::timestamptz, $4::uuid))
          ORDER BY t.created_at DESC, t.id DESC
-         LIMIT 100`,
-        [user?.userId ?? null, scope],
+         LIMIT $5`,
+        [user?.userId ?? null, scope, cursor?.createdAt ?? null, cursor?.id ?? null, pageSize + 1],
       );
-      return res.json({ transmissions: result.rows });
+      const hasMore = result.rows.length > pageSize;
+      const transmissions = result.rows.slice(0, pageSize);
+      const last = hasMore ? transmissions.at(-1) : null;
+      const nextCursor = last ? encodeSocialFeedCursor({ createdAt: last.created_at, id: last.id }) : null;
+      return res.json({ transmissions, nextCursor });
     } catch (error) {
       console.error("[social] feed:", error);
       return res.status(500).json({ error: "Unable to load the member feed" });

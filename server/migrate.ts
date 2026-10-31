@@ -205,6 +205,17 @@ const migrations: Migration[] = [
       `);
     },
   },
+  {
+    id: "0007_social_feed_cursor_index",
+    apply: async () => {
+      await pool.query(`
+        CREATE INDEX IF NOT EXISTS member_transmissions_feed_cursor_idx
+          ON member_transmissions(moderation_status, created_at DESC, id DESC);
+        CREATE INDEX IF NOT EXISTS member_transmissions_author_cursor_idx
+          ON member_transmissions(author_user_id, moderation_status, created_at DESC, id DESC);
+      `);
+    },
+  },
 ];
 
 async function runMigrations() {
